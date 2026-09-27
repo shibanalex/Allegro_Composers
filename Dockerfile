@@ -33,7 +33,9 @@ COPY --from=web /web/.output /app/web
 COPY start.sh /app/start.sh
 
 # Never run as root
-RUN useradd --create-home --uid 1000 allegro && chmod +x /app/start.sh
+# (a writable uploads folder, used only when files are kept on local disk: STORAGE_BACKEND=local)
+RUN useradd --create-home --uid 1000 allegro && chmod +x /app/start.sh \
+    && mkdir -p /app/backend/media && chown allegro /app/backend/media
 USER allegro
 
 EXPOSE 3000
