@@ -27,6 +27,7 @@ ENV/
 *.log
 .DS_Store
 allegro.db
-uploads/
+# Local uploads only (anchored: services/media is source code)
+/uploads/
 allegro_platform.db
-media/
+/media/
