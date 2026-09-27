@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Access. While the community is invite-only: no sign-ups, and only these usernames may log in
     # (comma-separated; empty = everyone with an account). Hidden ("shadowed") accounts can never log in.
-    registration_open: bool = True
+    registration_open: bool = False  # closed unless explicitly opened: a forgotten setting must not let strangers in
     login_allowlist: str = ""
 
     # Comma-separated list of allowed browser origins
