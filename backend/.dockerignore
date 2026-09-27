@@ -1,0 +1,13 @@
+.venv
+**/__pycache__
+*.pyc
+.pytest_cache
+.env
+*.db
+media
+uploads
+tests
+# legacy single-app backend (superseded by allegro_common + services)
+app
+main.py
+seed.py

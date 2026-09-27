@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------- dependencies & builds
+node_modules/
+.nuxt/
+.output/
+dist/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# ---------------------------------------------------------------- secrets
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------- local data
+# Development database and uploaded files (scores, audio, portraits):
+# these are user data, recreated locally with `alembic upgrade head` and `python -m scripts.seed`
+*.db
+*.sqlite3
+backend/media/
+backend/uploads/
+
+# ---------------------------------------------------------------- OS & editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# ---------------------------------------------------------------- stray files
+# An empty file named "git" created by accident in the project root
+/git
+
+# ---------------------------------------------------------------- personal files
+# The founder's portrait: personal, not part of the code (uploaded to their hall separately)
+backend/Allegro.png
+
+# ---------------------------------------------------------------- legacy first version (superseded, kept on disk only)
+backend/app/
+backend/main.py
+backend/seed.py
+backend/Dockerfile
+backend/railway.json
+backend/pyproject.toml
+backend/tests/test_api.py
+frontend/src/
+frontend/index.html
+frontend/vite.config.js
+frontend/vercel.json

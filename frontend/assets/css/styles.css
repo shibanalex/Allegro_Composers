@@ -1,0 +1,471 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-ink-900 text-parchment antialiased;
+    font-size: 18px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen font-serif;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display font-normal text-parchment;
+    line-height: 1.15;
+  }
+
+  ::selection {
+    @apply bg-gold/30 text-parchment;
+  }
+
+  :focus-visible {
+    @apply outline outline-1 outline-offset-4 outline-gold;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ---------- Painted canvas backdrop (chiaroscuro, like an old oil painting) ---------- */
+  .canvas-bg {
+    @apply pointer-events-none fixed inset-0 -z-10;
+    background:
+      radial-gradient(ellipse 55% 45% at 12% -5%, rgba(196, 140, 66, 0.2), transparent 70%),
+      radial-gradient(ellipse 35% 30% at 18% 8%, rgba(236, 190, 120, 0.08), transparent 70%),
+      radial-gradient(ellipse 45% 40% at 92% 95%, rgba(110, 24, 22, 0.38), transparent 70%),
+      radial-gradient(ellipse 40% 35% at 80% 30%, rgba(40, 62, 54, 0.28), transparent 70%),
+      radial-gradient(ellipse 120% 90% at 50% 40%, transparent 35%, rgba(0, 0, 0, 0.85) 100%),
+      #0a0807;
+  }
+  /* Brush strokes */
+  .canvas-bg::before {
+    content: '';
+    @apply absolute inset-0;
+    opacity: 0.55;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .018' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .75 0 0 0 0 .55 0 0 0 0 .3 0 0 0 1.4 -.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+  }
+  /* Canvas weave + grain */
+  .canvas-bg::after {
+    content: '';
+    @apply absolute inset-0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .82 0 0 0 0 .7 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      repeating-linear-gradient(0deg, rgba(255, 240, 210, 0.012) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px);
+  }
+
+  /* ---------- Typography ---------- */
+  .eyebrow {
+    @apply font-caps text-sm font-semibold text-gold;
+    letter-spacing: 0.3em;
+  }
+
+  .text-gilded {
+    background: linear-gradient(175deg, #f3dca6 0%, #d4ab62 35%, #9c7336 55%, #e6c47f 75%, #a67c3d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .title-script {
+    @apply font-script font-bold text-gilded;
+    line-height: 1.4;
+    padding: .15em .3em .25em;
+    filter: drop-shadow(0 2px 12px rgba(201, 163, 106, 0.18));
+  }
+
+  /* ---------- Controls ---------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-7 py-2.5 font-caps text-base font-semibold transition duration-300 disabled:cursor-not-allowed disabled:opacity-40;
+    letter-spacing: 0.2em;
+  }
+
+  .btn-primary {
+    @apply btn text-ink-950;
+    background: linear-gradient(170deg, #ecd29a, #c9a36a 45%, #a07a40);
+    box-shadow: inset 0 1px 0 rgba(255, 240, 200, 0.5), 0 8px 24px -12px rgba(201, 163, 106, 0.6);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+  }
+
+  .btn-secondary {
+    @apply btn border border-gold/50 text-gold-light hover:border-gold hover:bg-gold/10;
+  }
+
+  .btn-ghost {
+    @apply btn px-3 text-parchment-muted hover:text-gold;
+  }
+
+  .card {
+    @apply border border-gold/10 bg-ink-850/70 p-6 shadow-2xl shadow-black/60 sm:p-8;
+  }
+
+  .link {
+    @apply text-gold underline decoration-gold/30 underline-offset-4 transition hover:decoration-gold;
+  }
+
+  .field-label {
+    @apply mb-1.5 block font-caps text-sm font-semibold text-parchment-faint;
+    letter-spacing: 0.18em;
+  }
+
+  .field {
+    @apply w-full border border-ink-600 bg-ink-950/70 px-4 py-2.5 text-parchment placeholder-parchment-faint/60 outline-none transition focus:border-gold/70;
+  }
+
+  .rule {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gold/30 to-transparent;
+  }
+
+  /* ---------- Gilded picture frame ---------- */
+  .frame {
+    @apply relative;
+    padding: 5px;
+    background: linear-gradient(135deg, #5a4020 0%, #e0c28c 18%, #8a6a35 40%, #d9b77a 62%, #6b4f24 82%, #c9a36a 100%);
+    box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.6);
+  }
+  .frame-inner {
+    @apply relative h-full w-full overflow-hidden bg-ink-950;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+  }
+  /* Varnish: soft vignette over the painting */
+  .frame-inner::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.55);
+  }
+  .frame-thin {
+    padding: 2px;
+  }
+
+  /* ---------- Rendered markdown in posts ---------- */
+  .prose-academia {
+    @apply text-lg leading-relaxed text-parchment/90;
+  }
+  .prose-academia > * + * { @apply mt-5; }
+  .prose-academia h2, .prose-academia h3 { clear: both; }
+  .prose-academia h2 { @apply mt-14 font-display text-3xl italic text-gold-light; }
+  .prose-academia h3 { @apply mt-10 font-display text-2xl text-parchment; }
+  .prose-academia a { @apply link; }
+  .prose-academia strong { @apply font-semibold text-parchment; }
+  .prose-academia em { @apply text-parchment; }
+  .prose-academia ul { @apply list-none pl-6; }
+  .prose-academia ul > li { @apply relative; }
+  .prose-academia ul > li::before { content: '❧'; @apply absolute -left-6 text-gold/70; }
+  .prose-academia ol { @apply list-decimal pl-6 marker:font-display marker:text-gold/80; }
+  .prose-academia li + li { @apply mt-1.5; }
+  .prose-academia blockquote {
+    @apply relative my-12 px-8 py-2 text-center font-elegant text-3xl italic leading-snug text-parchment;
+  }
+  .prose-academia blockquote::before {
+    content: '“';
+    @apply absolute -top-8 left-1/2 -translate-x-1/2 font-display text-7xl text-gold/40;
+  }
+  .prose-academia img { @apply my-10 w-full; box-shadow: 0 0 0 4px #9c7a45, 0 0 0 5px #000, 0 30px 60px -25px #000; }
+  .prose-academia hr { @apply rule my-12 border-0; }
+  .prose-academia code { @apply bg-ink-800 px-1.5 py-0.5 text-base text-gold-light; }
+  .prose-academia pre { @apply overflow-x-auto bg-ink-950 p-4 text-sm; }
+  .prose-academia pre code { @apply bg-transparent p-0; }
+  .prose-academia.dropcap > p:first-child::first-letter {
+    @apply float-left mr-3 mt-2 font-display text-gilded;
+    font-size: 4.6rem;
+    line-height: 0.8;
+  }
+}
+
+/* ======================================================================
+   Page turning — tabs and score pages flip like the leaves of a book
+   Kept outside @layer: Tailwind would purge the runtime-built
+   Vue transition classes (turn-next-leave-to, …) as unused.
+   ====================================================================== */
+  .book {
+    @apply relative;
+    perspective: 2400px;
+  }
+
+  /* Forward: the current leaf lifts from its right edge and turns over the spine (left) */
+  .turn-next-leave-active,
+  .turn-prev-enter-active {
+    @apply absolute inset-x-0 top-0 z-20;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transition: transform .85s cubic-bezier(.6, .05, .3, 1), filter .85s ease, opacity .85s ease;
+    will-change: transform;
+    /* The leaf is opaque paper: dark with a warm edge, casting a shadow on the page beneath */
+    background: linear-gradient(90deg, #0b0907 0%, #110d0a 85%, #1a140f 100%);
+    box-shadow: 18px 0 40px -10px rgba(0, 0, 0, .8), inset -1px 0 0 rgba(201, 163, 106, .25);
+  }
+  .turn-next-leave-active::after,
+  .turn-prev-enter-active::after {
+    /* The shadow that sweeps across a turning page */
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .55));
+    animation: leaf-shade .85s ease both;
+  }
+  .turn-next-leave-to,
+  .turn-prev-enter-from {
+    transform: rotateY(-105deg) skewY(-1deg);
+    filter: brightness(.35) sepia(.4);
+    opacity: .6;
+  }
+  /* The page underneath is revealed from shadow */
+  .turn-next-enter-active,
+  .turn-prev-leave-active {
+    transition: filter .85s ease, opacity .85s ease;
+  }
+  .turn-prev-leave-active {
+    @apply absolute inset-x-0 top-0 z-10;
+  }
+  .turn-next-enter-from,
+  .turn-prev-leave-to {
+    filter: brightness(.25);
+    opacity: .4;
+  }
+
+  @keyframes leaf-shade {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .turn-next-leave-active, .turn-prev-enter-active,
+    .turn-next-enter-active, .turn-prev-leave-active { transition-duration: .01s; }
+  }
+
+  /* Bookmark-ribbon tabs */
+  .tabs {
+    @apply flex gap-1 overflow-x-auto border-b border-gold/15;
+    scrollbar-width: none;
+  }
+  .tab {
+    @apply relative -mb-px shrink-0 border-b-2 border-transparent px-4 pb-3 pt-2 font-caps text-lg font-semibold text-parchment-muted transition hover:text-gold-light sm:px-6;
+    letter-spacing: .18em;
+  }
+  .tab.active {
+    @apply border-gold text-gold;
+  }
+  .tab .count {
+    @apply ml-2 font-display text-sm font-normal italic text-parchment-faint;
+    letter-spacing: 0;
+  }
+
+  /* Timecodes inside critiques / explications */
+  .timecode {
+    @apply mx-0.5 inline-flex items-center gap-1 border border-gold/40 bg-gold/10 px-1.5 font-mono text-[0.85em] text-gold-light transition hover:border-gold hover:bg-gold/20;
+    line-height: 1.5;
+  }
+  .timecode::before {
+    content: '▸';
+    @apply text-[0.8em] text-gold;
+  }
+
+  .chip {
+    @apply inline-flex items-center border border-gold/20 bg-ink-950/50 px-2.5 py-0.5 font-caps text-sm font-semibold text-parchment-muted transition hover:border-gold/60 hover:text-gold-light;
+    letter-spacing: .08em;
+  }
+  .chip.active {
+    @apply border-gold bg-gold/15 text-gold-light;
+  }
+
+  /* Gilded range slider (seek bar, volume) */
+  .range {
+    @apply h-4 w-full cursor-pointer appearance-none bg-transparent;
+    --fill: 0%;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 3px;
+    background: linear-gradient(90deg, #c9a36a var(--fill), rgba(201, 163, 106, .18) var(--fill));
+  }
+  .range::-moz-range-track {
+    height: 3px;
+    background: linear-gradient(90deg, #c9a36a var(--fill), rgba(201, 163, 106, .18) var(--fill));
+  }
+  .range::-webkit-slider-thumb {
+    @apply appearance-none rounded-full;
+    width: 13px;
+    height: 13px;
+    margin-top: -5px;
+    background: radial-gradient(circle at 35% 35%, #f3dca6, #a67c3d);
+    box-shadow: 0 0 0 3px rgba(10, 8, 7, .8), 0 0 12px rgba(201, 163, 106, .5);
+  }
+  .range::-moz-range-thumb {
+    @apply rounded-full border-0;
+    width: 13px;
+    height: 13px;
+    background: radial-gradient(circle at 35% 35%, #f3dca6, #a67c3d);
+  }
+
+  .play-btn {
+    @apply flex shrink-0 items-center justify-center rounded-full border border-gold/60 bg-ink-950/60 text-gold-light transition hover:scale-105 hover:border-gold hover:bg-gold/15 disabled:cursor-not-allowed disabled:opacity-30;
+  }
+
+  /* Oval gilded portrait frame for the author's salon */
+  .portrait {
+    @apply relative overflow-hidden rounded-[50%];
+    padding: 6px;
+    background: linear-gradient(135deg, #5a4020, #e0c28c 20%, #8a6a35 45%, #d9b77a 65%, #6b4f24 85%, #c9a36a);
+    box-shadow: 0 30px 60px -20px #000, 0 0 0 1px #000;
+  }
+  .portrait > img, .portrait > div {
+    @apply h-full w-full rounded-[50%] object-cover;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, .6);
+  }
+
+@layer components {
+  /* Compact prose for critiques and explications */
+  .prose-compact {
+    @apply prose-academia text-base leading-relaxed;
+  }
+  .prose-compact > * + * { @apply mt-3; }
+  .prose-compact h2 { @apply mt-6 text-xl; }
+  .prose-compact h3 { @apply mt-5 text-lg; }
+  .prose-compact blockquote { @apply my-5 px-4 text-xl; }
+  .prose-compact blockquote::before { @apply -top-5 text-5xl; }
+}
+
+/* ======================================================================
+   Folder / book with bookmarks (PageTabs). Outside @layer: .riffle-leaf
+   is created from JS and must not be purged.
+   ====================================================================== */
+.folder {
+  position: relative;
+}
+
+.folder-tabs {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.3rem;
+  margin-bottom: -1px; /* the active tab sits on the sheet's edge */
+  padding: 0.6rem 0.75rem 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.folder-tabs::-webkit-scrollbar { display: none; }
+
+/* Index tab of a divider: rounded top, a strip of the sheet sticking out */
+.folder-tab {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.65rem 1.35rem 0.55rem;
+  font-family: 'Cormorant SC', 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.16em;
+  color: #8a7d66;
+  background: linear-gradient(180deg, #1c1611 0%, #120e0b 100%);
+  border: 1px solid rgba(201, 163, 106, 0.16);
+  border-bottom: none;
+  border-radius: 0.75rem 0.75rem 0 0;
+  box-shadow: inset 0 1px 0 rgba(255, 230, 180, 0.05), 0 -6px 14px -10px rgba(0, 0, 0, 0.9);
+  transform: translateY(7px);
+  transition: transform 0.35s cubic-bezier(.3, .7, .3, 1), color 0.3s, background 0.3s, border-color 0.3s;
+}
+.folder-tab:hover {
+  color: #e0c28c;
+  transform: translateY(3px);
+}
+.folder-tab.active {
+  color: #c9a36a;
+  background: linear-gradient(180deg, #211a14 0%, #16110e 100%);
+  border-color: rgba(201, 163, 106, 0.45);
+  padding-bottom: 0.8rem;
+  transform: translateY(0);
+}
+/* Gilt edge on the chosen divider, like a ribbon bookmark */
+.folder-tab.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0.9rem;
+  right: 0.9rem;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #e0c28c 20%, #c9a36a 80%, transparent);
+}
+.folder-tab-count {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  color: #8a7d66;
+}
+
+/* The open sheet, with the edges of the other dividers peeking out behind it */
+.folder-body {
+  position: relative;
+  perspective: 2400px;
+  border: 1px solid rgba(201, 163, 106, 0.32);
+  border-radius: 0 0.6rem 0.6rem 0.6rem;
+  background: linear-gradient(180deg, #16110e 0%, #0e0a08 100%);
+  box-shadow: 0 40px 70px -35px #000;
+}
+.folder-body::before,
+.folder-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(201, 163, 106, 0.12);
+  border-radius: inherit;
+  background: #0f0b09;
+  pointer-events: none;
+}
+.folder-body::before { transform: translate(6px, 6px); z-index: -1; }
+.folder-body::after { transform: translate(12px, 12px); z-index: -2; opacity: 0.7; }
+
+.folder-sheet {
+  position: relative;
+  padding: 2rem 1.25rem;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #16110e 0%, #0e0a08 100%);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+@media (min-width: 640px) {
+  .folder-sheet { padding: 2.75rem 2.5rem; }
+}
+
+/* A blank page flicking past while the book opens at the bookmark */
+.riffle-leaf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  pointer-events: none;
+  border: 1px solid rgba(201, 163, 106, 0.2);
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, #1b1510 0%, #241b15 70%, #2d2219 100%);
+  box-shadow: 14px 0 30px -12px rgba(0, 0, 0, 0.85);
+  backface-visibility: hidden;
+}
+/* Name of a section whose divider flicks past */
+.riffle-leaf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18%;
+}
+.riffle-leaf-title {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 2.25rem;
+  color: rgba(224, 194, 140, 0.75);
+}
