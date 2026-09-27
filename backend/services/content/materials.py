@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from allegro_common.db import get_db
 from allegro_common.deps import get_current_user
+from allegro_common.media_refs import check_url, delete_own
 from allegro_common.models import Material, User
 from allegro_common.schemas import Attachment, ORMModel, UTCDateTime
 from allegro_common.storage import storage
@@ -61,6 +62,15 @@ def _check(kind: str, url: Optional[str], file: Optional[dict]) -> None:
     # a book may be a file, a link to a shop/library, or just a recommendation with a description
 
 
+def _check_files(user: User, values: dict, material: Optional[Material] = None) -> None:
+    """The file and the cover must be the author's own uploads (or already on this material)"""
+    current = [material.cover_url, (material.file or {}).get("url")] if material else []
+    if values.get("file"):
+        check_url(user, values["file"]["url"], current)
+    if "cover_url" in values:
+        check_url(user, values["cover_url"], current)
+
+
 def _own(db: Session, material_id: uuid.UUID, user: User) -> Material:
     material = db.get(Material, material_id)
     if not material or material.author_id != user.id:
@@ -70,7 +80,7 @@ def _own(db: Session, material_id: uuid.UUID, user: User) -> Material:
 
 @router.get("/api/materials", response_model=list[MaterialOut])
 def list_materials(author: str, db: Session = Depends(get_db)):
-    owner = db.scalar(select(User).where(User.username == author.lower()))
+    owner = db.scalar(select(User).where(User.username == author.lower(), User.is_hidden.is_(False)))
     if not owner:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Автор не найден")
     return db.scalars(
@@ -81,6 +91,7 @@ def list_materials(author: str, db: Session = Depends(get_db)):
 @router.post("/api/materials", response_model=MaterialOut, status_code=status.HTTP_201_CREATED)
 def create_material(data: MaterialIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     values = data.model_dump(exclude_none=True, mode="json")
+    _check_files(user, values)
     _check(data.kind, values.get("url"), values.get("file"))
     material = Material(author_id=user.id, **values)
     db.add(material)
@@ -92,12 +103,16 @@ def create_material(data: MaterialIn, user: User = Depends(get_current_user), db
 def update_material(material_id: uuid.UUID, data: MaterialFields, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     material = _own(db, material_id, user)
     values = data.model_dump(exclude_unset=True, mode="json")
+    _check_files(user, values, material)
     old_file = (material.file or {}).get("url")
+    old_cover = material.cover_url
     for field, value in values.items():
         setattr(material, field, value)
     _check(material.kind, material.url, material.file)
     if "file" in values and old_file != (material.file or {}).get("url"):
-        storage.delete(storage.key_from_url(old_file))
+        delete_own(user, storage.key_from_url(old_file))
+    if "cover_url" in values and old_cover != material.cover_url:
+        delete_own(user, storage.key_from_url(old_cover))
     db.commit()
     return material
 
@@ -105,7 +120,7 @@ def update_material(material_id: uuid.UUID, data: MaterialFields, user: User = D
 @router.delete("/api/materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_material(material_id: uuid.UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     material = _own(db, material_id, user)
-    storage.delete(storage.key_from_url((material.file or {}).get("url")))
-    storage.delete(storage.key_from_url(material.cover_url))
+    delete_own(user, storage.key_from_url((material.file or {}).get("url")))
+    delete_own(user, storage.key_from_url(material.cover_url))
     db.delete(material)
     db.commit()

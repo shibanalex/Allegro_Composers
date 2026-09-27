@@ -3,7 +3,8 @@
     <header class="mx-auto max-w-3xl pb-10 pt-10 text-center sm:pt-14">
       <p class="eyebrow">{{ POST_KINDS[post.kind] }}</p>
       <NuxtLink v-if="post.kind === 'note'" :to="`/@${post.author.username}?tab=blog`" class="mt-4 inline-block font-caps text-sm font-semibold tracking-[0.2em] text-parchment-faint transition hover:text-gold">← Блог · {{ post.author.display_name }}</NuxtLink>
-      <h1 class="mt-6 text-4xl italic leading-tight sm:text-6xl">{{ heading }}</h1>
+      <h1 v-if="post.title" class="mt-6 text-4xl italic leading-tight sm:text-6xl">{{ post.title }}</h1>
+      <h1 v-else class="mt-6 text-3xl italic leading-tight text-parchment-muted sm:text-4xl">{{ heading }}</h1>
       <Ornament class="mx-auto mt-8 w-64" />
       <p v-if="post.excerpt" class="mx-auto mt-6 max-w-xl font-elegant text-2xl italic text-parchment-muted">{{ post.excerpt }}</p>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-4 font-caps text-base font-semibold tracking-[0.15em] text-parchment-faint">
@@ -11,7 +12,8 @@
           <UserAvatar :user="post.author" :size="30" /><span class="font-display italic">{{ post.author.display_name }}</span>
         </NuxtLink>
         <span class="text-gold/50">✦</span>
-        <span>{{ formatDate(post.created_at) }}</span>
+        <!-- An untitled post already has the date in its heading -->
+        <span>{{ post.title ? formatDate(post.created_at) : new Date(post.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }}</span>
         <span class="text-gold/50">✦</span>
         <span>{{ post.view_count }} {{ plural(post.view_count, 'просмотр', 'просмотра', 'просмотров') }}</span>
       </div>
@@ -38,7 +40,7 @@
     </figure>
 
     <article class="mx-auto max-w-prose">
-      <MarkdownContent :text="post.content_md" :timecodes="!!post.opus" :class="{ dropcap: post.kind !== 'workshop' }" @seek="seek" />
+      <MarkdownContent :text="post.content_md" :timecodes="!!post.opus" :class="{ dropcap: post.kind === 'article' }" @seek="seek" />
     </article>
 
     <section v-if="images.length" class="mx-auto mt-16 max-w-4xl">
@@ -93,7 +95,7 @@ function seek(seconds: number) {
 }
 
 async function remove() {
-  if (!post.value || !confirm(`Удалить «${post.value.title}»?`)) return
+  if (!post.value || !confirm(`Удалить «${heading.value}»?`)) return
   await api(`/api/posts/${post.value.slug}`, { method: 'DELETE' })
   navigateTo(`/@${post.value.author.username}`)
 }

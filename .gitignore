@@ -49,3 +49,6 @@ frontend/src/
 frontend/index.html
 frontend/vite.config.js
 frontend/vercel.json
+
+# Telegram export (other people's names and messages): imported into the DB, never pushed
+Moments Musicaux/

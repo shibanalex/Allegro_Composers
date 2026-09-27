@@ -14,6 +14,13 @@ export default defineNuxtConfig({
   },
   // Browser requests to /api and /media go through Nuxt in dev; in docker the gateway answers them first
   routeRules: {
+    '/**': {
+      headers: {
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+      },
+    },
     '/api/**': { proxy: `${apiInternal}/api/**` },
     '/media/**': { proxy: `${apiInternal}/media/**` },
   },

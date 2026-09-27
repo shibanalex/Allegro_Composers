@@ -31,7 +31,7 @@ class OpusFields(BaseModel):
     difficulty: Optional[int] = Field(None, ge=1, le=5)
     year: Optional[int] = Field(None, ge=1000, le=2100)
     tags: Optional[list[str]] = None
-    description_md: Optional[str] = None
+    description_md: Optional[str] = Field(None, max_length=50_000)
     cover_url: Optional[str] = Field(None, max_length=512)
     audio_type: Optional[Literal["none", "youtube", "hosted_file"]] = None
     audio_source: Optional[str] = Field(None, max_length=512)
@@ -75,14 +75,14 @@ class OpusCreate(OpusFields):
     ensemble: str
     form: str
     # PDF page-turn markers; empty = derive them from the MusicXML page layout when possible
-    markers: list[Marker] = []
-    measure_markers: list[MeasureMarker] = []
+    markers: list[Marker] = Field([], max_length=2000)
+    measure_markers: list[MeasureMarker] = Field([], max_length=20_000)
 
 
 class OpusUpdate(OpusFields):
     # None = keep the current mode; [] = derive from MusicXML; a list = set by hand
-    markers: Optional[list[Marker]] = None
-    measure_markers: Optional[list[MeasureMarker]] = None
+    markers: Optional[list[Marker]] = Field(None, max_length=2000)
+    measure_markers: Optional[list[MeasureMarker]] = Field(None, max_length=20_000)
 
 
 class OpusOut(ORMModel):
@@ -125,14 +125,14 @@ class OpusPage(BaseModel):
 
 class CollectionIn(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=4000)
     year: Optional[int] = Field(None, ge=1000, le=2100)
     opus_ids: list[uuid.UUID] = []
 
 
 class CollectionUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=4000)
     year: Optional[int] = Field(None, ge=1000, le=2100)
     opus_ids: Optional[list[uuid.UUID]] = None
 

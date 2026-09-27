@@ -8,8 +8,9 @@
       </div>
 
       <div>
-        <label class="field-label" for="p-title">Заголовок</label>
-        <input id="p-title" v-model="form.title" class="field text-xl" required :placeholder="PLACEHOLDERS[form.kind]">
+        <!-- A blog post may be untitled, like a channel message -->
+        <label class="field-label" for="p-title">Заголовок{{ form.kind === 'note' ? ' (необязательно)' : '' }}</label>
+        <input id="p-title" v-model="form.title" class="field text-xl" :required="form.kind !== 'note'" :placeholder="PLACEHOLDERS[form.kind]">
       </div>
       <div>
         <label class="field-label" for="p-excerpt">Кратко</label>
@@ -36,7 +37,7 @@
         <div v-if="previewing" class="min-h-[18rem] border border-ink-600 bg-ink-950/60 p-6">
           <MarkdownContent :text="form.content_md" :timecodes="!!form.opus_id" />
         </div>
-        <textarea v-else id="p-content" ref="contentEl" v-model="form.content_md" rows="16" class="field resize-y leading-relaxed" required
+        <textarea v-else id="p-content" ref="contentEl" v-model="form.content_md" rows="16" class="field resize-y leading-relaxed" :required="!form.attachments.length"
           placeholder="## Раздел&#10;&#10;Текст… **жирный**, *курсив*, > цитата, - список" />
       </div>
 

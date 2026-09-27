@@ -35,6 +35,14 @@ export const plural = (n: number, one: string, few: string, many: string) => {
   return many
 }
 
+/** Only web, mail and same-site links; anything else (javascript:, data:, //other.site) becomes inert */
+const SAFE_URL = /^(https?:\/\/|mailto:|\/(?![\/\\]))/i
+export const safeUrl = (url?: string | null) => (url && SAFE_URL.test(url.trim()) ? url.trim() : undefined)
+
+/** A redirect target inside the site (login ?next=...): "/path", never "//host" or "/\host" */
+export const safeNext = (value: unknown, fallback = '/') =>
+  typeof value === 'string' && /^\/(?![\/\\])/.test(value) ? value : fallback
+
 export const isImage = (a?: { content_type?: string }) => !!a?.content_type?.startsWith('image/')
 
 export const fileExtension = (name = '') => (name.includes('.') ? name.split('.').pop()!.toUpperCase() : 'FILE')

@@ -14,7 +14,9 @@
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
     <p class="mt-6 text-center font-elegant text-lg italic text-parchment-muted">
-      Ещё нет своего зала? <NuxtLink :to="`/register?next=${encodeURIComponent(next)}`" class="link">Открыть</NuxtLink>
+      <template v-if="registrationOpen">Ещё нет своего зала? <NuxtLink :to="`/register?next=${encodeURIComponent(next)}`" class="link">Открыть</NuxtLink></template>
+      <template v-else-if="setupAvailable">Сайт только что запущен? <NuxtLink to="/setup" class="link">Первая настройка</NuxtLink></template>
+      <template v-else>Сообщество пока открыто только по приглашениям</template>
     </p>
   </div>
 </template>
@@ -23,8 +25,8 @@
 useSeoMeta({ title: 'Вход — Allegro' })
 
 const route = useRoute()
-const { login } = useAuth()
-const next = computed(() => (typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/'))
+const { login, registrationOpen, setupAvailable } = useAuth()
+const next = computed(() => safeNext(route.query.next))
 const form = reactive({ login: '', password: '' })
 const busy = ref(false)
 const error = ref('')

@@ -1,0 +1,23 @@
+# Only what the Dockerfile needs; never local data or secrets
+**/node_modules
+**/.nuxt
+**/.output
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.env
+**/.env.*
+**/*.db
+backend/media
+backend/uploads
+backend/Allegro.png
+backend/tests
+backend/app
+backend/main.py
+backend/seed.py
+frontend/src
+Moments Musicaux
+git
+.git
+*.md

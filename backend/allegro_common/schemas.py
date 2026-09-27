@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, ConfigDict, PlainSerializer
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
 
 
 def _iso_utc(value: datetime) -> str:
@@ -29,7 +29,7 @@ class UserBrief(ORMModel):
 
 
 class Attachment(BaseModel):
-    url: str
-    name: str
-    content_type: str = "application/octet-stream"
+    url: str = Field(max_length=512)
+    name: str = Field(max_length=255)
+    content_type: str = Field("application/octet-stream", max_length=127)
     size: Optional[int] = None

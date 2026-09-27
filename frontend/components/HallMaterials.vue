@@ -62,8 +62,8 @@
               <p class="font-display text-xl italic leading-snug">{{ m.title }}</p>
               <p v-if="m.description" class="mt-2 line-clamp-4 text-sm text-parchment-muted">{{ m.description }}</p>
               <div class="mt-3 flex flex-wrap gap-3 font-caps text-sm font-semibold tracking-[0.12em]">
-                <a v-if="m.file" :href="m.file.url" :download="m.file.name" class="link">Скачать</a>
-                <a v-if="m.url" :href="m.url" target="_blank" rel="noopener nofollow" class="link">Открыть ↗</a>
+                <a v-if="m.file" :href="safeUrl(m.file.url)" :download="m.file.name" class="link">Скачать</a>
+                <a v-if="m.url" :href="safeUrl(m.url)" target="_blank" rel="noopener nofollow" class="link">Открыть ↗</a>
                 <button v-if="isOwner" type="button" class="text-parchment-faint hover:text-red-300" @click="remove(m)">Удалить</button>
               </div>
             </div>
@@ -78,7 +78,7 @@
           <li v-for="m in links" :key="m.id" class="group flex items-start gap-4 py-4">
             <span class="mt-1 flex h-9 w-9 shrink-0 items-center justify-center border border-gold/40 text-gold">↗</span>
             <div class="min-w-0 flex-1">
-              <a :href="m.url!" target="_blank" rel="noopener nofollow" class="font-display text-lg transition group-hover:text-gold-light">{{ m.title }}</a>
+              <a :href="safeUrl(m.url)" target="_blank" rel="noopener nofollow" class="font-display text-lg transition group-hover:text-gold-light">{{ m.title }}</a>
               <p class="truncate text-sm text-parchment-faint">{{ domain(m.url) }}</p>
               <p v-if="m.description" class="mt-1 text-parchment-muted">{{ m.description }}</p>
             </div>
@@ -98,7 +98,7 @@
               <p class="text-sm text-parchment-faint">{{ m.file?.name }} · {{ formatSize(m.file?.size) }}</p>
               <p v-if="m.description" class="mt-1 text-parchment-muted">{{ m.description }}</p>
             </div>
-            <a v-if="m.file" :href="m.file.url" :download="m.file.name" class="btn-ghost text-sm">Скачать ↓</a>
+            <a v-if="m.file" :href="safeUrl(m.file.url)" :download="m.file.name" class="btn-ghost text-sm">Скачать ↓</a>
             <button v-if="isOwner" type="button" class="text-sm text-parchment-faint hover:text-red-300" @click="remove(m)">✕</button>
           </li>
         </ul>

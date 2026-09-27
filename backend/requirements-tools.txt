@@ -1,0 +1,3 @@
+# Tools for scripts/ (demo seed, Telegram import) — not needed by the services
+numpy
+beautifulsoup4

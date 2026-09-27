@@ -24,3 +24,10 @@ def unique_slug(db: Session, column, text: str, *filters) -> str:
     while db.scalar(select(column).where(column == slug, *filters)) is not None:
         slug, n = f"{base}-{n}", n + 1
     return slug
+
+
+def visible_authors(author_column):
+    """SQL condition: the author of the row is not shadowed (hidden accounts vanish from the site)"""
+    from allegro_common.models import User
+
+    return author_column.in_(select(User.id).where(User.is_hidden.is_(False)))

@@ -5,6 +5,8 @@ critiques with timecodes.
     python -m scripts.seed           (run from backend/, after `alembic upgrade head`)
 
 Only the demo accounts below are replaced; real accounts and their works are never touched.
+The demo authors are created "in the shadow" (hidden from the site) unless --visible is given;
+toggle later with `python -m scripts.shadow show|hide <usernames>`.
 Demo password: allegro-demo
 """
 import random
@@ -232,14 +234,15 @@ COLLECTIONS = [
 ]
 
 
-def seed() -> None:
+def seed(visible: bool = False) -> None:
     rng = random.Random(7)
     db = SessionLocal()
     try:
         usernames = [u["username"] for u in USERS]
         db.execute(delete(User).where(User.username.in_(usernames)))
         db.commit()
-        shutil.rmtree(storage.root / "seed", ignore_errors=True)
+        if storage.is_local:
+            shutil.rmtree(storage.root / "seed", ignore_errors=True)
 
         now = utcnow()
         users = {}
@@ -247,6 +250,7 @@ def seed() -> None:
             avatar = put(f"avatars/{data['username']}.svg", painting_svg("", data["palette"], 40 + i, 600, 800, portrait=True))
             user = User(
                 username=data["username"], email=f"{data['username']}@example.com", password_hash=hash_password(PASSWORD),
+                is_hidden=not visible,  # demo filler stays in the shadow unless asked for
                 display_name=data["display_name"], pseudonym=data["pseudonym"], bio=data["bio"], about_md=data["about_md"],
                 links=data["links"], avatar_url=avatar, created_at=now - timedelta(days=200 - i * 30),
             )
@@ -373,4 +377,8 @@ def seed() -> None:
 
 
 if __name__ == "__main__":
-    seed()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Demo content (fictional authors), created in the shadow by default")
+    parser.add_argument("--visible", action="store_true", help="show the demo authors on the site")
+    seed(parser.parse_args().visible)

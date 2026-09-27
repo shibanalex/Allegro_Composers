@@ -1,0 +1,45 @@
+# Render Blueprint: the whole site as one free web service built from the Dockerfile.
+# Render → New → Blueprint → this repository. Fields marked `sync: false` are asked for once
+# when the blueprint is created (secrets stay in Render, never in the repository).
+services:
+  - type: web
+    name: allegro
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/auth/config
+    autoDeploy: true
+    envVars:
+      # Signs login tokens; Render generates a long random value
+      - key: SECRET_KEY
+        generateValue: true
+
+      # PostgreSQL connection string from Neon (postgresql://...)
+      - key: DATABASE_URL
+        sync: false
+
+      # Files in S3-compatible storage (Yandex Object Storage, Cloudflare R2...)
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: S3_ENDPOINT_URL      # Yandex: https://storage.yandexcloud.net
+        sync: false
+      - key: S3_REGION            # Yandex: ru-central1 (R2: auto)
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: MEDIA_URL_PREFIX     # the bucket's public address, Yandex: https://storage.yandexcloud.net/<bucket>
+        sync: false
+
+      # Invite-only: nobody can sign up, only this account can log in
+      - key: REGISTRATION_OPEN
+        value: "false"
+      - key: LOGIN_ALLOWLIST
+        value: allegro_cantabile
+
+      # Code for the one-time /setup page that creates the owner's account (16+ characters)
+      - key: SETUP_TOKEN
+        sync: false

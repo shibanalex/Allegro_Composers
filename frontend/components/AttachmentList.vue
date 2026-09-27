@@ -9,7 +9,7 @@
         <p class="text-sm text-parchment-faint">{{ formatSize(file.size) }}</p>
       </div>
       <slot name="action" :file="file">
-        <a :href="file.url" :download="file.name" class="btn-ghost">Скачать ↓</a>
+        <a :href="safeUrl(file.url)" :download="file.name" class="btn-ghost">Скачать ↓</a>
       </slot>
     </li>
   </ul>

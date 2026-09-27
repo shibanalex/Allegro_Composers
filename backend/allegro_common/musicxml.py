@@ -7,9 +7,11 @@ measure every PDF page starts, and the written tempo tells when that measure sou
 import io
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 from xml.etree import ElementTree as ET
+
+
+MAX_XML_BYTES = 64 * 1024 * 1024
 
 
 @dataclass
@@ -23,9 +25,8 @@ def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
-def read_score_xml(path: Path) -> bytes:
+def read_score_xml(data: bytes) -> bytes:
     """Plain .musicxml/.xml, or the root file of a compressed .mxl container"""
-    data = path.read_bytes()
     if not data.startswith(b"PK"):
         return data
     with zipfile.ZipFile(io.BytesIO(data)) as z:
@@ -38,6 +39,9 @@ def read_score_xml(path: Path) -> bytes:
                     break
         if not root_path:
             root_path = next(n for n in z.namelist() if n.lower().endswith((".musicxml", ".xml")) and not n.startswith("META-INF"))
+        # A tiny archive may unpack to gigabytes ("zip bomb"): real scores are a few MB of XML
+        if z.getinfo(root_path).file_size > MAX_XML_BYTES:
+            raise ValueError("MusicXML is too large")
         return z.read(root_path)
 
 
@@ -133,10 +137,10 @@ def to_recording_time(
 
 
 def page_start_times(
-    path: Path, page_count: int, offset: float = 0.0, measure_markers: Optional[list[tuple[int, float]]] = None
+    data: bytes, page_count: int, offset: float = 0.0, measure_markers: Optional[list[tuple[int, float]]] = None
 ) -> Optional[list[float]]:
     """Seconds at which each PDF page starts, if the MusicXML page layout matches the PDF page count"""
-    measures = measure_timeline(read_score_xml(path))
+    measures = measure_timeline(read_score_xml(data))
     if not measures:
         return None
     page_first_measures = [measures[0].number] + [m.number for m in measures[1:] if m.new_page]

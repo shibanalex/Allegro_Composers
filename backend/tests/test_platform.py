@@ -10,6 +10,10 @@ import tempfile
 _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["MEDIA_DIR"] = f"{_tmp}/media"
+# Open community regardless of a local .env (the invite-only test switches it itself)
+os.environ["REGISTRATION_OPEN"] = "true"
+os.environ["LOGIN_ALLOWLIST"] = ""
+os.environ["SECRET_KEY"] = "test-secret-key-long-enough-for-hs256-signing"
 
 import pytest
 from alembic import command
@@ -366,3 +370,85 @@ def test_materials(alice, bob):
     assert client.delete(f"/api/materials/{book.json()['id']}", headers=bob).status_code == 404
     assert client.delete(f"/api/materials/{book.json()['id']}", headers=alice).status_code == 204
     assert client.get(doc["url"]).status_code == 404  # file removed with the material
+
+
+# ---------------------------------------------------------------- invite-only mode & shadowed accounts
+
+def _set_hidden(username, hidden):
+    from allegro_common.db import SessionLocal
+    from allegro_common.models import User
+    with SessionLocal() as db:
+        db.query(User).filter(User.username == username).update({"is_hidden": hidden})
+        db.commit()
+
+
+def test_shadowed_account_vanishes_but_is_kept(alice, bob):
+    bob_opus = client.get("/api/opuses", params={"author": "bob"}).json()["items"][0]
+    trio = client.get("/api/opuses/trio-re-minor").json()
+    client.post("/api/comments", headers=bob, json={"opus_id": trio["id"], "content_md": "Тень проверяет"})
+    _set_hidden("bob", True)
+    try:
+        assert client.get("/api/users/bob").status_code == 404
+        assert "bob" not in [u["username"] for u in client.get("/api/users").json()]
+        assert client.get(f"/api/opuses/{bob_opus['slug']}").status_code == 404
+        assert all(o["author"]["username"] != "bob" for o in client.get("/api/opuses", params={"limit": 100}).json()["items"])
+        assert client.get("/api/posts", params={"author": "bob"}).json()["total"] == 0
+        assert not client.get("/api/search", params={"q": "борис"}).json()["composers"]
+        assert all(c["author"]["username"] != "bob" for c in client.get("/api/comments", params={"opus_id": trio["id"]}).json())
+        assert client.get("/api/auth/me", headers=bob).status_code == 401  # old token no longer works
+        assert client.post("/api/auth/login", json={"login": "bob", "password": "secret-pass"}).status_code == 403
+    finally:
+        _set_hidden("bob", False)
+    assert client.get("/api/users/bob").status_code == 200  # back from the shadow, nothing lost
+    assert "bob" in [u["username"] for u in client.get("/api/users").json()]
+
+
+def test_invite_only_mode(alice):
+    from allegro_common.config import settings
+    settings.registration_open, settings.login_allowlist = False, "alice"
+    try:
+        assert client.get("/api/auth/config").json()["registration_open"] is False
+        r = client.post("/api/auth/register", json={"username": "newbie", "email": "n@example.com", "password": "secret-pass", "display_name": "N"})
+        assert r.status_code == 403
+        assert client.post("/api/auth/login", json={"login": "alice", "password": "secret-pass"}).status_code == 200
+        assert client.post("/api/auth/login", json={"login": "bob", "password": "secret-pass"}).status_code == 403
+    finally:
+        settings.registration_open, settings.login_allowlist = True, ""
+
+
+def test_ownership_of_uploaded_files(alice, bob):
+    """Nobody can attach someone else's upload: steal a paid score through their own opus, or delete it"""
+    from allegro_common.storage import storage
+    pdf = upload(alice, "trio.pdf", PDF, "application/pdf", "score")
+    r = client.post("/api/opuses", headers=bob, json={"title": "Чужое", "ensemble": "solo", "form": "other", "score_file_key": pdf["key"]})
+    assert r.status_code == 422
+    r = client.post("/api/posts", headers=bob, json={"kind": "note", "content_md": "x", "attachments": [{"url": "javascript:alert(1)", "name": "a"}]})
+    assert r.status_code == 422
+    r = client.post("/api/materials", headers=bob, json={"kind": "book", "title": "b", "cover_url": pdf["url"]})
+    assert r.status_code == 422
+    assert storage.exists(pdf["key"])
+    # scripts in disguise are refused
+    for name, ct, purpose in [("x.html", "text/html", "attachment"), ("x.svg", "image/svg+xml", "image"), ("x.pdf", "application/pdf", "score")]:
+        r = client.post("/api/media", headers=alice, data={"purpose": purpose}, files={"files": (name, b"<script>", ct)})
+        assert r.status_code == 415, name
+
+
+def test_first_setup_creates_the_only_owner(alice, monkeypatch):
+    from allegro_common.config import settings
+    from services.identity import routes
+    body = {"code": "a-long-setup-code-123", "username": "owner", "email": "owner@example.com",
+            "password": "a-very-long-password", "display_name": "Owner"}
+    monkeypatch.setattr(settings, "setup_token", "a-long-setup-code-123")
+    # users already exist: setup is closed for good
+    assert client.get("/api/auth/config").json()["setup_available"] is False
+    assert client.post("/api/auth/setup", json=body).status_code == 404
+    # on a fresh database
+    monkeypatch.setattr(routes, "_setup_available", lambda db: True)
+    assert client.post("/api/auth/setup", json={**body, "code": "wrong-code-wrong-code"}).status_code == 403
+    assert client.post("/api/auth/setup", json={**body, "password": "short-pass"}).status_code == 422
+    monkeypatch.setattr(settings, "login_allowlist", "someone_else")
+    assert client.post("/api/auth/setup", json=body).status_code == 422
+    monkeypatch.setattr(settings, "login_allowlist", "owner")
+    r = client.post("/api/auth/setup", json=body)
+    assert r.status_code == 201, r.text
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()["username"] == "owner"

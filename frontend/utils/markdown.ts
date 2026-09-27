@@ -3,7 +3,7 @@ import { Marked } from 'marked'
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const SAFE_HREF = /^(https?:\/\/|mailto:|\/|#)/i
+const SAFE_HREF = /^(https?:\/\/|mailto:|\/(?![\/\\])|#)/i
 
 // "02:15" / "1:02:15" outside of other digits → clickable timecode
 const TIMECODE = /(?<![\d:])(\d{1,2}(?::[0-5]\d){1,2})(?![\d:])/g

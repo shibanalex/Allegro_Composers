@@ -9,10 +9,11 @@ from sqlalchemy.orm import Session
 
 from allegro_common.db import get_db
 from allegro_common.deps import get_current_user, get_optional_user
+from allegro_common.media_refs import check_url, delete_own
 from allegro_common.models import Comment, Opus, Post, User
 from allegro_common.schemas import Attachment, ORMModel, UserBrief, UTCDateTime
 from allegro_common.storage import storage
-from allegro_common.utils import unique_slug
+from allegro_common.utils import unique_slug, visible_authors
 
 router = APIRouter(tags=["content"])
 
@@ -24,9 +25,9 @@ class PostFields(BaseModel):
     kind: Optional[Kind] = None
     title: Optional[str] = Field(None, max_length=255)  # may be empty for a blog post, like a channel message
     excerpt: Optional[str] = Field(None, max_length=512)
-    content_md: Optional[str] = None
+    content_md: Optional[str] = Field(None, max_length=100_000)
     cover_url: Optional[str] = Field(None, max_length=512)
-    attachments: Optional[list[Attachment]] = None
+    attachments: Optional[list[Attachment]] = Field(None, max_length=50)
     tags: Optional[list[str]] = None
     opus_id: Optional[uuid.UUID] = None  # workshop thread about a specific opus
     status: Optional[Status] = None
@@ -74,7 +75,7 @@ class PostPage(BaseModel):
 
 
 def _opus_brief(opus: Optional[Opus]) -> Optional[OpusBrief]:
-    if not opus or opus.status == "draft":
+    if not opus or opus.status == "draft" or opus.author.is_hidden:
         return None
     brief = OpusBrief.model_validate(opus)
     return brief.model_copy(update={"audio_url": storage.url(opus.audio_source) if opus.audio_type == "hosted_file" else None})
@@ -99,7 +100,7 @@ def _check_opus(db: Session, opus_id: Optional[uuid.UUID]) -> None:
 
 
 def _get_post(db: Session, slug: str, user: Optional[User]) -> Post:
-    post = db.scalar(select(Post).where(Post.slug == slug))
+    post = db.scalar(select(Post).where(Post.slug == slug, visible_authors(Post.author_id)))
     if not post or (post.status == "draft" and (not user or user.id != post.author_id)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Публикация не найдена")
     return post
@@ -129,7 +130,7 @@ def list_posts(
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Требуется вход")
         stmt = stmt.where(Post.author_id == user.id)
     else:
-        stmt = stmt.where(Post.status == "published")
+        stmt = stmt.where(Post.status == "published", User.is_hidden.is_(False))
     if kind:
         stmt = stmt.where(Post.kind.in_(kind))
     if author:
@@ -158,6 +159,15 @@ def _check_text(kind: str, title: str, content: str, attachments: list) -> None:
         raise HTTPException(422, "Пустая запись")
 
 
+def _check_files(user: User, values: dict, post: Optional[Post] = None) -> None:
+    """Cover and attachments must be the author's own uploads (or already on this post)"""
+    current = [post.cover_url, *(a.get("url") for a in post.attachments or [])] if post else []
+    if "cover_url" in values:
+        check_url(user, values["cover_url"], current)
+    for attachment in values.get("attachments") or []:
+        check_url(user, attachment["url"], current)
+
+
 def _slug_source(title: str, content: str) -> str:
     return title.strip() or " ".join(content.split()[:6]) or "zapis"
 
@@ -167,6 +177,7 @@ def create_post(data: PostCreate, user: User = Depends(get_current_user), db: Se
     _check_text(data.kind, data.title, data.content_md, data.attachments or [])
     _check_opus(db, data.opus_id)
     values = data.model_dump(exclude_none=True, mode="json")
+    _check_files(user, values)
     values["title"] = data.title.strip()
     if data.opus_id:
         values["opus_id"] = data.opus_id
@@ -180,6 +191,7 @@ def create_post(data: PostCreate, user: User = Depends(get_current_user), db: Se
 def update_post(slug: str, data: PostFields, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     post = _own_post(db, slug, user)
     values = data.model_dump(exclude_unset=True, mode="json")
+    _check_files(user, values, post)
     if "opus_id" in values:
         _check_opus(db, data.opus_id)
         values["opus_id"] = data.opus_id
@@ -193,8 +205,8 @@ def update_post(slug: str, data: PostFields, user: User = Depends(get_current_us
 @router.delete("/api/posts/{slug}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(slug: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     post = _own_post(db, slug, user)
-    storage.delete(storage.key_from_url(post.cover_url))
+    delete_own(user, storage.key_from_url(post.cover_url))
     for attachment in post.attachments or []:
-        storage.delete(storage.key_from_url(attachment.get("url")))
+        delete_own(user, storage.key_from_url(attachment.get("url")))
     db.delete(post)
     db.commit()

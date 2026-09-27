@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section v-if="canJoin || comments.length">
     <h2 class="flex items-baseline gap-3 font-caps text-lg font-semibold tracking-[0.2em] text-gold">
       {{ title }} <span class="font-display text-base font-normal italic tracking-normal text-parchment-faint">({{ comments.length }})</span>
     </h2>
@@ -22,7 +22,7 @@
       </div>
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
-    <p v-else class="mt-4 font-elegant text-lg italic text-parchment-muted">
+    <p v-else-if="canJoin" class="mt-4 font-elegant text-lg italic text-parchment-muted">
       <NuxtLink :to="`/login?next=${encodeURIComponent(route.fullPath)}`" class="link">Войдите</NuxtLink>, чтобы оставить {{ opus ? 'рецензию' : 'комментарий' }}.
     </p>
 
@@ -39,7 +39,7 @@
         @remove="remove"
       />
     </ul>
-    <p v-else class="mt-8 font-elegant text-lg italic text-parchment-faint">Пока тихо. Будьте первым, кто выскажется.</p>
+    <p v-else-if="canJoin" class="mt-8 font-elegant text-lg italic text-parchment-faint">Пока тихо. Будьте первым, кто выскажется.</p>
   </section>
 </template>
 
@@ -60,7 +60,9 @@ defineEmits<{ seek: [seconds: number] }>()
 const api = useApi()
 const route = useRoute()
 const player = usePlayer()
-const { user } = useAuth()
+const { user, registrationOpen } = useAuth()
+// A visitor can take part only by logging in or signing up; while sign-ups are closed they just read
+const canJoin = computed(() => !!user.value || registrationOpen.value)
 
 const { data } = await useAsyncData(`comments-${props.target.opus_id || props.target.post_id}`, () =>
   api<Comment[]>('/api/comments', { params: props.target }),

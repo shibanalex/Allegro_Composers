@@ -1,7 +1,8 @@
 <template>
   <!-- «Выставка»: the composer's works, sorted and grouped the way the visitor wants -->
   <div>
-    <div class="mb-10 flex flex-wrap items-end gap-x-8 gap-y-4 border-b border-gold/15 pb-6">
+    <!-- Sorting and grouping only make sense once there is something to arrange -->
+    <div v-if="opuses.length > 3" class="mb-10 flex flex-wrap items-end gap-x-8 gap-y-4 border-b border-gold/15 pb-6">
       <div>
         <p class="field-label">Группировать</p>
         <div class="flex flex-wrap gap-2">

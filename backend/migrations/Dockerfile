@@ -7,7 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt numpy  # numpy: demo audio synthesis in scripts/seed.py
+COPY requirements-tools.txt .
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-tools.txt
 
 COPY allegro_common ./allegro_common
 COPY alembic.ini .

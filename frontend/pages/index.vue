@@ -20,9 +20,17 @@
           <NuxtLink :to="`/@${user.username}`" class="btn-secondary">Мой зал</NuxtLink>
         </template>
         <template v-else>
-          <NuxtLink to="/register" class="btn-primary">Открыть свой зал</NuxtLink>
+          <NuxtLink v-if="registrationOpen" to="/register" class="btn-primary">Открыть свой зал</NuxtLink>
           <NuxtLink to="/library" class="btn-secondary">В библиотеку</NuxtLink>
         </template>
+      </div>
+    </section>
+
+    <!-- The composers' halls: where a visitor finds their works, blogs and materials -->
+    <section v-if="composers.length" class="mb-16 mt-6">
+      <p class="eyebrow mb-6 text-center">Залы композиторов</p>
+      <div class="mx-auto grid max-w-5xl gap-5" :class="composers.length > 1 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'max-w-md'">
+        <ComposerCard v-for="c in composers" :key="c.id" :composer="c" />
       </div>
     </section>
 
@@ -55,7 +63,7 @@
           <p class="max-w-xl font-elegant text-xl italic text-parchment-muted">
             Здесь авторы просят разбора: выкладывают запись и ноты, а коллеги отвечают с таймкодами и примерами.
           </p>
-          <NuxtLink :to="user ? '/create/post?kind=workshop' : '/login?next=/create/post%3Fkind%3Dworkshop'" class="btn-secondary">+ Тема в мастерскую</NuxtLink>
+          <NuxtLink v-if="user || registrationOpen" :to="user ? '/create/post?kind=workshop' : '/login?next=/create/post%3Fkind%3Dworkshop'" class="btn-secondary">+ Тема в мастерскую</NuxtLink>
         </div>
         <EmptyState v-if="!workshop.length">В мастерской пока тихо</EmptyState>
         <div class="space-y-5">
@@ -67,20 +75,21 @@
 </template>
 
 <script setup lang="ts">
-import type { Opus, Page, Post } from '~/utils/types'
+import type { Opus, Page, Post, Profile } from '~/utils/types'
 
 useSeoMeta({ title: 'Allegro — сообщество композиторов' })
 
 const api = useApi()
-const { user } = useAuth()
+const { user, registrationOpen } = useAuth()
 
 const { data } = await useAsyncData('salon', async () => {
-  const [opuses, articles, workshop] = await Promise.all([
+  const [opuses, articles, workshop, composers] = await Promise.all([
     api<Page<Opus>>('/api/opuses', { params: { limit: 12 } }),
     api<Page<Post>>('/api/posts', { params: { kind: 'article', limit: 12 } }),
     api<Page<Post>>('/api/posts', { params: { kind: 'workshop', limit: 20 } }),
+    api<Profile[]>('/api/users').catch(() => [] as Profile[]), // decoration: never takes the page down
   ])
-  return { opuses, articles, workshop }
+  return { opuses, articles, workshop, composers }
 })
 
 const opusPage = computed(() => data.value?.opuses)
@@ -88,12 +97,18 @@ const extra = ref<Opus[]>([])
 const opuses = computed(() => [...(data.value?.opuses.items || []), ...extra.value])
 const articles = computed(() => data.value?.articles.items || [])
 const workshop = computed(() => data.value?.workshop.items || [])
+const composers = computed(() => data.value?.composers || [])
 
-const tabs = computed(() => [
-  { id: 'opuses', label: 'Все опусы', count: data.value?.opuses.total },
-  { id: 'articles', label: 'Теория и статьи', count: data.value?.articles.total },
-  { id: 'workshop', label: 'Мастерская', count: data.value?.workshop.total },
-])
+// Members see every section (to post there); a visitor only the ones with something inside
+const tabs = computed(() => {
+  const all = [
+    { id: 'opuses', label: 'Все опусы', count: data.value?.opuses.total },
+    { id: 'articles', label: 'Теория и статьи', count: data.value?.articles.total },
+    { id: 'workshop', label: 'Мастерская', count: data.value?.workshop.total },
+  ]
+  const filled = all.filter((t) => t.count)
+  return user.value || !filled.length ? all : filled
+})
 
 const loadingMore = ref(false)
 async function loadMore() {

@@ -19,7 +19,7 @@
         <p v-if="profile.bio" class="mt-4 max-w-2xl font-elegant text-2xl italic leading-snug text-parchment-muted">{{ profile.bio }}</p>
 
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3 md:justify-start">
-          <a v-for="l in profile.links" :key="l.url" :href="l.url" target="_blank" rel="noopener nofollow" class="chip">{{ l.label }} ↗</a>
+          <a v-for="l in profile.links" :key="l.url" :href="safeUrl(l.url)" target="_blank" rel="noopener nofollow" class="chip">{{ l.label }} ↗</a>
           <template v-if="isOwner">
             <NuxtLink to="/settings" class="btn-secondary px-4 py-1.5 text-sm">Оформить зал</NuxtLink>
           </template>
@@ -82,12 +82,17 @@ const opuses = computed(() => data.value?.opuses.items || [])
 const collections = computed(() => data.value?.collections || [])
 const materials = computed(() => data.value?.materials || [])
 
-const tabs = computed(() => [
-  { id: 'exhibition', label: 'Выставка', count: opuses.value.length },
-  { id: 'blog', label: 'Блог', count: data.value?.posts.total ?? 0 },
-  { id: 'materials', label: 'Материалы', count: materials.value.length },
-  { id: 'about', label: 'О себе' },
-])
+// The owner sees every section (to fill it in); a visitor only the ones with something inside
+const tabs = computed(() => {
+  const all = [
+    { id: 'exhibition', label: 'Выставка', count: opuses.value.length },
+    { id: 'blog', label: 'Блог', count: data.value?.posts.total ?? 0 },
+    { id: 'materials', label: 'Материалы', count: materials.value.length },
+    { id: 'about', label: 'О себе', count: null, empty: !profile.value?.about_md },
+  ]
+  const filled = all.filter((t) => !(t.empty ?? t.count === 0))
+  return isOwner.value || !filled.length ? all : filled
+})
 
 useSeoMeta({
   title: () => `${profile.value?.display_name} — зал на Allegro`,

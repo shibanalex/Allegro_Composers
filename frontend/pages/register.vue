@@ -35,7 +35,8 @@
 useSeoMeta({ title: 'Регистрация — Allegro' })
 
 const route = useRoute()
-const { register } = useAuth()
+const { register, registrationOpen } = useAuth()
+if (!registrationOpen.value) await navigateTo('/login', { replace: true })
 const form = reactive({ display_name: '', username: '', email: '', password: '' })
 const busy = ref(false)
 const error = ref('')
@@ -47,7 +48,7 @@ async function submit() {
   error.value = ''
   try {
     await register({ ...form })
-    const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : `/@${form.username}`
+    const next = safeNext(route.query.next, `/@${form.username}`)
     await navigateTo(next)
   } catch (e) {
     error.value = apiError(e)

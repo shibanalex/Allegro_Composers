@@ -5,10 +5,13 @@
 #   docker compose run --rm migrate python -m scripts.seed   (demo content)
 
 x-backend-env: &backend-env
-  DATABASE_URL: postgresql+psycopg2://allegro:allegro@postgres:5432/allegro
-  SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+  DATABASE_URL: postgresql+psycopg://allegro:allegro@postgres:5432/allegro
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY (48+ random characters) before starting}
   MEDIA_DIR: /data/media
   CORS_ORIGINS: http://localhost:8080
+  # Invite-only by default: nobody can sign up, only the listed accounts can log in
+  REGISTRATION_OPEN: ${REGISTRATION_OPEN:-false}
+  LOGIN_ALLOWLIST: ${LOGIN_ALLOWLIST:-}
 
 x-service: &service
   environment: *backend-env

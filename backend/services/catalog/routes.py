@@ -4,7 +4,7 @@ from collections import Counter
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy import String, cast, func, or_, select, update
 from sqlalchemy.orm import Session
 
@@ -12,11 +12,13 @@ from allegro_common import enums
 from allegro_common.db import get_db
 from allegro_common.musicxml import page_start_times
 from allegro_common.deps import get_current_user, get_optional_user
+from allegro_common.media_refs import check_key, check_url, delete_own
+from allegro_common.media_refs import check_key, check_url, delete_own
 from allegro_common.models import (
     Collection, CollectionItem, Comment, MeasureSyncMarker, Opus, Post, ScoreSyncMarker, User,
 )
 from allegro_common.storage import storage
-from allegro_common.utils import unique_slug
+from allegro_common.utils import unique_slug, visible_authors
 from services.catalog.schemas import (
     YOUTUBE_ID, CollectionIn, CollectionOut, CollectionUpdate, Facet, Facets, Marker, MeasureMarker, OpusCreate, OpusOut,
     OpusPage, OpusUpdate, SearchComposer, SearchOpus, SearchPost, SearchResult,
@@ -52,7 +54,9 @@ def _outs(db: Session, opuses: list[Opus]) -> list[OpusOut]:
 
 
 def _visible(opus: Optional[Opus], user: Optional[User]) -> bool:
-    return bool(opus) and (opus.status != "draft" or (user is not None and user.id == opus.author_id))
+    if not opus or opus.author.is_hidden:  # works of shadowed accounts vanish from the site
+        return False
+    return opus.status != "draft" or (user is not None and user.id == opus.author_id)
 
 
 def _get_opus(db: Session, slug: str, user: Optional[User]) -> Opus:
@@ -85,6 +89,28 @@ def _normalize_audio(values: dict) -> None:
         values["audio_source"] = source
     elif audio_type == "none":
         values["audio_source"] = None
+
+
+def _check_files(user: User, values: dict, opus: Optional[Opus] = None) -> None:
+    """Score, MusicXML, audio and cover must be the author's own uploads (or already on this opus)"""
+    for field in ("score_file_key", "musicxml_file_key"):
+        if field in values:
+            check_key(user, values[field], [getattr(opus, field, None)])
+    if values.get("audio_type") == "hosted_file":
+        check_key(user, values.get("audio_source"), [getattr(opus, "audio_source", None)])
+    if "cover_url" in values:
+        check_url(user, values["cover_url"], [getattr(opus, "cover_url", None)])
+
+
+def _check_files(user: User, values: dict, opus: Optional[Opus] = None) -> None:
+    """Score, MusicXML, audio and cover must be the author's own uploads (or already on this opus)"""
+    for field in ("score_file_key", "musicxml_file_key"):
+        if field in values:
+            check_key(user, values[field], [getattr(opus, field, None)])
+    if values.get("audio_type") == "hosted_file":
+        check_key(user, values.get("audio_source"), [getattr(opus, "audio_source", None)])
+    if "cover_url" in values:
+        check_url(user, values["cover_url"], [getattr(opus, "cover_url", None)])
 
 
 def _check_markers(markers: list[Marker], page_count: Optional[int]) -> None:
@@ -132,7 +158,7 @@ def _sync_page_markers(db: Session, opus: Opus) -> None:
     if opus.musicxml_file_key and opus.score_page_count and opus.audio_type != "none":
         try:
             times = page_start_times(
-                storage.path(opus.musicxml_file_key), opus.score_page_count, opus.audio_offset_seconds or 0,
+                storage.read_bytes(opus.musicxml_file_key), opus.score_page_count, opus.audio_offset_seconds or 0,
                 [(m.measure_number, m.timestamp_seconds) for m in opus.measure_markers],
             )
         except Exception:  # unreadable or unusual MusicXML: simply no automatic page turns
@@ -140,7 +166,7 @@ def _sync_page_markers(db: Session, opus: Opus) -> None:
     _set_markers(db, opus, [Marker(page_number=i + 1, timestamp_seconds=t) for i, t in enumerate(times or [])])
 
 
-def _download(opus: Opus, key: Optional[str], user: Optional[User], media_type: str, suffix: str) -> FileResponse:
+def _download(opus: Opus, key: Optional[str], user: Optional[User], media_type: str, suffix: str) -> StreamingResponse:
     """Score files honour the author's choice: free / view only / paid"""
     if not key:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Файла нет")
@@ -148,10 +174,12 @@ def _download(opus: Opus, key: Optional[str], user: Optional[User], media_type: 
     if opus.score_access != "free" and not is_author:
         detail = "Партитура доступна только для просмотра" if opus.score_access == "view_only" else "Скачивание за донат появится позже"
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail)
-    path = storage.path(key)
-    if not path.exists():
+    chunks = storage.open_stream(key)
+    if chunks is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Файл не найден")
-    return FileResponse(path, media_type=media_type, filename=f"{opus.slug}{suffix}")
+    return StreamingResponse(
+        chunks, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="{opus.slug}{suffix}"'},
+    )
 
 
 # ---------------------------------------------------------------- opuses
@@ -179,7 +207,7 @@ def list_opuses(
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Требуется вход")
         stmt = stmt.where(Opus.author_id == user.id)
     else:
-        stmt = stmt.where(Opus.status == "published")
+        stmt = stmt.where(Opus.status == "published", User.is_hidden.is_(False))
     if author:
         stmt = stmt.where(User.username == author.lower())
     if ensemble:
@@ -191,16 +219,16 @@ def list_opuses(
     if difficulty:
         stmt = stmt.where(Opus.difficulty == difficulty)
     if tag:
-        stmt = stmt.where(func.lower(cast(Opus.tags, String)).contains(f'"{tag.strip().lower()}"'))
+        stmt = stmt.where(func.lower(cast(Opus.tags, String)).contains(f'"{tag.strip().lower()}"', autoescape=True))
     if q and q.strip():
         needle = q.strip().lower()
         stmt = stmt.where(or_(
-            func.lower(Opus.title).contains(needle),
-            func.lower(Opus.subtitle).contains(needle),
-            func.lower(Opus.instrumentation).contains(needle),
-            func.lower(Opus.key_signature).contains(needle),
-            func.lower(cast(Opus.tags, String)).contains(needle),
-            func.lower(User.display_name).contains(needle),
+            func.lower(Opus.title).contains(needle, autoescape=True),
+            func.lower(Opus.subtitle).contains(needle, autoescape=True),
+            func.lower(Opus.instrumentation).contains(needle, autoescape=True),
+            func.lower(Opus.key_signature).contains(needle, autoescape=True),
+            func.lower(cast(Opus.tags, String)).contains(needle, autoescape=True),
+            func.lower(User.display_name).contains(needle, autoescape=True),
         ))
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
@@ -225,6 +253,8 @@ def create_opus(data: OpusCreate, user: User = Depends(get_current_user), db: Se
     values.setdefault("audio_type", "none")
     values.setdefault("tags", [])
     _normalize_audio(values)
+    _check_files(user, values)
+    _check_files(user, values)
     _check_markers(data.markers, data.score_page_count)
     _check_measure_markers(data.measure_markers)
     opus = Opus(
@@ -246,12 +276,15 @@ def update_opus(slug: str, data: OpusUpdate, user: User = Depends(get_current_us
         values.setdefault("audio_type", opus.audio_type)
         values.setdefault("audio_source", opus.audio_source)
         _normalize_audio(values)
+    _check_files(user, values, opus)
     # Remove replaced files from storage
     if opus.audio_type == "hosted_file" and values.get("audio_source", opus.audio_source) != opus.audio_source:
-        storage.delete(opus.audio_source)
+        delete_own(user, opus.audio_source)
     for key_field in ("score_file_key", "musicxml_file_key"):
         if key_field in values and values[key_field] != getattr(opus, key_field):
-            storage.delete(getattr(opus, key_field))
+            delete_own(user, getattr(opus, key_field))
+    if "cover_url" in values and values["cover_url"] != opus.cover_url:
+        delete_own(user, storage.key_from_url(opus.cover_url))
     for field, value in values.items():
         setattr(opus, field, value)
     if data.markers is not None:
@@ -270,10 +303,10 @@ def update_opus(slug: str, data: OpusUpdate, user: User = Depends(get_current_us
 def delete_opus(slug: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     opus = _own_opus(db, slug, user)
     if opus.audio_type == "hosted_file":
-        storage.delete(opus.audio_source)
-    storage.delete(opus.score_file_key)
-    storage.delete(opus.musicxml_file_key)
-    storage.delete(storage.key_from_url(opus.cover_url))
+        delete_own(user, opus.audio_source)
+    delete_own(user, opus.score_file_key)
+    delete_own(user, opus.musicxml_file_key)
+    delete_own(user, storage.key_from_url(opus.cover_url))
     db.delete(opus)
     db.commit()
 
@@ -349,7 +382,7 @@ def _own_collection(db: Session, collection_id: uuid.UUID, user: User) -> Collec
 
 @router.get("/api/collections", response_model=list[CollectionOut])
 def list_collections(author: str, user: Optional[User] = Depends(get_optional_user), db: Session = Depends(get_db)):
-    owner = db.scalar(select(User).where(User.username == author.lower()))
+    owner = db.scalar(select(User).where(User.username == author.lower(), User.is_hidden.is_(False)))
     if not owner:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Автор не найден")
     collections = db.scalars(
@@ -395,7 +428,7 @@ def delete_collection(collection_id: uuid.UUID, user: User = Depends(get_current
 def library_facets(db: Session = Depends(get_db)):
     """Filter values for the library with the number of published works for each"""
     rows = db.execute(
-        select(Opus.ensemble, Opus.form, Opus.key_signature, Opus.difficulty, Opus.tags).where(Opus.status == "published")
+        select(Opus.ensemble, Opus.form, Opus.key_signature, Opus.difficulty, Opus.tags).where(Opus.status == "published", visible_authors(Opus.author_id))
     ).all()
     ens = Counter(r.ensemble for r in rows)
     forms = Counter(r.form for r in rows)
@@ -416,26 +449,26 @@ def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(5, g
     """Quick search (Ctrl+K) across composers, opuses, posts and instrument tags"""
     needle = q.strip().lower()
     composers = db.scalars(
-        select(User).where(or_(
-            func.lower(User.username).contains(needle),
-            func.lower(User.display_name).contains(needle),
-            func.lower(User.pseudonym).contains(needle),
+        select(User).where(User.is_hidden.is_(False), or_(
+            func.lower(User.username).contains(needle, autoescape=True),
+            func.lower(User.display_name).contains(needle, autoescape=True),
+            func.lower(User.pseudonym).contains(needle, autoescape=True),
         )).limit(limit)
     ).all()
     opuses = db.scalars(
-        select(Opus).where(Opus.status == "published", or_(
-            func.lower(Opus.title).contains(needle),
-            func.lower(Opus.subtitle).contains(needle),
-            func.lower(Opus.instrumentation).contains(needle),
-            func.lower(cast(Opus.tags, String)).contains(needle),
+        select(Opus).where(Opus.status == "published", visible_authors(Opus.author_id), or_(
+            func.lower(Opus.title).contains(needle, autoescape=True),
+            func.lower(Opus.subtitle).contains(needle, autoescape=True),
+            func.lower(Opus.instrumentation).contains(needle, autoescape=True),
+            func.lower(cast(Opus.tags, String)).contains(needle, autoescape=True),
         )).order_by(Opus.play_count.desc()).limit(limit)
     ).unique().all()
     posts = db.scalars(
-        select(Post).where(Post.status == "published", func.lower(Post.title).contains(needle))
+        select(Post).where(Post.status == "published", visible_authors(Post.author_id), func.lower(Post.title).contains(needle, autoescape=True))
         .order_by(Post.created_at.desc()).limit(limit)
     ).unique().all()
     all_tags = Counter(
-        t for tags in db.scalars(select(Opus.tags).where(Opus.status == "published")) for t in (tags or [])
+        t for tags in db.scalars(select(Opus.tags).where(Opus.status == "published", visible_authors(Opus.author_id))) for t in (tags or [])
     )
     tags = [t for t, _ in all_tags.most_common() if needle in t][:limit]
     return SearchResult(

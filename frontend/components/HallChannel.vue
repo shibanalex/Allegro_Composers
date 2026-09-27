@@ -52,6 +52,34 @@
           </div>
         </NuxtLink>
 
+        <!-- Editing a channel post in place -->
+        <form v-else-if="editing?.id === p.id" class="space-y-4" @submit.prevent="saveEdit(p)">
+          <textarea
+            v-model="editing.text"
+            rows="6"
+            class="field resize-y font-serif text-lg leading-relaxed"
+            @keydown.ctrl.enter.prevent="saveEdit(p)"
+            @keydown.meta.enter.prevent="saveEdit(p)"
+            @keydown.esc="editing = null"
+          />
+          <div v-if="editing.attachments.length" class="flex flex-wrap gap-2">
+            <span v-for="(a, j) in editing.attachments" :key="a.url" class="chip gap-2">
+              {{ isImage(a) ? '◫' : isAudio(a) ? '♪' : '⎙' }} {{ a.name }}
+              <button type="button" class="text-parchment-faint hover:text-red-300" aria-label="Убрать" @click="editing.attachments.splice(j, 1)">✕</button>
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="btn-ghost cursor-pointer px-2" title="Прикрепить фото, аудио или файл">
+              <input type="file" multiple class="sr-only" @change="(e) => attach(e, editing!.attachments)">
+              <span class="text-lg">⎙</span> {{ uploading ? 'Загрузка…' : 'Вложение' }}
+            </label>
+            <NuxtLink :to="`/create/post?edit=${p.slug}`" class="btn-ghost px-2 text-sm" title="Заголовок, обложка, черновик">Полный редактор</NuxtLink>
+            <button type="button" class="btn-ghost ml-auto px-3 text-sm" @click="editing = null">Отмена</button>
+            <button type="submit" class="btn-primary px-5 py-1.5 text-sm" :disabled="busy || uploading || (!editing.text.trim() && !editing.attachments.length)">Сохранить</button>
+          </div>
+          <p v-if="editError" class="text-sm text-red-300">{{ editError }}</p>
+        </form>
+
         <!-- A channel post -->
         <template v-else>
           <h3 v-if="p.title" class="mb-2 text-2xl italic">{{ p.title }}</h3>
@@ -67,8 +95,12 @@
         <footer class="mt-4 flex items-center gap-5 text-sm text-parchment-faint">
           <span>{{ timeOf(p) }}</span>
           <span title="Просмотры">👁 {{ p.view_count }}</span>
-          <NuxtLink :to="`/posts/${p.slug}`" class="transition hover:text-gold-light">✎ {{ p.comment_count ? `${p.comment_count} ${plural(p.comment_count, 'комментарий', 'комментария', 'комментариев')}` : 'Обсудить' }}</NuxtLink>
-          <button v-if="isOwner" type="button" class="ml-auto transition hover:text-red-300" @click="remove(p)">Удалить</button>
+          <NuxtLink :to="`/posts/${p.slug}`" class="transition hover:text-gold-light">{{ discussLabel(p) }}</NuxtLink>
+          <template v-if="isOwner && editing?.id !== p.id">
+            <NuxtLink v-if="p.kind === 'article'" :to="`/create/post?edit=${p.slug}`" class="ml-auto transition hover:text-gold-light">Изменить</NuxtLink>
+            <button v-else type="button" class="ml-auto transition hover:text-gold-light" @click="startEdit(p)">Изменить</button>
+            <button type="button" class="transition hover:text-red-300" @click="remove(p)">Удалить</button>
+          </template>
         </footer>
       </article>
     </template>
@@ -85,6 +117,7 @@ import type { Attachment, Page, Post, Uploaded } from '~/utils/types'
 const props = defineProps<{ username: string; isOwner: boolean; initial: Page<Post> }>()
 
 const api = useApi()
+const { user, registrationOpen } = useAuth()
 const posts = ref<Post[]>([...props.initial.items])
 const total = ref(props.initial.total)
 const loading = ref(false)
@@ -96,6 +129,12 @@ const files = (p: Post) => p.attachments.filter((a) => !isImage(a) && !isAudio(a
 
 const dayOf = (p: Post) => new Date(p.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 const timeOf = (p: Post) => new Date(p.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+
+/** Members are invited to discuss; while sign-ups are closed a visitor is simply offered the post page */
+function discussLabel(p: Post) {
+  if (p.comment_count) return `✎ ${p.comment_count} ${plural(p.comment_count, 'комментарий', 'комментария', 'комментариев')}`
+  return user.value || registrationOpen.value ? '✎ Обсудить' : 'Открыть →'
+}
 
 async function more() {
   loading.value = true
@@ -119,7 +158,7 @@ const busy = ref(false)
 const error = ref('')
 
 /** Upload each file with the purpose its type calls for (images, audio, anything else) */
-async function attach(e: Event) {
+async function attach(e: Event, into = pending.value) {
   const input = e.target as HTMLInputElement
   const list = Array.from(input.files || [])
   input.value = ''
@@ -132,10 +171,12 @@ async function attach(e: Event) {
       form.append('purpose', purpose)
       form.append('files', file)
       const [saved] = await api<Uploaded[]>('/api/media', { method: 'POST', body: form })
-      pending.value.push({ url: saved.url, name: saved.name, content_type: saved.content_type, size: saved.size })
+      into.push({ url: saved.url, name: saved.name, content_type: saved.content_type, size: saved.size })
     }
   } catch (err) {
-    error.value = apiError(err, 'Не удалось загрузить файл')
+    const message = apiError(err, 'Не удалось загрузить файл')
+    if (into === pending.value) error.value = message
+    else editError.value = message
   } finally {
     uploading.value = false
   }
@@ -156,6 +197,35 @@ async function publish() {
     pending.value = []
   } catch (err) {
     error.value = apiError(err)
+  } finally {
+    busy.value = false
+  }
+}
+
+// ---------------------------------------------------------------- editing a post in place
+
+const editing = ref<{ id: string; text: string; attachments: Attachment[] } | null>(null)
+const editError = ref('')
+
+function startEdit(p: Post) {
+  editing.value = { id: p.id, text: p.content_md, attachments: [...p.attachments] }
+  editError.value = ''
+}
+
+async function saveEdit(p: Post) {
+  const draft = editing.value
+  if (!draft || busy.value || (!draft.text.trim() && !draft.attachments.length)) return
+  busy.value = true
+  editError.value = ''
+  try {
+    const saved = await api<Post>(`/api/posts/${p.slug}`, {
+      method: 'PATCH',
+      body: { content_md: draft.text.trim(), attachments: draft.attachments },
+    })
+    posts.value = posts.value.map((x) => (x.id === saved.id ? saved : x))
+    editing.value = null
+  } catch (err) {
+    editError.value = apiError(err)
   } finally {
     busy.value = false
   }

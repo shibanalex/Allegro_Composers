@@ -11,6 +11,7 @@ from allegro_common.db import get_db
 from allegro_common.deps import get_current_user, get_optional_user
 from allegro_common.models import Comment, Opus, Post, User
 from allegro_common.schemas import ORMModel, UserBrief, UTCDateTime
+from allegro_common.utils import visible_authors
 
 router = APIRouter(tags=["discussion"])
 
@@ -43,7 +44,7 @@ class CommentOut(ORMModel):
 def _target(db: Session, opus_id, post_id, user: Optional[User]):
     """The opus or post being discussed; drafts are only visible to their author"""
     target = db.get(Opus, opus_id) if opus_id else db.get(Post, post_id)
-    if not target or (target.status == "draft" and (not user or user.id != target.author_id)):
+    if not target or target.author.is_hidden or (target.status == "draft" and (not user or user.id != target.author_id)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Не найдено")
     return target
 
@@ -60,7 +61,10 @@ def list_comments(
         raise HTTPException(422, "Укажите либо opus_id, либо post_id")
     _target(db, opus_id, post_id, user)
     column = Comment.opus_id if opus_id else Comment.post_id
-    return db.scalars(select(Comment).where(column == (opus_id or post_id)).order_by(Comment.created_at)).all()
+    # Critiques written by shadowed accounts are hidden too
+    return db.scalars(
+        select(Comment).where(column == (opus_id or post_id), visible_authors(Comment.author_id)).order_by(Comment.created_at)
+    ).all()
 
 
 @router.post("/api/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)

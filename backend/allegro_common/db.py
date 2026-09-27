@@ -13,7 +13,10 @@ engine = create_engine(
     settings.database_url,
     echo=settings.debug,
     pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    # SQLite: one file shared by threads. PostgreSQL behind a transaction-mode pooler (Neon "-pooler",
+    # PgBouncer): a backend connection changes between transactions, so psycopg's server-side
+    # prepared statements could vanish mid-session - they are switched off.
+    connect_args={"check_same_thread": False} if _is_sqlite else {"prepare_threshold": None},
     # Keep Cyrillic readable inside JSON columns (tag search relies on it)
     json_serializer=lambda obj: json.dumps(obj, ensure_ascii=False),
 )

@@ -32,6 +32,8 @@ class User(Base):
     about_md: Mapped[Optional[str]] = mapped_column(Text)  # full biography / CV
     avatar_url: Mapped[Optional[str]] = mapped_column(String(512))
     links: Mapped[list] = mapped_column(JSON, default=list)  # [{label, url}]
+    # "In the shadow": the account and everything it made are hidden from the site, but kept in the database
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
