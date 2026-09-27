@@ -336,6 +336,12 @@ async function save() {
           .filter(([p, t]) => t && Number(p) <= form.score_page_count!)
           .map(([p, t]) => ({ page_number: Number(p), timestamp_seconds: parseTime(t) }))
           .filter((m) => m.timestamp_seconds != null)
+    // A page marked after the recording ends would never be turned to while listening
+    const late = duration.value ? markers.find((m) => m.timestamp_seconds! > duration.value) : undefined
+    if (late) {
+      error.value = `Стр. ${late.page_number} отмечена на ${formatTime(late.timestamp_seconds)}, а запись длится ${formatTime(duration.value)}. Исправьте отметку.`
+      return
+    }
     const body = {
       ...form,
       subtitle: form.subtitle || null,
