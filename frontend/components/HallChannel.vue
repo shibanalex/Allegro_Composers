@@ -127,8 +127,8 @@ const images = (p: Post) => p.attachments.filter(isImage)
 const audios = (p: Post) => p.attachments.filter(isAudio)
 const files = (p: Post) => p.attachments.filter((a) => !isImage(a) && !isAudio(a))
 
-const dayOf = (p: Post) => new Date(p.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
-const timeOf = (p: Post) => new Date(p.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+const dayOf = (p: Post) => formatDate(p.created_at)
+const timeOf = (p: Post) => formatClock(p.created_at)
 
 /** Members are invited to discuss; while sign-ups are closed a visitor is simply offered the post page */
 function discussLabel(p: Post) {

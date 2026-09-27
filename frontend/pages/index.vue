@@ -37,7 +37,7 @@
     <PageTabs :tabs="tabs">
       <!-- Все опусы -->
       <template #opuses>
-        <EmptyState v-if="!opuses.length">Опусов пока нет — станьте первым</EmptyState>
+        <EmptyState v-if="!opuses.length">{{ user || registrationOpen ? 'Опусов пока нет — станьте первым' : 'Скоро здесь появятся первые опусы' }}</EmptyState>
         <div class="grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
           <OpusCard v-for="o in opuses" :key="o.id" :opus="o" />
         </div>

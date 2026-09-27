@@ -13,7 +13,7 @@
         </NuxtLink>
         <span class="text-gold/50">✦</span>
         <!-- An untitled post already has the date in its heading -->
-        <span>{{ post.title ? formatDate(post.created_at) : new Date(post.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }}</span>
+        <span>{{ post.title ? formatDate(post.created_at) : formatClock(post.created_at) }}</span>
         <span class="text-gold/50">✦</span>
         <span>{{ post.view_count }} {{ plural(post.view_count, 'просмотр', 'просмотра', 'просмотров') }}</span>
       </div>

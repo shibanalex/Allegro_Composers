@@ -1,5 +1,13 @@
+// Dates are shown in one fixed time zone: the server renders the page in UTC, the visitor's browser in its own zone,
+// and without this a post written after midnight would get two different dates (a hydration mismatch)
+const TIME_ZONE = 'Europe/Moscow'
+
 export const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' }) : ''
+  value ? new Date(value).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', timeZone: TIME_ZONE }) : ''
+
+/** "19:40" */
+export const formatClock = (value?: string | null) =>
+  value ? new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE }) : ''
 
 export const formatSize = (bytes?: number | null) => {
   if (bytes == null) return ''
