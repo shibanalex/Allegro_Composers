@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-useSeoMeta({ title: 'Вход — Allegro' })
+useSeoMeta({ title: 'Вход — Allegro', robots: 'noindex, nofollow' })
 
 const route = useRoute()
 const { login, registrationOpen, setupAvailable } = useAuth()

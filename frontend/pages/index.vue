@@ -77,7 +77,10 @@
 <script setup lang="ts">
 import type { Opus, Page, Post, Profile } from '~/utils/types'
 
-useSeoMeta({ title: 'Allegro — сообщество композиторов' })
+useSeoMeta({
+  title: 'Allegro — сообщество композиторов',
+  description: 'Сообщество композиторов: опусы с партитурами и записями, блоги и материалы авторов.',
+})
 
 const api = useApi()
 const { user, registrationOpen } = useAuth()

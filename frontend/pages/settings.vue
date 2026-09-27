@@ -57,7 +57,7 @@
 import type { Me } from '~/utils/types'
 
 definePageMeta({ middleware: 'auth' })
-useSeoMeta({ title: 'Настройки зала — Allegro' })
+useSeoMeta({ title: 'Настройки зала — Allegro', robots: 'noindex, nofollow' })
 
 const api = useApi()
 const { user } = useAuth()

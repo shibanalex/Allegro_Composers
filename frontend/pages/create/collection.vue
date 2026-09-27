@@ -49,7 +49,7 @@
 import type { Collection, Opus, Page } from '~/utils/types'
 
 definePageMeta({ middleware: 'auth' })
-useSeoMeta({ title: 'Сборник — Allegro' })
+useSeoMeta({ title: 'Сборник — Allegro', robots: 'noindex, nofollow' })
 
 const route = useRoute()
 const api = useApi()

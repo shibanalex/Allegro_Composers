@@ -11,6 +11,12 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     apiInternal,
+    // Set on the hosting as NUXT_PUBLIC_* environment variables (read at start, no rebuild needed)
+    public: {
+      siteUrl: '', // the site's main address, e.g. https://allegro-cantabile.ru: canonical links, sitemap, redirect from other addresses
+      yandexVerification: '', // code from Yandex.Webmaster (the content of its <meta name="yandex-verification">)
+      googleVerification: '', // code from Google Search Console (<meta name="google-site-verification">)
+    },
   },
   // Browser requests to /api and /media go through Nuxt in dev; in docker the gateway answers them first
   routeRules: {

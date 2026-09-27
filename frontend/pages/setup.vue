@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-useSeoMeta({ title: 'Первый запуск — Allegro', robots: 'noindex' })
+useSeoMeta({ title: 'Первый запуск — Allegro', robots: 'noindex, nofollow' })
 
 const { setup, setupAvailable } = useAuth()
 const form = reactive({ code: '', username: '', display_name: '', email: '', password: '' })

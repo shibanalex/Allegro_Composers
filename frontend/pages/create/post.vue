@@ -100,7 +100,7 @@ const error = ref('')
 const contentEl = ref<HTMLTextAreaElement>()
 const fail = (m: string) => (error.value = m)
 
-useSeoMeta({ title: () => `${editing ? 'Редактирование' : TITLES[form.kind]} — Allegro` })
+useSeoMeta({ title: () => `${editing ? 'Редактирование' : TITLES[form.kind]} — Allegro`, robots: 'noindex, nofollow' })
 
 const { data: mine } = await useAsyncData('my-opuses', () => api<Page<Opus>>('/api/opuses', { params: { mine: true, limit: 100 } }))
 const myOpuses = computed(() => (mine.value?.items || []).filter((o) => o.status !== 'draft'))

@@ -222,7 +222,7 @@ const KEY_SUGGESTIONS = ['до мажор', 'до минор', 'ре мажор'
 const route = useRoute()
 const api = useApi()
 const editing = typeof route.query.edit === 'string' ? route.query.edit : null
-useSeoMeta({ title: editing ? 'Редактирование опуса — Allegro' : 'Новый опус — Allegro' })
+useSeoMeta({ title: editing ? 'Редактирование опуса — Allegro' : 'Новый опус — Allegro', robots: 'noindex, nofollow' })
 
 const form = reactive({
   title: '', subtitle: '', instrumentation: '', ensemble: 'solo', form: 'miniature', key_signature: '',

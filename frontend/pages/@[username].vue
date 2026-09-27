@@ -95,8 +95,27 @@ const tabs = computed(() => {
 })
 
 useSeoMeta({
-  title: () => `${profile.value?.display_name} — зал на Allegro`,
-  description: () => profile.value?.bio || undefined,
+  title: () => `${profile.value?.display_name}${profile.value?.pseudonym ? ` (${profile.value.pseudonym})` : ''} — композитор · Allegro`,
+  description: () => profile.value?.bio || `Произведения, блог и материалы композитора ${profile.value?.display_name} на Allegro.`,
   ogImage: () => profile.value?.avatar_url || undefined,
+  ogType: 'profile',
+})
+
+const origin = useSiteOrigin()
+useHead({
+  script: [computed(() => jsonLd({
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    mainEntity: {
+      '@type': 'Person',
+      name: profile.value?.display_name,
+      alternateName: profile.value?.pseudonym || undefined,
+      description: profile.value?.bio || undefined,
+      image: profile.value?.avatar_url || undefined,
+      jobTitle: 'Композитор',
+      url: `${origin}/@${username}`,
+      sameAs: profile.value?.links.map((l) => l.url).filter((u) => u.startsWith('http')),
+    },
+  }))],
 })
 </script>

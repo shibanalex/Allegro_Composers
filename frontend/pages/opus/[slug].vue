@@ -113,8 +113,30 @@ const isAuthor = computed(() => user.value?.id === opus.value?.author.id)
 
 useSeoMeta({
   title: () => `${opus.value?.title} — ${opus.value?.author.display_name} · Allegro`,
-  description: () => opus.value?.subtitle || stripMarkdown(opus.value?.description_md || '', 160),
+  description: () => [opus.value?.subtitle, stripMarkdown(opus.value?.description_md || '', 140)].filter(Boolean).join('. ')
+    || `${opus.value?.title}: партитура и запись на Allegro`,
   ogImage: () => opus.value?.cover_url || undefined,
+  ogType: 'music.song',
+})
+
+const origin = useSiteOrigin()
+useHead({
+  script: [computed(() => jsonLd({
+    '@context': 'https://schema.org',
+    '@type': 'MusicComposition',
+    name: opus.value?.title,
+    alternateName: opus.value?.subtitle || undefined,
+    url: `${origin}/opus/${opus.value?.slug}`,
+    dateCreated: opus.value?.year ? String(opus.value.year) : undefined,
+    musicalKey: opus.value?.key_signature || undefined,
+    description: stripMarkdown(opus.value?.description_md || '', 300) || undefined,
+    composer: {
+      '@type': 'Person',
+      name: opus.value?.author.display_name,
+      alternateName: opus.value?.author.pseudonym || undefined,
+      url: `${origin}/@${opus.value?.author.username}`,
+    },
+  }))],
 })
 
 const viewer = ref<{ enableFollow: () => void }>()
