@@ -1,9 +1,13 @@
+export type Role = 'composer' | 'theorist' | 'performer' | 'listener'
+export type HallTheme = 'baroque' | 'romantic' | 'modern' | 'avantgarde'
+
 export interface UserBrief {
   id: string
   username: string
   display_name: string
   pseudonym?: string | null
   avatar_url?: string | null
+  role?: Role
 }
 
 export interface Link { label: string; url: string }
@@ -12,11 +16,25 @@ export interface Profile extends UserBrief {
   bio?: string | null
   about_md?: string | null
   links: Link[]
+  role: Role
+  hall_theme: HallTheme
   created_at: string
-  stats?: { opuses: number; posts: number; collections: number }
+  stats?: Partial<Record<'opuses' | 'performances' | 'posts' | 'articles', number>>
 }
 
-export interface Me extends Profile { email: string }
+export interface Me extends Profile {
+  email?: string | null
+  is_admin: boolean
+  capabilities: string[]
+}
+
+export interface SiteConfig {
+  registration: 'closed' | 'invite' | 'open'
+  registration_open: boolean
+  setup_available: boolean
+  roles: Record<string, string>
+  hall_themes: Record<string, string>
+}
 
 export interface Marker { page_number: number; timestamp_seconds: number }
 
@@ -47,6 +65,7 @@ export interface Opus {
   audio_offset_seconds: number
   auto_page_markers: boolean
   status: 'published' | 'draft' | 'unlisted'
+  featured: boolean
   play_count: number
   created_at: string
   author: UserBrief
@@ -72,7 +91,7 @@ export interface OpusBrief {
 export interface Post {
   id: string
   slug: string
-  kind: 'article' | 'note' | 'workshop'
+  kind: 'article' | 'note' | 'news' | 'workshop'
   title: string
   excerpt?: string | null
   content_md: string
@@ -125,5 +144,56 @@ export interface Material {
   file?: Attachment | null
   cover_url?: string | null
   position: number
+  created_at: string
+}
+
+export interface Performance {
+  id: string
+  title: string
+  composer_name?: string | null
+  opus?: OpusBrief | null
+  description_md?: string | null
+  audio_type: 'youtube' | 'hosted_file'
+  audio_source?: string | null
+  audio_url?: string | null
+  audio_duration_seconds?: number | null
+  recorded_year?: number | null
+  status: 'published' | 'draft' | 'unlisted'
+  play_count: number
+  created_at: string
+  performer: UserBrief
+}
+
+export interface Feedback {
+  id: string
+  kind: 'idea' | 'bug' | 'other'
+  title: string
+  body: string
+  status: 'new' | 'planned' | 'done' | 'declined'
+  reply_md?: string | null
+  replied_at?: string | null
+  created_at: string
+  author: UserBrief
+}
+
+export interface AccessLink {
+  id: string
+  purpose: 'invite' | 'reset'
+  note?: string | null
+  role?: Role | null
+  created_at: string
+  expires_at: string
+  used_at?: string | null
+  revoked_at?: string | null
+  used_by?: UserBrief | null
+  target_user?: UserBrief | null
+  token?: string | null
+  status: 'active' | 'used' | 'expired' | 'revoked'
+}
+
+export interface AdminUser extends UserBrief {
+  is_admin: boolean
+  is_hidden: boolean
+  has_email: boolean
   created_at: string
 }

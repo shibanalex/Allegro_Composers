@@ -2,7 +2,7 @@
   <!-- A folder with index dividers: the tab labels stick out above the sheet;
        switching is a quick, quiet cross-fade (no page flipping). -->
   <div class="folder">
-    <nav class="folder-tabs" role="tablist">
+    <nav class="folder-tabs" :class="{ dense: tabs.length > 5 }" role="tablist">
       <button
         v-for="(tab, i) in tabs"
         :key="tab.id"
@@ -22,7 +22,13 @@
     <div class="folder-body">
       <Transition :css="false" @enter="enter" @leave="leave">
         <div :key="current" class="folder-sheet">
-          <slot :name="current" />
+          <!-- A tab's content may load its own data (catalogue, performances): wait for it here -->
+          <Suspense>
+            <div><slot :name="current" /></div>
+            <template #fallback>
+              <p class="py-16 text-center font-elegant text-xl italic text-parchment-faint">Загрузка…</p>
+            </template>
+          </Suspense>
         </div>
       </Transition>
     </div>

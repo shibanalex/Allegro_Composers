@@ -1,10 +1,11 @@
 <template>
   <div class="mx-auto max-w-4xl">
-    <PageHeader eyebrow="Мастерская автора" :title="editing ? 'Редактирование' : TITLES[form.kind]" />
+    <PageHeader eyebrow="Публикация" :title="editing ? 'Редактирование' : TITLES[form.kind]" />
 
     <form class="space-y-8" @submit.prevent="save">
       <div class="flex flex-wrap gap-2">
-        <button v-for="(label, v) in POST_KINDS" :key="v" type="button" class="chip" :class="{ active: form.kind === v }" @click="form.kind = v">{{ label }}</button>
+        <!-- Only the kinds the member's role allows (a blog post is for everyone) -->
+        <button v-for="k in kinds" :key="k" type="button" class="chip" :class="{ active: form.kind === k }" @click="form.kind = k">{{ POST_KINDS[k] }}</button>
       </div>
 
       <div>
@@ -17,14 +18,14 @@
         <input id="p-excerpt" v-model="form.excerpt" class="field" maxlength="512">
       </div>
 
-      <!-- Workshop thread: which of my works to discuss -->
-      <div v-if="form.kind === 'workshop'">
-        <label class="field-label" for="p-opus">Опус для разбора</label>
+      <!-- A review: an article about a work on the site -->
+      <div v-if="form.kind === 'article' || form.kind === 'workshop'">
+        <label class="field-label" for="p-opus">Об опусе — если это обзор (необязательно)</label>
         <select id="p-opus" v-model="form.opus_id" class="field">
           <option :value="null">— без опуса —</option>
-          <option v-for="o in myOpuses" :key="o.id" :value="o.id">{{ o.title }}{{ o.subtitle ? ` · ${o.subtitle}` : '' }}</option>
+          <option v-for="o in allOpuses" :key="o.id" :value="o.id">{{ o.title }} · {{ o.author.display_name }}</option>
         </select>
-        <p class="mt-1 text-sm text-parchment-faint">Если выбрать опус, таймкоды в тексте и ответах будут перематывать его запись.</p>
+        <p class="mt-1 text-sm text-parchment-faint">Таймкоды вида 02:15 в тексте и комментариях будут перематывать запись этого опуса.</p>
       </div>
 
       <div>
@@ -77,17 +78,30 @@ import type { Attachment, Opus, Page, Post, Uploaded } from '~/utils/types'
 
 definePageMeta({ middleware: 'auth' })
 
-const TITLES = { article: 'Новая статья', note: 'Новая заметка', workshop: 'Тема в мастерскую' } as const
+const TITLES = { article: 'Новая статья', note: 'Запись в блог', news: 'Новость', workshop: 'Мастерская' } as const
 const PLACEHOLDERS = {
   article: 'Терцовые соотношения в романтической экспозиции',
   note: 'Ноктюрн, который не хотел заканчиваться',
+  news: 'В Allegro появились исполнения',
   workshop: 'Послушайте экспозицию моего трио — не проседает ли фактура?',
 } as const
 
 const route = useRoute()
 const api = useApi()
 const editing = typeof route.query.edit === 'string' ? route.query.edit : null
-const initialKind = (['article', 'note', 'workshop'] as const).find((k) => k === route.query.kind) || 'article'
+const { can } = useAuth()
+// A blog post is for everyone; articles need a composer's or theorist's role; news — an administrator
+const kinds = computed(() => {
+  const list: Post['kind'][] = ['note']
+  if (can('publish_article')) list.push('article')
+  if (can('publish_news')) list.push('news')
+  if (form.kind === 'workshop') list.push('workshop') // an old thread being edited
+  return list
+})
+const requested = route.query.kind as Post['kind'] | undefined
+const initialKind: Post['kind'] = requested && (requested === 'note' || (requested === 'article' && can('publish_article')) || (requested === 'news' && can('publish_news')))
+  ? requested
+  : can('publish_article') ? 'article' : 'note'
 
 const form = reactive({
   kind: initialKind as Post['kind'],
@@ -102,8 +116,9 @@ const fail = (m: string) => (error.value = m)
 
 useSeoMeta({ title: () => `${editing ? 'Редактирование' : TITLES[form.kind]} — Allegro`, robots: 'noindex, nofollow' })
 
-const { data: mine } = await useAsyncData('my-opuses', () => api<Page<Opus>>('/api/opuses', { params: { mine: true, limit: 100 } }))
-const myOpuses = computed(() => (mine.value?.items || []).filter((o) => o.status !== 'draft'))
+// Works on the site an article can review
+const { data: published } = await useAsyncData('review-opuses', () => api<Page<Opus>>('/api/opuses', { params: { limit: 100, sort: 'title' } }))
+const allOpuses = computed(() => published.value?.items || [])
 
 if (editing) {
   const post = await api<Post>(`/api/posts/${editing}`)
@@ -129,7 +144,7 @@ async function save() {
   busy.value = true
   error.value = ''
   try {
-    const body = { ...form, excerpt: form.excerpt || null, opus_id: form.kind === 'workshop' ? form.opus_id : null }
+    const body = { ...form, excerpt: form.excerpt || null, opus_id: form.kind === 'article' || form.kind === 'workshop' ? form.opus_id : null }
     const post = editing
       ? await api<Post>(`/api/posts/${editing}`, { method: 'PATCH', body })
       : await api<Post>('/api/posts', { method: 'POST', body })

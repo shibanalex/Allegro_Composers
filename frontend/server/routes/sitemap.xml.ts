@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const day = (iso: string) => iso.slice(0, 10)
   const urls = [
     { loc: '/', priority: '1.0' },
-    { loc: '/library', priority: '0.8' },
+    { loc: '/about', priority: '0.5' },
     ...composers.map((c) => ({ loc: `/@${c.username}`, priority: '0.9' })),
     ...opuses.map((o) => ({ loc: `/opus/${o.slug}`, lastmod: day(o.created_at), priority: '0.8' })),
     ...posts.map((p) => ({ loc: `/posts/${p.slug}`, lastmod: day(p.created_at), priority: '0.6' })),

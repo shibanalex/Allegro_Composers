@@ -1,5 +1,6 @@
 <template>
-  <!-- «Блог»: like a Telegram channel — short posts with photos, audio and files, newest first -->
+  <!-- «Блог»: like a Telegram channel — short posts with photos, audio and files, newest first.
+       Also the main page's «Блоги»: everyone's posts in one feed (`feed`), each with its author. -->
   <div class="mx-auto max-w-2xl">
     <!-- Composer (owner only) -->
     <form v-if="isOwner" class="card mb-12 space-y-4" @submit.prevent="publish">
@@ -22,13 +23,13 @@
           <input type="file" multiple class="sr-only" @change="attach">
           <span class="text-lg">⎙</span> {{ uploading ? 'Загрузка…' : 'Вложение' }}
         </label>
-        <NuxtLink to="/create/post?kind=article" class="btn-ghost px-2 text-sm">¶ Длинная статья</NuxtLink>
+        <NuxtLink v-if="can('publish_article')" to="/create/post?kind=article" class="btn-ghost px-2 text-sm">¶ Статья</NuxtLink>
         <button type="submit" class="btn-primary ml-auto px-5 py-1.5 text-sm" :disabled="busy || uploading || (!text.trim() && !pending.length)">Опубликовать</button>
       </div>
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
 
-    <EmptyState v-if="!posts.length">{{ isOwner ? 'Первая запись в блоге — за вами' : 'В блоге пока тихо' }}</EmptyState>
+    <EmptyState v-if="!posts.length">{{ feed ? 'Записей пока нет' : isOwner ? 'Первая запись в блоге — за вами' : 'В блоге пока тихо' }}</EmptyState>
 
     <template v-for="(p, i) in posts" :key="p.id">
       <!-- Day separator, as in a messenger -->
@@ -39,6 +40,12 @@
       </div>
 
       <article class="card mb-5 !p-5 sm:!p-6">
+        <!-- In the common feed: whose post it is -->
+        <NuxtLink v-if="feed" :to="`/@${p.author.username}?tab=blog`" class="mb-3 flex items-center gap-2 text-parchment transition hover:text-gold-light">
+          <UserAvatar :user="p.author" :size="30" />
+          <span class="font-display italic">{{ p.author.display_name }}</span>
+          <span v-if="p.author.role" class="text-sm text-parchment-faint">· {{ ROLES[p.author.role]?.label }}</span>
+        </NuxtLink>
         <!-- A long article: shown as a card leading to the full text -->
         <NuxtLink v-if="p.kind === 'article'" :to="`/posts/${p.slug}`" class="group flex gap-5">
           <div v-if="p.cover_url" class="frame frame-thin hidden h-24 w-32 shrink-0 sm:block">
@@ -114,10 +121,10 @@
 <script setup lang="ts">
 import type { Attachment, Page, Post, Uploaded } from '~/utils/types'
 
-const props = defineProps<{ username: string; isOwner: boolean; initial: Page<Post> }>()
+const props = defineProps<{ username?: string; isOwner: boolean; initial: Page<Post>; feed?: boolean }>()
 
 const api = useApi()
-const { user, registrationOpen } = useAuth()
+const { user, registrationOpen, can } = useAuth()
 const posts = ref<Post[]>([...props.initial.items])
 const total = ref(props.initial.total)
 const loading = ref(false)
@@ -140,7 +147,11 @@ async function more() {
   loading.value = true
   try {
     const page = await api<Page<Post>>('/api/posts', {
-      params: { author: props.username, kind: ['note', 'article'], limit: 20, offset: posts.value.length, ...(props.isOwner ? { mine: true } : {}) },
+      params: {
+        kind: 'note', limit: 20, offset: posts.value.length,
+        ...(props.username ? { author: props.username } : {}),
+        ...(props.isOwner ? { mine: true } : {}),
+      },
     })
     posts.value.push(...page.items)
     total.value = page.total

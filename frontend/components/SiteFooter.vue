@@ -3,16 +3,22 @@
     <div class="container-page flex flex-col items-center gap-4 py-10 text-center">
       <span class="title-script text-6xl">Allegro</span>
       <Ornament class="w-56" />
-      <p class="font-elegant text-xl italic text-parchment-muted">Сообщество композиторов, исполнителей и теоретиков</p>
-      <nav class="flex flex-wrap items-center justify-center gap-6 font-caps text-sm font-semibold tracking-[0.2em] text-parchment-faint">
-        <NuxtLink to="/" class="transition hover:text-gold">Главная</NuxtLink>
-        <NuxtLink to="/library" class="transition hover:text-gold">Библиотека</NuxtLink>
-        <span>© {{ year }} Allegro</span>
+      <p class="font-elegant text-xl italic text-parchment-muted">Сообщество композиторов, теоретиков, исполнителей и слушателей</p>
+      <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-caps text-sm font-semibold tracking-[0.2em] text-parchment-faint">
+        <NuxtLink v-for="l in LINKS" :key="l.to" :to="l.to" class="transition hover:text-gold">{{ l.label }}</NuxtLink>
       </nav>
+      <p class="font-caps text-xs tracking-[0.2em] text-parchment-faint/70">© {{ year }} Allegro</p>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
 const year = new Date().getFullYear()
+// Sections of the «О сообществе» page
+const LINKS = [
+  { to: '/about', label: 'О нас' },
+  { to: '/about?tab=links', label: 'Ссылки' },
+  { to: '/about?tab=news', label: 'Новости' },
+  { to: '/about?tab=feedback', label: 'Предложения' },
+]
 </script>

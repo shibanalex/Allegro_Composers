@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     # Works only while the database has no users at all, so it closes itself after one use.
     setup_token: str = ""
 
+    # Flood protection per client address: changes (create, edit, delete, upload) and searches per minute
+    write_requests_per_minute: int = 120
+    search_requests_per_minute: int = 60
+
     # Comma-separated list of allowed browser origins (only needed when the API is called from another site)
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 

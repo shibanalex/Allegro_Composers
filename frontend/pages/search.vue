@@ -14,7 +14,7 @@
 
       <template v-else-if="result">
         <section v-if="result.composers.length" class="mb-12">
-          <h2 class="eyebrow mb-4">Композиторы</h2>
+          <h2 class="eyebrow mb-4">Участники</h2>
           <div class="space-y-3">
             <NuxtLink v-for="c in result.composers" :key="c.username" :to="`/@${c.username}`" class="card flex items-center gap-4 !p-4 transition hover:border-gold/40">
               <UserAvatar :user="c" :size="44" />
@@ -53,7 +53,7 @@
         <section v-if="result.tags.length">
           <h2 class="eyebrow mb-4">Инструменты и теги</h2>
           <div class="flex flex-wrap gap-2">
-            <NuxtLink v-for="t in result.tags" :key="t" :to="`/library?tag=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
+            <NuxtLink v-for="t in result.tags" :key="t" :to="`/?tab=works&tag=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
           </div>
         </section>
       </template>

@@ -33,11 +33,13 @@
             </button>
             <Transition name="drop">
               <div v-if="createOpen" class="absolute right-0 top-full mt-2 w-64 border border-gold/25 bg-ink-900/95 py-2 shadow-2xl shadow-black backdrop-blur" @click="createOpen = false">
-                <NuxtLink to="/create/opus" class="menu-item"><span class="menu-icon">♪</span>Произведение<small>на выставку</small></NuxtLink>
+                <!-- What the member's role lets them publish -->
+                <NuxtLink v-if="can('publish_opus')" to="/create/opus" class="menu-item"><span class="menu-icon">♪</span>Сочинение<small>в библиотеку</small></NuxtLink>
+                <NuxtLink v-if="can('publish_performance')" :to="`/@${user.username}?tab=performances`" class="menu-item"><span class="menu-icon">♫</span>Исполнение<small>запись, видео</small></NuxtLink>
+                <NuxtLink v-if="can('publish_article')" to="/create/post?kind=article" class="menu-item"><span class="menu-icon">¶</span>Статью<small>теория, обзор, эссе</small></NuxtLink>
                 <NuxtLink :to="`/@${user.username}?tab=blog`" class="menu-item"><span class="menu-icon">✎</span>Запись в блог<small>как в канале</small></NuxtLink>
-                <NuxtLink to="/create/post?kind=article" class="menu-item"><span class="menu-icon">¶</span>Статью<small>теория, разбор, эссе</small></NuxtLink>
                 <NuxtLink :to="`/@${user.username}?tab=materials`" class="menu-item"><span class="menu-icon">⎗</span>Материал<small>книга, ссылка, файл</small></NuxtLink>
-                <NuxtLink to="/create/post?kind=workshop" class="menu-item"><span class="menu-icon">⚒</span>Тему в мастерскую<small>попросить разбор</small></NuxtLink>
+                <NuxtLink v-if="can('publish_news')" to="/create/post?kind=news" class="menu-item"><span class="menu-icon">✦</span>Новость<small>для всех</small></NuxtLink>
               </div>
             </Transition>
           </div>
@@ -51,7 +53,8 @@
               <div v-if="profileOpen" class="absolute right-0 top-full mt-2 w-56 border border-gold/25 bg-ink-900/95 py-2 shadow-2xl shadow-black backdrop-blur" @click="profileOpen = false">
                 <p class="truncate px-4 pb-2 pt-1 font-display italic text-parchment">{{ user.display_name }}</p>
                 <NuxtLink :to="`/@${user.username}`" class="menu-item">Мой зал</NuxtLink>
-                <NuxtLink to="/settings" class="menu-item">Настройки профиля</NuxtLink>
+                <NuxtLink to="/settings" class="menu-item">Оформить зал</NuxtLink>
+                <NuxtLink v-if="user.is_admin" to="/admin" class="menu-item">Управление</NuxtLink>
                 <button type="button" class="menu-item w-full text-left" @click="logout">Выйти</button>
               </div>
             </Transition>
@@ -78,14 +81,13 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { user, logout: doLogout } = useAuth()
+const { user, can, logout: doLogout } = useAuth()
 const search = useSearchPalette()
 
-// Main feed, your own hall, the catalogue
+// The main page (works, performances, articles, blogs) and your own hall
 const links = computed(() => [
   { to: '/', label: 'Главная' },
   ...(user.value ? [{ to: `/@${user.value.username}`, label: 'Мой зал' }] : []),
-  { to: '/library', label: 'Библиотека' },
 ])
 const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
 

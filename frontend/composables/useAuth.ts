@@ -1,13 +1,21 @@
-import type { Me } from '~/utils/types'
+import type { Me, SiteConfig } from '~/utils/types'
 
 interface TokenOut { access_token: string; user: Me }
 
+export interface JoinBody {
+  username: string
+  display_name: string
+  password: string
+  role: string
+  email?: string | null
+  invite?: string | null
+}
+
+/** Who is signed in, what they may publish, and how the site lets people join */
 export function useAuth() {
   const user = useState<Me | null>('auth-user', () => null)
-  // While the community is invite-only the backend refuses sign-ups; the site then hides every way to register
-  const registrationOpen = useState('auth-registration-open', () => false)
-  // A freshly deployed site with no accounts yet: /setup creates the first one (with the code from the hosting settings)
-  const setupAvailable = useState('auth-setup-available', () => false)
+  // How people join (by invitation for now) and whether a fresh site still needs its first account
+  const config = useState<SiteConfig | null>('auth-config', () => null)
   const token = useCookie<string | null>(TOKEN_COOKIE, {
     maxAge: 60 * 60 * 24 * 14,
     sameSite: 'lax',
@@ -22,17 +30,19 @@ export function useAuth() {
 
   return {
     user,
+    config,
     loggedIn: computed(() => !!user.value),
-    registrationOpen,
-    setupAvailable,
+    isAdmin: computed(() => !!user.value?.is_admin),
+    registrationOpen: computed(() => config.value?.registration === 'open'),
+    inviteOnly: computed(() => config.value?.registration === 'invite'),
+    setupAvailable: computed(() => !!config.value?.setup_available),
+    /** publish_opus · publish_article · publish_performance · publish_news · manage_site */
+    can: (capability: string) => !!user.value?.capabilities?.includes(capability),
     async fetchConfig() {
       try {
-        const config = await api<{ registration_open: boolean; setup_available: boolean }>('/api/auth/config')
-        registrationOpen.value = config.registration_open
-        setupAvailable.value = config.setup_available
+        config.value = await api<SiteConfig>('/api/auth/config')
       } catch {
-        registrationOpen.value = false
-        setupAvailable.value = false
+        config.value = null
       }
     },
     async fetchMe() {
@@ -47,12 +57,15 @@ export function useAuth() {
     async login(login: string, password: string) {
       accept(await api<TokenOut>('/api/auth/login', { method: 'POST', body: { login, password } }))
     },
-    async register(body: { username: string; email: string; password: string; display_name: string }) {
+    async register(body: JoinBody) {
       accept(await api<TokenOut>('/api/auth/register', { method: 'POST', body }))
     },
-    async setup(body: { code: string; username: string; email: string; password: string; display_name: string }) {
+    async setup(body: JoinBody & { code: string }) {
       accept(await api<TokenOut>('/api/auth/setup', { method: 'POST', body }))
-      setupAvailable.value = false
+      if (config.value) config.value.setup_available = false
+    },
+    async resetPassword(tokenValue: string, password: string) {
+      accept(await api<TokenOut>('/api/auth/reset', { method: 'POST', body: { token: tokenValue, password } }))
     },
     logout() {
       token.value = null

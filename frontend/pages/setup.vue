@@ -48,7 +48,7 @@
 useSeoMeta({ title: 'Первый запуск — Allegro', robots: 'noindex, nofollow' })
 
 const { setup, setupAvailable } = useAuth()
-const form = reactive({ code: '', username: '', display_name: '', email: '', password: '' })
+const form = reactive({ code: '', username: '', display_name: '', email: '', password: '', role: 'composer' })
 const password2 = ref('')
 const busy = ref(false)
 const error = ref('')

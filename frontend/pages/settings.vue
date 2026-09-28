@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-3xl">
-    <PageHeader eyebrow="Ваш зал" title="Настройки" />
+    <PageHeader eyebrow="Ваш зал" title="Оформить зал" />
 
     <form class="space-y-8" @submit.prevent="save">
       <div class="grid gap-8 sm:grid-cols-[12rem_minmax(0,1fr)]">
@@ -30,6 +30,17 @@
       </div>
 
       <div>
+        <p class="field-label">Кто вы на Allegro</p>
+        <RolePicker v-model="form.role" />
+        <p class="mt-2 text-sm text-parchment-faint">От роли зависят разделы зала и то, что можно публиковать. Сменить её можно в любой момент — опубликованное никуда не денется.</p>
+      </div>
+
+      <div>
+        <p class="field-label">Стиль зала</p>
+        <ThemePicker v-model="form.hall_theme" />
+      </div>
+
+      <div>
         <label class="field-label" for="s-about">О себе — биография, исполненные сочинения, инструментарий (Markdown)</label>
         <textarea id="s-about" v-model="form.about_md" rows="12" class="field resize-y" />
       </div>
@@ -44,10 +55,35 @@
         <button type="button" class="link font-caps text-sm font-semibold tracking-[0.15em]" @click="form.links.push({ label: '', url: '' })">+ Добавить ссылку</button>
       </div>
 
+      <div>
+        <label class="field-label" for="s-email">Email — необязательно</label>
+        <input id="s-email" v-model="form.email" type="email" class="field" autocomplete="email" placeholder="чтобы восстановить доступ, если забудете пароль">
+        <p class="mt-1 text-xs text-parchment-faint">Хранится только в зашифрованном виде и нигде не показывается.</p>
+      </div>
+
       <div class="flex items-center gap-4 border-t border-gold/15 pt-6">
         <button type="submit" class="btn-primary" :disabled="busy">Сохранить</button>
         <NuxtLink :to="`/@${user?.username}`" class="btn-ghost">В зал</NuxtLink>
         <p v-if="message" class="text-sm" :class="ok ? 'text-gold-light' : 'text-red-300'">{{ message }}</p>
+      </div>
+    </form>
+
+    <!-- Password -->
+    <form class="mt-16 space-y-5 border-t border-gold/15 pt-10" @submit.prevent="changePassword">
+      <h2 class="text-3xl italic">Пароль</h2>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label class="field-label" for="s-pass-old">Текущий пароль</label>
+          <input id="s-pass-old" v-model="password.current" type="password" class="field" autocomplete="current-password" required>
+        </div>
+        <div>
+          <label class="field-label" for="s-pass-new">Новый пароль</label>
+          <input id="s-pass-new" v-model="password.next" type="password" class="field" autocomplete="new-password" minlength="8" required>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <button type="submit" class="btn-secondary" :disabled="password.busy">Сменить пароль</button>
+        <p v-if="password.message" class="text-sm" :class="password.ok ? 'text-gold-light' : 'text-red-300'">{{ password.message }}</p>
       </div>
     </form>
   </div>
@@ -69,10 +105,30 @@ const form = reactive({
   about_md: u.about_md || '',
   avatar_url: u.avatar_url || '',
   links: u.links.map((l) => ({ ...l })),
+  role: u.role,
+  hall_theme: u.hall_theme,
+  email: u.email || '',
 })
 const busy = ref(false)
 const message = ref('')
 const ok = ref(false)
+
+const password = reactive({ current: '', next: '', busy: false, message: '', ok: false })
+async function changePassword() {
+  password.busy = true
+  password.message = ''
+  try {
+    await api('/api/users/me/password', { method: 'POST', body: { current_password: password.current, new_password: password.next } })
+    password.ok = true
+    password.message = 'Пароль изменён'
+    password.current = password.next = ''
+  } catch (e) {
+    password.ok = false
+    password.message = apiError(e)
+  } finally {
+    password.busy = false
+  }
+}
 
 async function save() {
   busy.value = true
@@ -80,7 +136,7 @@ async function save() {
   try {
     user.value = await api<Me>('/api/users/me', {
       method: 'PATCH',
-      body: { ...form, pseudonym: form.pseudonym || null, avatar_url: form.avatar_url || null },
+      body: { ...form, pseudonym: form.pseudonym || null, avatar_url: form.avatar_url || null, email: form.email.trim() },
     })
     ok.value = true
     message.value = 'Сохранено'

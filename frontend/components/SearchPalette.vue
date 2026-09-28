@@ -89,9 +89,9 @@ watch(q, (value) => {
       const r = await api<any>('/api/search', { params: { q: value.trim(), limit: 5 } })
       if (id !== requestId) return
       groups.value = [
-        { title: 'Композиторы', items: r.composers.map((u: any) => ({ to: `/@${u.username}`, title: u.display_name, hint: u.pseudonym || u.bio, user: u })) },
+        { title: 'Участники', items: r.composers.map((u: any) => ({ to: `/@${u.username}`, title: u.display_name, hint: u.pseudonym || u.bio, user: u })) },
         { title: 'Опусы', items: r.opuses.map((o: any) => ({ to: `/opus/${o.slug}`, title: o.title, snippet: o.snippet, hint: [o.subtitle, o.author.display_name].filter(Boolean).join(' · '), icon: '♪' })) },
-        { title: 'Инструменты и теги', items: r.tags.map((t: string) => ({ to: `/library?tag=${encodeURIComponent(t)}`, title: t, hint: 'все опусы в библиотеке', icon: '#' })) },
+        { title: 'Инструменты и теги', items: r.tags.map((t: string) => ({ to: `/?tab=works&tag=${encodeURIComponent(t)}`, title: t, hint: 'все сочинения с этим тегом', icon: '#' })) },
         { title: 'Записи и статьи', items: r.posts.map((p: any) => ({
           to: `/posts/${p.slug}`,
           title: p.title || `Запись от ${formatDate(p.created_at)}`,

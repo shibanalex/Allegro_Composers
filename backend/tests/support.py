@@ -10,6 +10,9 @@ os.environ["MEDIA_DIR"] = f"{_tmp}/media"
 os.environ["REGISTRATION_MODE"] = "open"
 os.environ.pop("REGISTRATION_OPEN", None)
 os.environ["SECRET_KEY"] = "test-secret-key-long-enough-for-hs256-signing"
+# Every test request comes from one address: the flood limits are tested on their own (test_flood_protection)
+os.environ["WRITE_REQUESTS_PER_MINUTE"] = "100000"
+os.environ["SEARCH_REQUESTS_PER_MINUTE"] = "100000"
 
 from alembic import command
 from alembic.config import Config

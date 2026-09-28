@@ -220,3 +220,15 @@ def test_suggestions(admin, listener, theorist):
     # answered: the author can no longer take it back, an administrator can
     assert client.delete(f"/api/feedback/{idea['id']}", headers=listener).status_code == 403
     assert client.delete(f"/api/feedback/{idea['id']}", headers=admin).status_code == 204
+
+
+def test_flood_protection(monkeypatch):
+    """One address can't flood the site with changes or searches"""
+    from allegro import main
+    from allegro.core.ratelimit import RequestLimiter
+    monkeypatch.setattr(main, "SEARCH_LIMIT", RequestLimiter(per_minute=3))
+    codes = [client.get("/api/search", params={"q": "трио"}).status_code for _ in range(5)]
+    assert codes[:3] == [200, 200, 200] and codes[3:] == [429, 429]
+    r = client.get("/api/search", params={"q": "трио"})
+    assert r.headers["retry-after"] == "60" and "Подождите" in r.json()["detail"]
+    assert client.get("/api/opuses").status_code == 200  # reading pages is not limited

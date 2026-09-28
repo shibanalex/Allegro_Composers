@@ -41,3 +41,30 @@ class AttemptLimiter:
     def reset(self, key: tuple) -> None:
         with self._lock:
             self._attempts.pop(key, None)
+
+
+class RequestLimiter:
+    """Requests per client in a sliding minute: keeps one address from flooding the application.
+
+    Generous for a person (nobody clicks «save» 120 times a minute), tight for a script.
+    """
+
+    def __init__(self, per_minute: int):
+        self.per_minute = per_minute
+        self._hits: dict[str, list[float]] = {}
+        self._lock = threading.Lock()
+        self._last_sweep = time.monotonic()
+
+    def allow(self, client: str) -> bool:
+        now = time.monotonic()
+        with self._lock:
+            if now - self._last_sweep > 300:  # forget clients that went quiet, so memory stays small
+                self._hits = {c: t for c, t in self._hits.items() if t and now - t[-1] < 60}
+                self._last_sweep = now
+            recent = [t for t in self._hits.get(client, []) if now - t < 60]
+            if len(recent) >= self.per_minute:
+                self._hits[client] = recent
+                return False
+            recent.append(now)
+            self._hits[client] = recent
+            return True

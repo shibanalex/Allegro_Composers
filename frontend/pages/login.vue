@@ -16,7 +16,7 @@
     <p class="mt-6 text-center font-elegant text-lg italic text-parchment-muted">
       <template v-if="registrationOpen">Ещё нет своего зала? <NuxtLink :to="`/register?next=${encodeURIComponent(next)}`" class="link">Открыть</NuxtLink></template>
       <template v-else-if="setupAvailable">Сайт только что запущен? <NuxtLink to="/setup" class="link">Первая настройка</NuxtLink></template>
-      <template v-else>Сообщество пока открыто только по приглашениям</template>
+      <template v-else>Сообщество пока открыто по приглашениям.<br>Забыли пароль? Попросите у администратора ссылку для сброса.</template>
     </p>
   </div>
 </template>

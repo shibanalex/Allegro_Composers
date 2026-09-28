@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------- Palette: the romantic hall by default; data-hall-theme on a hall redefines it (end of file) ---------- */
+:root {
+  --c-ink-950: 5 4 3;
+  --c-ink-900: 10 8 7;
+  --c-ink-850: 16 12 10;
+  --c-ink-800: 22 17 14;
+  --c-ink-700: 33 25 20;
+  --c-ink-600: 52 40 31;
+  --c-parchment: 233 223 201;
+  --c-parchment-muted: 184 170 142;
+  --c-parchment-faint: 138 125 102;
+  --c-gold-pale: 243 220 166;
+  --c-gold-light: 224 194 140;
+  --c-gold: 201 163 106;
+  --c-gold-dark: 156 122 69;
+  --c-gold-deep: 90 64 32;
+  --font-display: "Old Standard TT", "EB Garamond", Georgia, serif;
+}
+
 @layer base {
   html {
     @apply bg-ink-900 text-parchment antialiased;
@@ -41,11 +60,11 @@
       radial-gradient(ellipse 120% 90% at 50% 40%, transparent 45%, rgba(0, 0, 0, 0.7) 100%),
       #0b0908;
   }
-  /* A light grain, so the dark areas don't look flat */
+  /* A fine grain, like canvas under varnish, so the dark areas don't look flat */
   .canvas-bg::after {
     content: '';
     @apply absolute inset-0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .82 0 0 0 0 .7 0 0 0 .04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .82 0 0 0 0 .7 0 0 0 .075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   /* ---------- Typography ---------- */
@@ -55,7 +74,7 @@
   }
 
   .text-gilded {
-    background: linear-gradient(175deg, #f3dca6 0%, #d4ab62 35%, #9c7336 55%, #e6c47f 75%, #a67c3d 100%);
+    background: linear-gradient(175deg, rgb(var(--c-gold-pale)) 0%, rgb(var(--c-gold)) 35%, rgb(var(--c-gold-dark)) 55%, rgb(var(--c-gold-light)) 75%, rgb(var(--c-gold-dark)) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -65,7 +84,7 @@
     @apply font-script font-bold text-gilded;
     line-height: 1.4;
     padding: .15em .3em .25em;
-    filter: drop-shadow(0 2px 12px rgba(201, 163, 106, 0.18));
+    filter: drop-shadow(0 2px 12px rgb(var(--c-gold) / 0.18));
   }
 
   /* ---------- Controls ---------- */
@@ -76,8 +95,8 @@
 
   .btn-primary {
     @apply btn text-ink-950;
-    background: linear-gradient(170deg, #ecd29a, #c9a36a 45%, #a07a40);
-    box-shadow: inset 0 1px 0 rgba(255, 240, 200, 0.5), 0 8px 24px -12px rgba(201, 163, 106, 0.6);
+    background: linear-gradient(170deg, rgb(var(--c-gold-pale)), rgb(var(--c-gold)) 45%, rgb(var(--c-gold-dark)));
+    box-shadow: inset 0 1px 0 rgba(255, 240, 200, 0.5), 0 8px 24px -12px rgb(var(--c-gold) / 0.6);
   }
   .btn-primary:hover {
     filter: brightness(1.08);
@@ -116,7 +135,7 @@
   .frame {
     @apply relative;
     padding: 5px;
-    background: linear-gradient(135deg, #5a4020 0%, #e0c28c 18%, #8a6a35 40%, #d9b77a 62%, #6b4f24 82%, #c9a36a 100%);
+    background: linear-gradient(135deg, rgb(var(--c-gold-deep)) 0%, rgb(var(--c-gold-light)) 18%, rgb(var(--c-gold-dark)) 40%, rgb(var(--c-gold-light)) 62%, rgb(var(--c-gold-deep)) 82%, rgb(var(--c-gold)) 100%);
     box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.6);
   }
   .frame-inner {
@@ -301,7 +320,7 @@
   .portrait {
     @apply relative overflow-hidden rounded-[50%];
     padding: 6px;
-    background: linear-gradient(135deg, #5a4020, #e0c28c 20%, #8a6a35 45%, #d9b77a 65%, #6b4f24 85%, #c9a36a);
+    background: linear-gradient(135deg, rgb(var(--c-gold-deep)), rgb(var(--c-gold-light)) 20%, rgb(var(--c-gold-dark)) 45%, rgb(var(--c-gold-light)) 65%, rgb(var(--c-gold-deep)) 85%, rgb(var(--c-gold)));
     box-shadow: 0 30px 60px -20px #000, 0 0 0 1px #000;
   }
   .portrait > img, .portrait > div {
@@ -341,6 +360,8 @@
   scrollbar-width: none;
 }
 .folder-tabs::-webkit-scrollbar { display: none; }
+/* Many sections (a composer's hall): narrower dividers, so all of them fit */
+.folder-tabs.dense .folder-tab { padding-left: 0.95rem; padding-right: 0.95rem; letter-spacing: 0.1em; font-size: 1rem; }
 
 /* Index tab of a divider: rounded top, a strip of the sheet sticking out */
 .folder-tab {
@@ -354,9 +375,9 @@
   font-weight: 600;
   font-size: 1.05rem;
   letter-spacing: 0.16em;
-  color: #8a7d66;
-  background: linear-gradient(180deg, #1c1611 0%, #120e0b 100%);
-  border: 1px solid rgba(201, 163, 106, 0.16);
+  color: rgb(var(--c-parchment-faint));
+  background: linear-gradient(180deg, rgb(var(--c-ink-800)) 0%, rgb(var(--c-ink-850)) 100%);
+  border: 1px solid rgb(var(--c-gold) / 0.16);
   border-bottom: none;
   border-radius: 0.75rem 0.75rem 0 0;
   box-shadow: inset 0 1px 0 rgba(255, 230, 180, 0.05), 0 -6px 14px -10px rgba(0, 0, 0, 0.9);
@@ -364,13 +385,13 @@
   transition: transform 0.35s cubic-bezier(.3, .7, .3, 1), color 0.3s, background 0.3s, border-color 0.3s;
 }
 .folder-tab:hover {
-  color: #e0c28c;
+  color: rgb(var(--c-gold-light));
   transform: translateY(3px);
 }
 .folder-tab.active {
-  color: #c9a36a;
-  background: linear-gradient(180deg, #211a14 0%, #16110e 100%);
-  border-color: rgba(201, 163, 106, 0.45);
+  color: rgb(var(--c-gold));
+  background: linear-gradient(180deg, rgb(var(--c-ink-700)) 0%, rgb(var(--c-ink-800)) 100%);
+  border-color: rgb(var(--c-gold) / 0.45);
   padding-bottom: 0.8rem;
   transform: translateY(0);
 }
@@ -383,24 +404,24 @@
   right: 0.9rem;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, transparent, #e0c28c 20%, #c9a36a 80%, transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--c-gold-light)) 20%, rgb(var(--c-gold)) 80%, transparent);
 }
 .folder-tab-count {
-  font-family: 'Old Standard TT', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
   font-size: 0.85rem;
   letter-spacing: 0;
-  color: #8a7d66;
+  color: rgb(var(--c-parchment-faint));
 }
 
 /* The open sheet, with the edges of the other dividers peeking out behind it */
 .folder-body {
   position: relative;
   perspective: 2400px;
-  border: 1px solid rgba(201, 163, 106, 0.32);
+  border: 1px solid rgb(var(--c-gold) / 0.32);
   border-radius: 0 0.6rem 0.6rem 0.6rem;
-  background: linear-gradient(180deg, #16110e 0%, #0e0a08 100%);
+  background: linear-gradient(180deg, rgb(var(--c-ink-800)) 0%, rgb(var(--c-ink-850)) 100%);
   box-shadow: 0 40px 70px -35px #000;
 }
 .folder-body::before,
@@ -408,9 +429,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(201, 163, 106, 0.12);
+  border: 1px solid rgb(var(--c-gold) / 0.12);
   border-radius: inherit;
-  background: #0f0b09;
+  background: rgb(var(--c-ink-850));
   pointer-events: none;
 }
 .folder-body::before { transform: translate(6px, 6px); z-index: -1; }
@@ -420,7 +441,7 @@
   position: relative;
   padding: 2rem 1.25rem;
   border-radius: inherit;
-  background: linear-gradient(180deg, #16110e 0%, #0e0a08 100%);
+  background: linear-gradient(180deg, rgb(var(--c-ink-800)) 0%, rgb(var(--c-ink-850)) 100%);
   backface-visibility: hidden;
   will-change: transform;
 }
@@ -454,4 +475,103 @@
   font-style: italic;
   font-size: 2.25rem;
   color: rgba(224, 194, 140, 0.75);
+}
+
+/* ======================================================================
+   Styles of a hall: the era its owner feels closest to (Оформить зал → Стиль).
+   Only the hall changes; the site around it stays the same.
+   ====================================================================== */
+.hall { position: relative; }
+/* A full-width tint behind the hall, fading at the top and bottom */
+.hall::before {
+  content: '';
+  position: absolute;
+  inset: -1rem calc(50% - 50vw) -2rem;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--hall-backdrop, none);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 6rem, #000 calc(100% - 8rem), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 6rem, #000 calc(100% - 8rem), transparent);
+}
+
+/* Барокко и классицизм: пурпур, старое золото, гравюрные прописные */
+.hall[data-hall-theme="baroque"] {
+  --c-ink-950: 10 4 7;
+  --c-ink-900: 18 7 12;
+  --c-ink-850: 26 10 17;
+  --c-ink-800: 34 13 22;
+  --c-ink-700: 50 20 32;
+  --c-ink-600: 74 32 48;
+  --c-parchment: 242 233 214;
+  --c-parchment-muted: 200 182 162;
+  --c-parchment-faint: 152 132 118;
+  --c-gold-pale: 248 226 164;
+  --c-gold-light: 236 206 136;
+  --c-gold: 214 176 92;
+  --c-gold-dark: 160 122 52;
+  --c-gold-deep: 96 62 22;
+  --font-display: "Playfair Display SC", "Old Standard TT", Georgia, serif;
+  --hall-backdrop: radial-gradient(ellipse 70% 50% at 50% 0%, rgb(90 20 44 / 0.35), transparent 70%);
+}
+.hall[data-hall-theme="baroque"] :is(h1, h2, h3, .hall-name) { font-style: normal; letter-spacing: 0.04em; }
+
+/* Модерн: зелень, медь и латунь, плавные линии начала века */
+.hall[data-hall-theme="modern"] {
+  --c-ink-950: 3 8 7;
+  --c-ink-900: 7 14 12;
+  --c-ink-850: 11 20 17;
+  --c-ink-800: 15 27 23;
+  --c-ink-700: 24 40 34;
+  --c-ink-600: 38 60 51;
+  --c-parchment: 232 228 206;
+  --c-parchment-muted: 178 180 152;
+  --c-parchment-faint: 128 138 114;
+  --c-gold-pale: 238 208 160;
+  --c-gold-light: 222 182 130;
+  --c-gold: 194 146 92;
+  --c-gold-dark: 142 100 58;
+  --c-gold-deep: 74 50 26;
+  --font-display: "Kurale", "Old Standard TT", Georgia, serif;
+  --hall-backdrop: radial-gradient(ellipse 80% 55% at 50% 0%, rgb(40 90 70 / 0.28), transparent 70%);
+}
+.hall[data-hall-theme="modern"] :is(h1, h2, h3, .hall-name) { font-style: normal; }
+.hall[data-hall-theme="modern"] :is(.frame, .frame-inner, .card, .folder-body, .folder-sheet) { border-radius: 1.1rem; }
+.hall[data-hall-theme="modern"] .folder-tab { border-radius: 1.4rem 1.4rem 0 0; }
+
+/* Авангард: чёрный, красный и белый, геометрия плаката */
+.hall[data-hall-theme="avantgarde"] {
+  --c-ink-950: 8 8 8;
+  --c-ink-900: 14 14 14;
+  --c-ink-850: 20 20 20;
+  --c-ink-800: 26 26 26;
+  --c-ink-700: 40 40 40;
+  --c-ink-600: 70 70 70;
+  --c-parchment: 242 238 230;
+  --c-parchment-muted: 200 194 184;
+  --c-parchment-faint: 146 140 132;
+  --c-gold-pale: 255 110 90;
+  --c-gold-light: 240 80 62;
+  --c-gold: 214 40 32;
+  --c-gold-dark: 160 24 18;
+  --c-gold-deep: 90 10 8;
+  --font-display: "Oswald", "Arial Narrow", sans-serif;
+  --hall-backdrop: linear-gradient(115deg, transparent 62%, rgb(214 40 32 / 0.12) 62%, rgb(214 40 32 / 0.12) 70%, transparent 70%);
+}
+.hall[data-hall-theme="avantgarde"] :is(h1, h2, h3, .hall-name) { font-style: normal; text-transform: uppercase; letter-spacing: 0.06em; }
+.hall[data-hall-theme="avantgarde"] .hall-flourish { display: none; }
+/* Flat colour instead of gilding, square corners */
+.hall[data-hall-theme="avantgarde"] :is(.frame, .portrait) { background: rgb(var(--c-gold)); }
+.hall[data-hall-theme="avantgarde"] :is(.portrait, .portrait > img, .portrait > div) { border-radius: 0; }
+.hall[data-hall-theme="avantgarde"] .btn-primary { background: rgb(var(--c-gold)); color: rgb(var(--c-parchment)); box-shadow: none; }
+.hall[data-hall-theme="avantgarde"] :is(.folder-tab, .folder-body, .folder-sheet, .card) { border-radius: 0; }
+.hall[data-hall-theme="avantgarde"] .title-script {
+  font-family: "Oswald", "Arial Narrow", sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 2rem;
+  line-height: 1.2;
+  background: none;
+  color: rgb(var(--c-gold));
+  filter: none;
 }

@@ -61,7 +61,7 @@
           </dl>
 
           <div v-if="opus.tags.length" class="mt-4 flex flex-wrap gap-2">
-            <NuxtLink v-for="t in opus.tags" :key="t" :to="`/library?tag=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
+            <NuxtLink v-for="t in opus.tags" :key="t" :to="`/?tab=works&tag=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
           </div>
 
           <div v-if="isAuthor" class="mt-6 flex flex-wrap gap-3">
@@ -77,11 +77,11 @@
         </section>
 
         <section v-if="threads.length">
-          <h2 class="font-caps text-lg font-semibold tracking-[0.2em] text-gold">В мастерской</h2>
+          <h2 class="font-caps text-lg font-semibold tracking-[0.2em] text-gold">Обзоры</h2>
           <ul class="mt-3 space-y-2">
             <li v-for="t in threads" :key="t.id">
               <NuxtLink :to="`/posts/${t.slug}`" class="font-display italic text-parchment transition hover:text-gold-light">«{{ t.title }}»</NuxtLink>
-              <span class="text-sm text-parchment-faint"> · {{ t.comment_count }} {{ plural(t.comment_count, 'ответ', 'ответа', 'ответов') }}</span>
+              <span class="text-sm text-parchment-faint"> · {{ t.author.display_name }} · {{ t.comment_count }} {{ plural(t.comment_count, 'комментарий', 'комментария', 'комментариев') }}</span>
             </li>
           </ul>
         </section>
@@ -89,6 +89,12 @@
         <CommentThread :target="{ opus_id: opus.id }" :opus="opus" :owner-id="opus.author.id" title="Рецензии и разборы" @seek="seek" />
       </aside>
     </div>
+
+    <!-- Members' performances of this work -->
+    <section v-if="performanceCount || can('publish_performance')" class="mt-20">
+      <h2 class="mb-8 text-center font-caps text-lg font-semibold tracking-[0.2em] text-gold">Исполнения</h2>
+      <PerformanceList :opus="opus.slug" :opus-id="opus.id" empty-text="Это сочинение ещё никто не исполнил — станьте первым" />
+    </section>
   </div>
 </template>
 
@@ -106,9 +112,14 @@ const { data: opus, error } = await useAsyncData(`opus-${slug}`, () => api<Opus>
 if (error.value || !opus.value) throw createError({ statusCode: 404, statusMessage: 'Опус не найден', fatal: true })
 
 const { data: threadPage } = await useAsyncData(`opus-threads-${slug}`, () =>
-  api<Page<Post>>('/api/posts', { params: { kind: 'workshop', opus: slug, limit: 10 } }),
+  api<Page<Post>>('/api/posts', { params: { kind: ['article', 'workshop'], opus: slug, limit: 10 } }),
 )
 const threads = computed(() => threadPage.value?.items || [])
+const { can } = useAuth()
+const { data: performancePage } = await useAsyncData(`opus-performances-count-${slug}`, () =>
+  api<Page<unknown>>('/api/performances', { params: { opus: slug, limit: 1 } }),
+)
+const performanceCount = computed(() => performancePage.value?.total || 0)
 const isAuthor = computed(() => user.value?.id === opus.value?.author.id)
 
 useSeoMeta({

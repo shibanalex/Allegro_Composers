@@ -2,7 +2,12 @@
   <div class="mx-auto max-w-4xl">
     <PageHeader eyebrow="Мастерская автора" :title="editing ? 'Редактирование опуса' : 'Новый опус'" />
 
-    <form class="space-y-12" @submit.prevent="save">
+    <!-- New works are published by composers (the role is chosen in «Оформить зал») -->
+    <div v-if="!editing && !can('publish_opus')" class="card text-center font-elegant text-xl italic text-parchment-muted">
+      Публиковать сочинения могут композиторы. Роль меняется в <NuxtLink to="/settings" class="link">«Оформить зал»</NuxtLink>.
+    </div>
+
+    <form v-else class="space-y-12" @submit.prevent="save">
       <!-- 1. Passport -->
       <fieldset class="space-y-5">
         <legend class="section-title">I. Паспорт сочинения</legend>
@@ -204,6 +209,10 @@
         <select v-model="form.status" class="field w-auto">
           <option v-for="(label, v) in STATUSES" :key="v" :value="v">{{ label }}</option>
         </select>
+        <label class="flex cursor-pointer items-center gap-2 text-parchment-muted">
+          <input v-model="form.featured" type="checkbox" class="accent-[#c9a36a]">
+          ★ На выставке
+        </label>
         <button type="submit" class="btn-primary" :disabled="busy">{{ editing ? 'Сохранить' : 'Опубликовать' }}</button>
         <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
       </div>
@@ -215,6 +224,8 @@
 import type { Opus, Uploaded } from '~/utils/types'
 
 definePageMeta({ middleware: 'auth' })
+
+const { can } = useAuth()
 
 const AUDIO_TYPES = { hosted_file: 'Аудиофайл', youtube: 'YouTube', none: 'Без записи' } as const
 const KEY_SUGGESTIONS = ['до мажор', 'до минор', 'ре мажор', 'ре минор', 'ми мажор', 'ми минор', 'фа мажор', 'фа минор', 'соль мажор', 'соль минор', 'ля мажор', 'ля минор', 'си мажор', 'си минор', 'ми-бемоль мажор', 'си-бемоль мажор', 'атональная']
@@ -231,7 +242,7 @@ const form = reactive({
   audio_type: 'hosted_file' as Opus['audio_type'], audio_source: null as string | null, audio_duration_seconds: null as number | null,
   score_file_key: null as string | null, score_page_count: null as number | null,
   score_access: 'free' as Opus['score_access'], status: 'published' as Opus['status'],
-  musicxml_file_key: null as string | null, audio_offset_seconds: 0,
+  musicxml_file_key: null as string | null, audio_offset_seconds: 0, featured: false,
 })
 const musicxmlName = ref('')
 // PDF page turns: derived from the MusicXML page breaks, or set by hand
