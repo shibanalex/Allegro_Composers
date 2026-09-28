@@ -13,9 +13,10 @@ export default {
     extend: {
       fontFamily: {
         serif: ['"EB Garamond"', 'Garamond', 'Georgia', 'serif'],
-        display: ['"Playfair Display"', '"Cormorant Garamond"', 'Georgia', 'serif'],
-        elegant: ['"Cormorant Garamond"', '"EB Garamond"', 'Garamond', 'serif'],
-        caps: ['"Cormorant SC"', '"Cormorant Garamond"', 'serif'],
+        // Russian book type of the 19th century: aristocratic, with a calm italic and even figures in Cyrillic
+        display: ['"Old Standard TT"', '"EB Garamond"', 'Georgia', 'serif'],
+        elegant: ['"EB Garamond"', 'Garamond', 'Georgia', 'serif'],
+        caps: ['"Cormorant SC"', '"EB Garamond"', 'serif'],
         script: ['Tangerine', '"Great Vibes"', 'cursive'], // Great Vibes covers Cyrillic
       },
       colors: {

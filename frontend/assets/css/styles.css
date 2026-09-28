@@ -350,7 +350,7 @@
   align-items: baseline;
   gap: 0.55rem;
   padding: 0.65rem 1.35rem 0.55rem;
-  font-family: 'Cormorant SC', 'Cormorant Garamond', serif;
+  font-family: 'Cormorant SC', 'EB Garamond', serif;
   font-weight: 600;
   font-size: 1.05rem;
   letter-spacing: 0.16em;
@@ -386,7 +386,7 @@
   background: linear-gradient(90deg, transparent, #e0c28c 20%, #c9a36a 80%, transparent);
 }
 .folder-tab-count {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Old Standard TT', serif;
   font-style: italic;
   font-weight: 400;
   font-size: 0.85rem;
@@ -450,7 +450,7 @@
   padding-top: 18%;
 }
 .riffle-leaf-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Old Standard TT', serif;
   font-style: italic;
   font-size: 2.25rem;
   color: rgba(224, 194, 140, 0.75);

@@ -40,12 +40,16 @@ export default defineNuxtConfig({
         { name: 'description', content: 'Опусы, партитуры и разборы: пространство для композиторов, исполнителей и теоретиков.' },
       ],
       link: [
-        { rel: 'icon', href: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23c9a36a'>♪</text></svg>" },
+        // A gold treble clef: bold and frameless for the browser tab, in a gilded frame for phones
+        { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32.png' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+SC:wght@500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Great+Vibes&family=Tangerine:wght@700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+SC:wght@500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Great+Vibes&family=Tangerine:wght@700&display=swap',
         },
       ],
     },
