@@ -8,9 +8,10 @@ import getpass
 
 from sqlalchemy import select
 
-from allegro_common.db import SessionLocal
-from allegro_common.models import User
-from allegro_common.security import hash_password
+import allegro.models  # noqa: F401  (all tables, for relationships)
+from allegro.core.db import SessionLocal
+from allegro.core.security import hash_password
+from allegro.modules.accounts.models import User
 
 MIN_LENGTH = 12
 

@@ -34,11 +34,9 @@ services:
       - key: MEDIA_URL_PREFIX     # the bucket's public address, Yandex: https://storage.yandexcloud.net/<bucket>
         sync: false
 
-      # Invite-only: nobody can sign up, only this account can log in
-      - key: REGISTRATION_OPEN
-        value: "false"
-      - key: LOGIN_ALLOWLIST
-        value: allegro_cantabile
+      # Joining by invitation links from an administrator (invite | open | closed)
+      - key: REGISTRATION_MODE
+        value: invite
 
       # Code for the one-time /setup page that creates the owner's account (16+ characters)
       - key: SETUP_TOKEN

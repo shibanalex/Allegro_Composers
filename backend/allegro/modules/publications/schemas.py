@@ -1,0 +1,108 @@
+"""Public data shapes of the publications module"""
+import re
+import uuid
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field, field_validator
+
+from allegro.core.schemas import Attachment, ORMModel, UTCDateTime
+from allegro.modules.accounts.schemas import UserBrief
+from allegro.modules.catalog.schemas import OpusBrief
+
+# note: a blog post (everyone) · article: an article or review (composers, theorists) · news: the site's news
+# (administrators) · workshop: an old review request, kept for existing threads
+Kind = Literal["article", "note", "news", "workshop"]
+Status = Literal["published", "draft", "unlisted"]
+
+POST_KINDS = {
+    "note": "Запись в блоге",
+    "article": "Статья",
+    "news": "Новости",
+    "workshop": "Мастерская",
+}
+
+MATERIAL_KINDS = {
+    "book": "Книги",
+    "link": "Ссылки",
+    "file": "Файлы",
+}
+
+
+class PostFields(BaseModel):
+    kind: Optional[Kind] = None
+    title: Optional[str] = Field(None, max_length=255)  # may be empty for a blog post, like a channel message
+    excerpt: Optional[str] = Field(None, max_length=512)
+    content_md: Optional[str] = Field(None, max_length=100_000)
+    cover_url: Optional[str] = Field(None, max_length=512)
+    attachments: Optional[list[Attachment]] = Field(None, max_length=50)
+    tags: Optional[list[str]] = None
+    opus_id: Optional[uuid.UUID] = None  # a post about a specific opus
+    status: Optional[Status] = None
+
+
+class PostCreate(PostFields):
+    kind: Kind
+    title: str = Field("", max_length=255)
+    content_md: str = ""
+
+
+class PostOut(ORMModel):
+    id: uuid.UUID
+    slug: str
+    kind: str
+    title: str
+    excerpt: Optional[str] = None
+    content_md: str
+    cover_url: Optional[str] = None
+    attachments: list[Attachment] = []
+    tags: list[str] = []
+    status: str
+    view_count: int
+    created_at: UTCDateTime
+    author: UserBrief
+    opus: Optional[OpusBrief] = None
+    comment_count: int = 0
+
+
+class PostPage(BaseModel):
+    items: list[PostOut]
+    total: int
+
+
+# ---------------------------------------------------------------- materials
+
+MaterialKind = Literal["book", "link", "file"]
+
+
+class MaterialFields(BaseModel):
+    kind: Optional[MaterialKind] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=4000)
+    url: Optional[str] = Field(None, max_length=1024)
+    file: Optional[Attachment] = None
+    cover_url: Optional[str] = Field(None, max_length=512)
+    position: Optional[int] = None
+
+    @field_validator("url")
+    @classmethod
+    def _http_only(cls, v):
+        if v and not re.match(r"^https?://", v.strip()):
+            raise ValueError("Ссылка должна начинаться с http:// или https://")
+        return v.strip() if v else v
+
+
+class MaterialIn(MaterialFields):
+    kind: MaterialKind
+    title: str = Field(min_length=1, max_length=255)
+
+
+class MaterialOut(ORMModel):
+    id: uuid.UUID
+    kind: str
+    title: str
+    description: Optional[str] = None
+    url: Optional[str] = None
+    file: Optional[Attachment] = None
+    cover_url: Optional[str] = None
+    position: int
+    created_at: UTCDateTime

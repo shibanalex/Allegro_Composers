@@ -8,8 +8,9 @@ import argparse
 
 from sqlalchemy import select
 
-from allegro_common.db import SessionLocal
-from allegro_common.models import User
+import allegro.models  # noqa: F401  (all tables, for relationships)
+from allegro.core.db import SessionLocal
+from allegro.modules.accounts.models import User
 
 
 def main() -> None:

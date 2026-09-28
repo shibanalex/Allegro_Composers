@@ -15,16 +15,19 @@ from datetime import timedelta
 
 from sqlalchemy import delete, select
 
-from allegro_common.db import SessionLocal
-from allegro_common.models import (
-    Collection, CollectionItem, Comment, Material, MeasureSyncMarker, Opus, Post, ScoreSyncMarker, User, utcnow,
+from allegro.core.db import SessionLocal
+from allegro.core.security import hash_password
+from allegro.core.slugs import unique_slug
+from allegro.core.storage import storage
+from allegro.models import (
+    Collection, CollectionItem, Comment, Material, MeasureSyncMarker, Opus, Post, ScoreSyncMarker, User,
 )
-from allegro_common.security import hash_password
-from allegro_common.storage import storage
-from allegro_common.utils import unique_slug
+from allegro.modules.accounts.models import utcnow
 from scripts.assets import compose, painting_svg, piece_musicxml, render_wav, score_pdf
 
 PASSWORD = "allegro-demo"
+# One demo member of each kind (all fictional)
+DEMO_ROLES = {"lev_orlovsky": "composer", "kostya_theory": "theorist", "maria_viola": "performer"}
 
 
 def put(key: str, data: bytes) -> str:
@@ -249,7 +252,7 @@ def seed(visible: bool = False) -> None:
         for i, data in enumerate(USERS):
             avatar = put(f"avatars/{data['username']}.svg", painting_svg("", data["palette"], 40 + i, 600, 800, portrait=True))
             user = User(
-                username=data["username"], email=f"{data['username']}@example.com", password_hash=hash_password(PASSWORD),
+                username=data["username"], role=DEMO_ROLES.get(data["username"], "composer"), password_hash=hash_password(PASSWORD),
                 is_hidden=not visible,  # demo filler stays in the shadow unless asked for
                 display_name=data["display_name"], pseudonym=data["pseudonym"], bio=data["bio"], about_md=data["about_md"],
                 links=data["links"], avatar_url=avatar, created_at=now - timedelta(days=200 - i * 30),

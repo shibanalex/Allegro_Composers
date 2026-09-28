@@ -23,9 +23,11 @@ from typing import Optional
 from bs4 import BeautifulSoup, NavigableString, Tag
 from sqlalchemy import select
 
-from allegro_common.db import SessionLocal
-from allegro_common.models import Post, User
-from allegro_common.storage import storage
+import allegro.models  # noqa: F401  (all tables, for relationships)
+from allegro.core.db import SessionLocal
+from allegro.core.storage import storage
+from allegro.modules.accounts.models import User
+from allegro.modules.publications.models import Post
 
 MEDIA_LINK_CLASSES = ("media", "photo_wrap", "video_file_wrap", "animated_wrap", "sticker_wrap")
 

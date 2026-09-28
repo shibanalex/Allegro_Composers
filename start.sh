@@ -7,7 +7,7 @@ alembic upgrade head
 
 # The API listens only inside the container; the site in front of it is the only way in.
 # Proxy headers are trusted from the site process alone, so a visitor can't fake their address.
-uvicorn dev_server:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1 &
+uvicorn allegro.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1 &
 API_PID=$!
 
 # If the API stops, stop the whole container so the hosting restarts it

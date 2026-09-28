@@ -1,26 +1,35 @@
-# Allegro — distributed monolith: five FastAPI services + Nuxt SSR behind one nginx gateway,
-# all services share one PostgreSQL database and one media volume.
+# Allegro locally, the way it runs in production: the site container (Dockerfile: Nuxt + the FastAPI
+# modular monolith), PostgreSQL, and MinIO standing in for the S3 storage (Yandex Object Storage).
 #
-#   docker compose up --build                          → http://localhost:8080
-#   docker compose run --rm migrate python -m scripts.seed   (demo content)
-
-x-backend-env: &backend-env
-  DATABASE_URL: postgresql+psycopg://allegro:allegro@postgres:5432/allegro
-  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY (48+ random characters) before starting}
-  MEDIA_DIR: /data/media
-  CORS_ORIGINS: http://localhost:8080
-  # Invite-only by default: nobody can sign up, only the listed accounts can log in
-  REGISTRATION_OPEN: ${REGISTRATION_OPEN:-false}
-  LOGIN_ALLOWLIST: ${LOGIN_ALLOWLIST:-}
-
-x-service: &service
-  environment: *backend-env
-  restart: unless-stopped
-  depends_on:
-    migrate:
-      condition: service_completed_successfully
+#   SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(48))") docker compose up --build
+#   → http://localhost:3000, first account at http://localhost:3000/setup (code: SETUP_TOKEN below)
+#
+# For everyday development the plain local setup is lighter (docs/DEVELOPMENT.md).
 
 services:
+  site:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY (48+ random characters) before starting}
+      DATABASE_URL: postgresql://allegro:allegro@postgres:5432/allegro
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: allegro
+      S3_ACCESS_KEY_ID: allegro-minio
+      S3_SECRET_ACCESS_KEY: allegro-minio-secret
+      MEDIA_URL_PREFIX: http://localhost:9000/allegro
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-invite}
+      SETUP_TOKEN: ${SETUP_TOKEN:-local-setup-code-please-change}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bucket:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -35,56 +44,25 @@ services:
       timeout: 3s
       retries: 20
 
-  migrate:
-    build: { context: ./backend, dockerfile: migrations/Dockerfile }
-    environment: *backend-env
-    volumes:
-      - media:/data/media
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  identity:
-    <<: *service
-    build: { context: ./backend, dockerfile: services/identity/Dockerfile }
-
-  catalog:
-    <<: *service
-    build: { context: ./backend, dockerfile: services/catalog/Dockerfile }
-    volumes:
-      - media:/data/media  # score downloads, file cleanup
-
-  content:
-    <<: *service
-    build: { context: ./backend, dockerfile: services/content/Dockerfile }
-    volumes:
-      - media:/data/media  # attachment cleanup
-
-  discussion:
-    <<: *service
-    build: { context: ./backend, dockerfile: services/discussion/Dockerfile }
-
-  media:
-    <<: *service
-    build: { context: ./backend, dockerfile: services/media/Dockerfile }
-    volumes:
-      - media:/data/media
-
-  frontend:
-    build: ./frontend
-    restart: unless-stopped
-    environment:
-      NUXT_API_INTERNAL: http://gateway  # server-side rendering talks to the API through the gateway
-
-  gateway:
-    build: ./gateway
-    restart: unless-stopped
+  minio:
+    image: minio/minio
+    command: server /data
     ports:
-      - "8080:80"
+      - "9000:9000"
+    environment:
+      MINIO_ROOT_USER: allegro-minio
+      MINIO_ROOT_PASSWORD: allegro-minio-secret
     volumes:
-      - media:/srv/media:ro
-    depends_on: [identity, catalog, content, discussion, media, frontend]
+      - minio_data:/data
+
+  # Creates the public-read bucket once (like «Публичный доступ на чтение» in Yandex Object Storage)
+  bucket:
+    image: minio/mc
+    depends_on: [minio]
+    entrypoint: >
+      sh -c "until mc alias set local http://minio:9000 allegro-minio allegro-minio-secret; do sleep 1; done &&
+             mc mb --ignore-existing local/allegro && mc anonymous set download local/allegro"
 
 volumes:
   postgres_data:
-  media:
+  minio_data:

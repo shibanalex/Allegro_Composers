@@ -1,55 +1,11 @@
 """
-API tests for the Allegro platform (all services mounted together, as in dev_server).
+API tests for the Allegro platform: the whole application (allegro.main), through its HTTP API.
 
 Run from backend/:  python -m pytest tests/test_platform.py
 """
-import os
-import tempfile
-
-# Isolated database and media dir - must be set before allegro_common is imported
-_tmp = tempfile.mkdtemp()
-os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
-os.environ["MEDIA_DIR"] = f"{_tmp}/media"
-# Open community regardless of a local .env (the invite-only test switches it itself)
-os.environ["REGISTRATION_OPEN"] = "true"
-os.environ["LOGIN_ALLOWLIST"] = ""
-os.environ["SECRET_KEY"] = "test-secret-key-long-enough-for-hs256-signing"
-
 import pytest
-from alembic import command
-from alembic.config import Config
-from fastapi.testclient import TestClient
 
-from dev_server import app
-
-# The schema comes from the real migrations, so they are tested too
-command.upgrade(Config("alembic.ini"), "head")
-
-client = TestClient(app)
-
-PDF = b"%PDF-1.4 fake score"
-
-
-def register(username, display_name=None):
-    r = client.post("/api/auth/register", json={
-        "username": username, "email": f"{username}@example.com", "password": "secret-pass",
-        "display_name": display_name or username.title(),
-    })
-    assert r.status_code == 201, r.text
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
-
-
-def upload(headers, name, content, content_type, purpose):
-    r = client.post("/api/media", headers=headers, data={"purpose": purpose}, files={"files": (name, content, content_type)})
-    assert r.status_code == 201, r.text
-    return r.json()[0]
-
-
-def create_opus(headers, **fields):
-    body = {"title": "Трио ре минор", "ensemble": "chamber", "form": "sonata", **fields}
-    r = client.post("/api/opuses", headers=headers, json=body)
-    assert r.status_code == 201, r.text
-    return r.json()
+from tests.support import PDF, client, create_opus, register, upload
 
 
 @pytest.fixture(scope="module")
@@ -94,7 +50,8 @@ def test_profile_update_and_public_page(alice):
     profile = client.get("/api/users/alice").json()
     assert profile["pseudonym"] == "Allegro Cantabile"
     assert "email" not in profile
-    assert profile["stats"] == {"opuses": 0, "posts": 0, "collections": 0}
+    assert profile["stats"] == {"opuses": 0, "performances": 0, "posts": 0, "articles": 0}
+    assert profile["role"] == "composer" and profile["hall_theme"] == "romantic"
     assert client.get("/api/users/nobody").status_code == 404
 
 
@@ -375,8 +332,8 @@ def test_materials(alice, bob):
 # ---------------------------------------------------------------- invite-only mode & shadowed accounts
 
 def _set_hidden(username, hidden):
-    from allegro_common.db import SessionLocal
-    from allegro_common.models import User
+    from allegro.core.db import SessionLocal
+    from allegro.modules.accounts.models import User
     with SessionLocal() as db:
         db.query(User).filter(User.username == username).update({"is_hidden": hidden})
         db.commit()
@@ -403,22 +360,9 @@ def test_shadowed_account_vanishes_but_is_kept(alice, bob):
     assert "bob" in [u["username"] for u in client.get("/api/users").json()]
 
 
-def test_invite_only_mode(alice):
-    from allegro_common.config import settings
-    settings.registration_open, settings.login_allowlist = False, "alice"
-    try:
-        assert client.get("/api/auth/config").json()["registration_open"] is False
-        r = client.post("/api/auth/register", json={"username": "newbie", "email": "n@example.com", "password": "secret-pass", "display_name": "N"})
-        assert r.status_code == 403
-        assert client.post("/api/auth/login", json={"login": "alice", "password": "secret-pass"}).status_code == 200
-        assert client.post("/api/auth/login", json={"login": "bob", "password": "secret-pass"}).status_code == 403
-    finally:
-        settings.registration_open, settings.login_allowlist = True, ""
-
-
 def test_ownership_of_uploaded_files(alice, bob):
     """Nobody can attach someone else's upload: steal a paid score through their own opus, or delete it"""
-    from allegro_common.storage import storage
+    from allegro.core.storage import storage
     pdf = upload(alice, "trio.pdf", PDF, "application/pdf", "score")
     r = client.post("/api/opuses", headers=bob, json={"title": "Чужое", "ensemble": "solo", "form": "other", "score_file_key": pdf["key"]})
     assert r.status_code == 422
@@ -434,8 +378,8 @@ def test_ownership_of_uploaded_files(alice, bob):
 
 
 def test_first_setup_creates_the_only_owner(alice, monkeypatch):
-    from allegro_common.config import settings
-    from services.identity import routes
+    from allegro.core.config import settings
+    from allegro.modules.accounts import service
     body = {"code": "a-long-setup-code-123", "username": "owner", "email": "owner@example.com",
             "password": "a-very-long-password", "display_name": "Owner"}
     monkeypatch.setattr(settings, "setup_token", "a-long-setup-code-123")
@@ -443,15 +387,13 @@ def test_first_setup_creates_the_only_owner(alice, monkeypatch):
     assert client.get("/api/auth/config").json()["setup_available"] is False
     assert client.post("/api/auth/setup", json=body).status_code == 404
     # on a fresh database
-    monkeypatch.setattr(routes, "_setup_available", lambda db: True)
+    monkeypatch.setattr(service, "setup_available", lambda db: True)
     assert client.post("/api/auth/setup", json={**body, "code": "wrong-code-wrong-code"}).status_code == 403
     assert client.post("/api/auth/setup", json={**body, "password": "short-pass"}).status_code == 422
-    monkeypatch.setattr(settings, "login_allowlist", "someone_else")
-    assert client.post("/api/auth/setup", json=body).status_code == 422
-    monkeypatch.setattr(settings, "login_allowlist", "owner")
     r = client.post("/api/auth/setup", json=body)
     assert r.status_code == 201, r.text
-    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()["username"] == "owner"
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()
+    assert me["username"] == "owner" and me["is_admin"] is True and "manage_site" in me["capabilities"]
 
 
 def test_search_by_words_in_texts(alice):
