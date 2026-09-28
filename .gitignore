@@ -38,13 +38,8 @@ Thumbs.db
 backend/Allegro.png
 
 # ---------------------------------------------------------------- legacy first version (superseded, kept on disk only)
-backend/app/
-backend/main.py
-backend/seed.py
-backend/Dockerfile
 backend/railway.json
 backend/pyproject.toml
-backend/tests/test_api.py
 frontend/src/
 frontend/index.html
 frontend/vite.config.js
