@@ -43,6 +43,9 @@ export default defineNuxtConfig({
         // A gold treble clef: bold and frameless for the browser tab, in a gilded frame for phones
         { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32.png' },
+        // Larger copies for search results (Google asks for a square icon of 48 px or more, in multiples of 48)
+        { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96.png' },
+        { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/favicon-192.png' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
