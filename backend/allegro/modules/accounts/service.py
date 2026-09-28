@@ -9,7 +9,8 @@ import uuid
 from datetime import timedelta
 from typing import Callable, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from allegro.core.config import settings
@@ -63,10 +64,12 @@ def get_visible_user(db: Session, username: str) -> Optional[User]:
     return repo.by_username(db, username, visible_only=True)
 
 
-def get_active_user(db: Session, user_id: uuid.UUID) -> Optional[User]:
-    """The account behind a login token, unless it was put in the shadow meanwhile"""
+def get_active_user(db: Session, user_id: uuid.UUID, session_version: int = 0) -> Optional[User]:
+    """The account behind a login token — unless it was put in the shadow or its sessions were revoked since"""
     user = repo.by_id(db, user_id)
-    return None if not user or user.is_hidden else user
+    if not user or user.is_hidden or user.session_version != session_version:
+        return None
+    return user
 
 
 # ---------------------------------------------------------------- statistics contributed by other modules (public)
@@ -128,6 +131,26 @@ def _valid_link(db: Session, token: str, purpose: str, client: str) -> AccessLin
     return link
 
 
+def _claim(db: Session, link: AccessLink, **values) -> None:
+    """Mark a one-time link used in one statement: of two simultaneous uses only one wins"""
+    claimed = db.execute(
+        update(AccessLink)
+        .where(AccessLink.id == link.id, AccessLink.used_at.is_(None), AccessLink.revoked_at.is_(None))
+        .values(used_at=utcnow(), **values)
+    ).rowcount
+    if claimed != 1:
+        db.rollback()
+        raise Forbidden("Ссылка недействительна: её уже использовали, отозвали или срок истёк")
+
+
+def _commit_new_user(db: Session) -> None:
+    try:
+        db.commit()
+    except IntegrityError:  # the same name or e-mail taken by a simultaneous sign-up
+        db.rollback()
+        raise Conflict("Имя пользователя или email уже заняты")
+
+
 def _new_user(db: Session, *, username: str, display_name: str, password: str, role: str, email: Optional[str], **extra) -> User:
     if repo.username_taken(db, username):
         raise Conflict("Имя пользователя уже занято")
@@ -158,8 +181,8 @@ def register(db: Session, data: RegisterIn, client: str) -> User:
     )
     db.flush()
     if link:
-        link.used_by_id, link.used_at = user.id, utcnow()
-    db.commit()
+        _claim(db, link, used_by_id=user.id)
+    _commit_new_user(db)
     return user
 
 
@@ -175,7 +198,7 @@ def setup(db: Session, data: SetupIn, client: str) -> User:
         db, username=data.username, display_name=data.display_name, password=data.password, role=data.role,
         email=data.email, is_admin=True,
     )
-    db.commit()
+    _commit_new_user(db)
     return user
 
 
@@ -197,8 +220,9 @@ def reset_password(db: Session, token: str, password: str, client: str) -> User:
     user = link.target_user
     if not user:
         raise NotFound("Аккаунт не найден")
+    _claim(db, link)
     user.password_hash = hash_password(password)
-    link.used_at = utcnow()
+    user.session_version += 1  # whoever still has the old password's sessions is signed out
     db.commit()
     return user
 
@@ -270,11 +294,19 @@ def update_profile(db: Session, user: User, data: ProfileUpdate) -> User:
     return user
 
 
-def change_password(db: Session, user: User, current: str, new: str) -> None:
+def change_password(db: Session, user: User, current: str, new: str) -> User:
     if not verify_password(current, user.password_hash):
         raise Forbidden("Текущий пароль указан неверно")
     user.password_hash = hash_password(new)
+    user.session_version += 1  # other devices are signed out
     db.commit()
+    return user
+
+
+def revoke_sessions(db: Session, user: User) -> User:
+    user.session_version += 1
+    db.commit()
+    return user
 
 
 # ---------------------------------------------------------------- administration

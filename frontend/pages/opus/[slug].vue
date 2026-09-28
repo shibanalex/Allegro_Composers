@@ -61,7 +61,7 @@
           </dl>
 
           <div v-if="opus.tags.length" class="mt-4 flex flex-wrap gap-2">
-            <NuxtLink v-for="t in opus.tags" :key="t" :to="`/?tab=works&tag=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
+            <NuxtLink v-for="t in opus.tags" :key="t" :to="`/search?q=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
           </div>
 
           <div v-if="isAuthor" class="mt-6 flex flex-wrap gap-3">

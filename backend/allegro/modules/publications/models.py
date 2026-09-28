@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from allegro.core.db import Base
@@ -16,6 +16,8 @@ def utcnow() -> datetime:
 class Post(Base):
     """Blog posts (notes), articles and reviews, the site's news, and old workshop threads (review requests)"""
     __tablename__ = "posts"
+    # A member's posts of one kind, newest first (hall tabs), and the feeds
+    __table_args__ = (Index("ix_posts_author_kind_created", "author_id", "kind", "created_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)

@@ -53,7 +53,7 @@
         <section v-if="result.tags.length">
           <h2 class="eyebrow mb-4">Инструменты и теги</h2>
           <div class="flex flex-wrap gap-2">
-            <NuxtLink v-for="t in result.tags" :key="t" :to="`/?tab=works&tag=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
+            <NuxtLink v-for="t in result.tags" :key="t" :to="`/search?q=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
           </div>
         </section>
       </template>

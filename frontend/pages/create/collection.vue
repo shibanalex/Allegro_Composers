@@ -23,7 +23,7 @@
         <EmptyState v-if="!opuses.length">Сначала опубликуйте хотя бы один опус</EmptyState>
         <ul class="divide-y divide-gold/10 border-y border-gold/15">
           <li v-for="o in ordered" :key="o.id" class="flex items-center gap-3 py-3">
-            <input :id="`o-${o.id}`" v-model="selected" type="checkbox" :value="o.id" class="accent-[#c9a36a]">
+            <input :id="`o-${o.id}`" v-model="selected" type="checkbox" :value="o.id" class="accent-[rgb(var(--c-gold))]">
             <label :for="`o-${o.id}`" class="min-w-0 flex-1 cursor-pointer truncate">
               <span class="font-display">{{ o.title }}</span>
               <span v-if="o.subtitle" class="text-sm italic text-parchment-faint"> · {{ o.subtitle }}</span>

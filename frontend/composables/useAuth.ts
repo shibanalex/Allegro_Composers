@@ -67,6 +67,13 @@ export function useAuth() {
     async resetPassword(tokenValue: string, password: string) {
       accept(await api<TokenOut>('/api/auth/reset', { method: 'POST', body: { token: tokenValue, password } }))
     },
+    /** Other devices are signed out; this one keeps working with the fresh token */
+    async changePassword(current: string, next: string) {
+      accept(await api<TokenOut>('/api/users/me/password', { method: 'POST', body: { current_password: current, new_password: next } }))
+    },
+    async signOutEverywhere() {
+      accept(await api<TokenOut>('/api/users/me/sessions/revoke', { method: 'POST' }))
+    },
     logout() {
       token.value = null
       user.value = null

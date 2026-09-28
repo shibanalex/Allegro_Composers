@@ -1,6 +1,5 @@
 <template>
-  <!-- «Блог»: like a Telegram channel — short posts with photos, audio and files, newest first.
-       Also the main page's «Блоги»: everyone's posts in one feed (`feed`), each with its author. -->
+  <!-- «Блог»: like a Telegram channel — short posts with photos, audio and files, newest first -->
   <div class="mx-auto max-w-2xl">
     <!-- Composer (owner only) -->
     <form v-if="isOwner" class="card mb-12 space-y-4" @submit.prevent="publish">
@@ -29,7 +28,7 @@
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
 
-    <EmptyState v-if="!posts.length">{{ feed ? 'Записей пока нет' : isOwner ? 'Первая запись в блоге — за вами' : 'В блоге пока тихо' }}</EmptyState>
+    <EmptyState v-if="!posts.length">{{ isOwner ? 'Первая запись в блоге — за вами' : 'В блоге пока тихо' }}</EmptyState>
 
     <template v-for="(p, i) in posts" :key="p.id">
       <!-- Day separator, as in a messenger -->
@@ -40,12 +39,6 @@
       </div>
 
       <article class="card mb-5 !p-5 sm:!p-6">
-        <!-- In the common feed: whose post it is -->
-        <NuxtLink v-if="feed" :to="`/@${p.author.username}?tab=blog`" class="mb-3 flex items-center gap-2 text-parchment transition hover:text-gold-light">
-          <UserAvatar :user="p.author" :size="30" />
-          <span class="font-display italic">{{ p.author.display_name }}</span>
-          <span v-if="p.author.role" class="text-sm text-parchment-faint">· {{ ROLES[p.author.role]?.label }}</span>
-        </NuxtLink>
         <!-- A long article: shown as a card leading to the full text -->
         <NuxtLink v-if="p.kind === 'article'" :to="`/posts/${p.slug}`" class="group flex gap-5">
           <div v-if="p.cover_url" class="frame frame-thin hidden h-24 w-32 shrink-0 sm:block">
@@ -121,7 +114,7 @@
 <script setup lang="ts">
 import type { Attachment, Page, Post, Uploaded } from '~/utils/types'
 
-const props = defineProps<{ username?: string; isOwner: boolean; initial: Page<Post>; feed?: boolean }>()
+const props = defineProps<{ username: string; isOwner: boolean; initial: Page<Post> }>()
 
 const api = useApi()
 const { user, registrationOpen, can } = useAuth()
@@ -149,7 +142,7 @@ async function more() {
     const page = await api<Page<Post>>('/api/posts', {
       params: {
         kind: 'note', limit: 20, offset: posts.value.length,
-        ...(props.username ? { author: props.username } : {}),
+        author: props.username,
         ...(props.isOwner ? { mine: true } : {}),
       },
     })

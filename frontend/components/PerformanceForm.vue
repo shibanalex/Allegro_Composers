@@ -5,17 +5,18 @@
 
     <div>
       <label class="field-label" for="pf-opus">Сочинение с сайта</label>
-      <select id="pf-opus" v-model="form.opus_id" class="field" @change="pickOpus">
+      <select id="pf-opus" v-model="form.opus_id" class="field">
         <option :value="null">— другое сочинение —</option>
         <option v-for="o in opuses" :key="o.id" :value="o.id">{{ o.title }} · {{ o.author.display_name }}</option>
       </select>
     </div>
-    <div class="grid gap-5 sm:grid-cols-2">
+    <!-- A work from the site keeps its composer's title; another piece is described here -->
+    <div v-if="!form.opus_id" class="grid gap-5 sm:grid-cols-2">
       <div>
         <label class="field-label" for="pf-title">Что исполняется</label>
         <input id="pf-title" v-model="form.title" class="field" required maxlength="255" placeholder="Баллада №1 соль минор">
       </div>
-      <div v-if="!form.opus_id">
+      <div>
         <label class="field-label" for="pf-composer">Композитор</label>
         <input id="pf-composer" v-model="form.composer_name" class="field" maxlength="160" placeholder="Фредерик Шопен">
       </div>
@@ -86,11 +87,6 @@ const error = ref('')
 const { data: page } = await useAsyncData('performance-opuses', () => api<Page<Opus>>('/api/opuses', { params: { limit: 100, sort: 'title' } }))
 const opuses = computed(() => page.value?.items || [])
 
-function pickOpus() {
-  const opus = opuses.value.find((o) => o.id === form.opus_id)
-  if (opus && !form.title) form.title = opus.title
-}
-
 function onAudio(files: Uploaded[]) {
   form.audio_source = files[0].key
   fileName.value = files[0].name
@@ -108,6 +104,7 @@ async function save() {
     const body = {
       ...form,
       audio_source,
+      title: form.opus_id ? null : form.title.trim(),
       composer_name: form.opus_id ? null : form.composer_name.trim() || null,
       description_md: form.description_md.trim() || null,
       recorded_year: form.recorded_year || null,

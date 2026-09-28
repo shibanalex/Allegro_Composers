@@ -4,7 +4,7 @@ import pytest
 from tests.support import client, create_opus, login, register, set_user, upload
 
 
-MEMBERS = ["mira", "ivan_theory", "vera_violin", "sam_listens", "new_one"]
+MEMBERS = ["mira", "ivan_theory", "vera_violin", "sam_listens", "new_one", "petr_cello"]
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -116,7 +116,8 @@ def test_password_reset_link(admin, performer):
     assert client.post("/api/auth/login", json={"login": "vera_violin", "password": "secret-pass"}).status_code == 401
     login("vera_violin", "brand-new-pass")
     assert client.post("/api/auth/reset", json={"token": link["token"], "password": "another-pass"}).status_code == 403
-    set_user("vera_violin", password_hash=_hash("secret-pass"))
+    # the reset signed her out everywhere (the fixture's token too): back to the start for the next tests
+    set_user("vera_violin", password_hash=_hash("secret-pass"), session_version=0)
 
 
 def _hash(password):
@@ -159,7 +160,7 @@ def test_showcase_lists_featured_works(admin):
 
 def test_performances(admin, performer, theorist):
     etude = client.get("/api/opuses", params={"author": "mira", "q": "Этюд"}).json()["items"][0]
-    body = {"title": "Этюд", "opus_id": etude["id"], "audio_type": "youtube", "audio_source": "https://youtu.be/dQw4w9WgXcQ"}
+    body = {"opus_id": etude["id"], "audio_type": "youtube", "audio_source": "https://youtu.be/dQw4w9WgXcQ"}
     assert client.post("/api/performances", headers=theorist, json=body).status_code == 403  # not a performer
     r = client.post("/api/performances", headers=performer, json=body)
     assert r.status_code == 201, r.text
@@ -172,10 +173,14 @@ def test_performances(admin, performer, theorist):
     }).json()
     assert other["audio_url"].endswith(".mp3")
     # someone else's file can't be used
-    stolen = client.post("/api/performances", headers=admin, json={
+    other_performer = register("petr_cello", role="performer")
+    stolen = client.post("/api/performances", headers=other_performer, json={
         "title": "Кража", "audio_type": "hosted_file", "audio_source": audio["key"],
     })
     assert stolen.status_code == 422
+    # a composer (even an administrator) doesn't publish performances; a work from the site gives its title
+    assert client.post("/api/performances", headers=admin, json=body).status_code == 403
+    assert perf["title"] == "Этюд" and perf["composer_name"] is None
     assert client.get("/api/performances", params={"opus": etude["slug"]}).json()["total"] == 1
     assert client.get("/api/performances", params={"performer": "vera_violin"}).json()["total"] == 2
     assert client.get("/api/users/vera_violin").json()["stats"]["performances"] == 2
@@ -232,3 +237,53 @@ def test_flood_protection(monkeypatch):
     r = client.get("/api/search", params={"q": "трио"})
     assert r.headers["retry-after"] == "60" and "Подождите" in r.json()["detail"]
     assert client.get("/api/opuses").status_code == 200  # reading pages is not limited
+
+
+def test_new_password_signs_out_other_devices():
+    phone = register("olga_harp", role="performer")
+    laptop = login("olga_harp")
+    r = client.post("/api/users/me/password", headers=laptop, json={"current_password": "secret-pass", "new_password": "another-pass"})
+    assert r.status_code == 200
+    fresh = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    assert client.get("/api/auth/me", headers=phone).status_code == 401  # the other device is signed out
+    assert client.get("/api/auth/me", headers=fresh).status_code == 200
+    r = client.post("/api/users/me/sessions/revoke", headers=fresh)
+    assert client.get("/api/auth/me", headers=fresh).status_code == 401
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).status_code == 200
+    set_user("olga_harp", is_hidden=True)
+
+
+def test_one_invitation_one_member(admin):
+    """Two sign-ups racing with one invitation: only one account is created"""
+    from allegro.core.config import settings
+    token = client.post("/api/admin/invites", headers=admin, json={}).json()["token"]
+    old = settings.registration_mode
+    settings.registration_mode = "invite"
+    try:
+        body = {"display_name": "Гонщик", "password": "secret-pass", "role": "listener", "invite": token}
+        first = client.post("/api/auth/register", json={**body, "username": "racer_one"})
+        second = client.post("/api/auth/register", json={**body, "username": "racer_two"})
+        assert (first.status_code, second.status_code) == (201, 403)
+        assert client.get("/api/users/racer_two").status_code == 404
+    finally:
+        settings.registration_mode = old
+        set_user("racer_one", is_hidden=True)
+
+
+def test_feed_brings_every_hall_together(admin, theorist):
+    """The main page is a feed: works, performances, articles and posts of all members, newest first"""
+    create_opus(admin, title="Ноктюрн для ленты", ensemble="solo", form="miniature")
+    client.post("/api/posts", headers=theorist, json={"kind": "article", "title": "Статья для ленты", "content_md": "Текст"})
+    client.post("/api/posts", headers=theorist, json={"kind": "note", "content_md": "Запись для ленты"})
+    page = client.get("/api/feed", params={"limit": 3}).json()
+    assert [i["type"] for i in page["items"]] == ["post", "post", "opus"]
+    assert page["items"][0]["post"]["content_md"] == "Запись для ленты"
+    assert page["items"][0]["post"]["author"]["username"] == "ivan_theory"
+    assert page["items"][2]["opus"]["author"]["username"] == "mira"
+    # the next page continues where this one ended
+    more = client.get("/api/feed", params={"limit": 3, "before": page["next_before"]}).json()
+    assert more["items"] and all(i["created_at"] < page["items"][-1]["created_at"] for i in more["items"])
+    works = client.get("/api/feed", params={"kind": "works"}).json()["items"]
+    assert works and all(i["type"] == "opus" for i in works)
+    blogs = client.get("/api/feed", params={"kind": "blogs"}).json()["items"]
+    assert all(i["type"] == "post" and i["post"]["kind"] == "note" for i in blogs)

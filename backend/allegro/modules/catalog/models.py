@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from allegro.core.db import Base
@@ -15,6 +15,8 @@ def utcnow() -> datetime:
 
 class Opus(Base):
     __tablename__ = "opuses"
+    # A composer's works newest first (hall, library) and the feed of new works
+    __table_args__ = (Index("ix_opuses_author_status_created", "author_id", "status", "created_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -119,6 +121,7 @@ class CollectionItem(Base):
 class Performance(Base):
     """A recording of a piece by a member: one of the site's works (opus_id) or any other («Шопен — Баллада №1»)"""
     __tablename__ = "performances"
+    __table_args__ = (Index("ix_performances_performer_created", "performer_id", "created_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     performer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)

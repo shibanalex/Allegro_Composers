@@ -1,7 +1,7 @@
 <template>
   <footer class="mt-24 border-t border-gold/10 bg-ink-950/60">
     <div class="container-page flex flex-col items-center gap-4 py-10 text-center">
-      <span class="title-script text-6xl">Allegro</span>
+      <span class="title-script brand text-6xl">Allegro</span>
       <Ornament class="w-56" />
       <p class="font-elegant text-xl italic text-parchment-muted">Сообщество композиторов, теоретиков, исполнителей и слушателей</p>
       <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-caps text-sm font-semibold tracking-[0.2em] text-parchment-faint">

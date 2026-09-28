@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / "allegro"
 
 # A module may depend only on modules listed before it
-ORDER = ["accounts", "discussion", "catalog", "publications", "media", "site", "search"]
+ORDER = ["accounts", "discussion", "catalog", "publications", "media", "site", "feed", "search"]
 PUBLIC = {"service", "schemas", "deps", "roles"}
 COMPOSITION_ROOT = {"main.py", "models.py", "__init__.py"}
 

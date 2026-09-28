@@ -194,7 +194,7 @@ class PerformanceFields(BaseModel):
 
 
 class PerformanceIn(PerformanceFields):
-    title: str = Field(min_length=1, max_length=255)
+    title: Optional[str] = Field(None, max_length=255)  # a work from the site gives its own title
     audio_type: Literal["youtube", "hosted_file"]
     audio_source: str = Field(min_length=1, max_length=512)
 

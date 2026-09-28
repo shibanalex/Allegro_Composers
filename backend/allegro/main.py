@@ -21,6 +21,7 @@ from allegro.modules.catalog import api as catalog_api
 from allegro.modules.catalog import service as catalog
 from allegro.modules.discussion import api as discussion_api
 from allegro.modules.discussion import service as discussion
+from allegro.modules.feed import api as feed_api
 from allegro.modules.media import api as media_api
 from allegro.modules.publications import api as publications_api
 from allegro.modules.publications import service as publications
@@ -77,7 +78,7 @@ def create_app() -> FastAPI:
             )
         return await call_next(request)
 
-    for module_api in (accounts_api, catalog_api, publications_api, discussion_api, media_api, site_api, search_api):
+    for module_api in (accounts_api, catalog_api, publications_api, discussion_api, media_api, site_api, feed_api, search_api):
         app.include_router(module_api.router)
 
     if storage.is_local:  # in production files are served by the object storage itself

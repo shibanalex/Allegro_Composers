@@ -1,22 +1,22 @@
 <template>
-  <!-- One performance: what is played, by whom, and the recording (an uploaded file or a YouTube video) -->
-  <article class="card !p-5 sm:!p-6">
-    <header class="flex flex-wrap items-start gap-4">
-      <div class="min-w-0 flex-1">
-        <p class="eyebrow text-xs">Исполнение<span v-if="performance.recorded_year"> · {{ performance.recorded_year }}</span></p>
-        <h3 class="mt-1 text-2xl italic">{{ performance.title }}</h3>
-        <p class="mt-1 text-parchment-muted">
-          <template v-if="performance.opus">
-            <NuxtLink :to="`/opus/${performance.opus.slug}`" class="link">{{ performance.opus.title }}</NuxtLink>
-            <span class="text-parchment-faint"> · {{ performance.opus.author.display_name }}</span>
-          </template>
-          <template v-else-if="performance.composer_name">{{ performance.composer_name }}</template>
-        </p>
-      </div>
-      <NuxtLink v-if="showPerformer" :to="`/@${performance.performer.username}`" class="flex items-center gap-2 text-parchment transition hover:text-gold-light">
-        <UserAvatar :user="performance.performer" :size="32" />
-        <span class="font-display italic">{{ performance.performer.display_name }}</span>
-      </NuxtLink>
+  <!-- One performance: whose work is played, by whom, and the recording (an uploaded file or a YouTube video).
+       The work always stays its composer's: the performer is named as the one who plays it. -->
+  <article :class="bare ? '' : 'card !p-5 sm:!p-6'">
+    <header>
+      <p class="eyebrow text-xs">Исполнение<span v-if="performance.recorded_year"> · запись {{ performance.recorded_year }} г.</span></p>
+      <h3 class="mt-1 text-2xl">
+        <NuxtLink v-if="performance.opus" :to="`/opus/${performance.opus.slug}`" class="transition hover:text-gold-light">«{{ performance.opus.title }}»</NuxtLink>
+        <template v-else>«{{ performance.title }}»</template>
+      </h3>
+      <p class="mt-1 text-parchment-muted">
+        <template v-if="performance.opus">
+          сочинение <NuxtLink :to="`/@${performance.opus.author.username}`" class="link">{{ performance.opus.author.display_name }}</NuxtLink>
+        </template>
+        <template v-else-if="performance.composer_name">композитор {{ performance.composer_name }}</template>
+        <template v-if="showPerformer && !bare">
+          · исполняет <NuxtLink :to="`/@${performance.performer.username}`" class="link">{{ performance.performer.display_name }}</NuxtLink>
+        </template>
+      </p>
     </header>
 
     <div class="mt-4">
@@ -53,9 +53,10 @@
 <script setup lang="ts">
 import type { Performance } from '~/utils/types'
 
-const props = withDefaults(defineProps<{ performance: Performance; showPerformer?: boolean; isOwner?: boolean }>(), {
+const props = withDefaults(defineProps<{ performance: Performance; showPerformer?: boolean; isOwner?: boolean; bare?: boolean }>(), {
   showPerformer: true,
   isOwner: false,
+  bare: false, // inside a feed entry, which already names the performer
 })
 defineEmits<{ edit: [p: Performance]; remove: [p: Performance] }>()
 

@@ -197,3 +197,12 @@ export interface AdminUser extends UserBrief {
   has_email: boolean
   created_at: string
 }
+
+/** One entry of the main feed: exactly one of opus / performance / post */
+export interface FeedEntry {
+  type: 'opus' | 'performance' | 'post'
+  created_at: string
+  opus?: Opus | null
+  performance?: Performance | null
+  post?: Post | null
+}

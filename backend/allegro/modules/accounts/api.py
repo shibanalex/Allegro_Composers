@@ -33,7 +33,7 @@ def _me(db: Session, user: User) -> MeOut:
 
 
 def _token(db: Session, user: User) -> TokenOut:
-    return TokenOut(access_token=create_access_token(user.id), user=_me(db, user))
+    return TokenOut(access_token=create_access_token(user.id, user.session_version), user=_me(db, user))
 
 
 def _link_out(link: AccessLink, token: Optional[str] = None) -> AccessLinkOut:
@@ -96,9 +96,16 @@ def update_me(data: ProfileUpdate, user: User = Depends(get_current_user), db: S
     return _me(db, service.update_profile(db, user, data))
 
 
-@router.post("/api/users/me/password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/api/users/me/password", response_model=TokenOut)
 def change_password(data: PasswordChangeIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    service.change_password(db, user, data.current_password, data.new_password)
+    """A new password signs out every other device; this one gets a fresh token"""
+    return _token(db, service.change_password(db, user, data.current_password, data.new_password))
+
+
+@router.post("/api/users/me/sessions/revoke", response_model=TokenOut)
+def sign_out_everywhere(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """«Выйти на всех устройствах»: every other login stops working; this one gets a fresh token"""
+    return _token(db, service.revoke_sessions(db, user))
 
 
 @router.get("/api/users/{username}", response_model=ProfileOut)

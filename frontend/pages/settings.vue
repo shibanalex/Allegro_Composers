@@ -86,6 +86,16 @@
         <p v-if="password.message" class="text-sm" :class="password.ok ? 'text-gold-light' : 'text-red-300'">{{ password.message }}</p>
       </div>
     </form>
+
+    <!-- Sessions -->
+    <section class="mt-16 space-y-4 border-t border-gold/15 pt-10">
+      <h2 class="text-3xl italic">Устройства</h2>
+      <p class="text-parchment-muted">Если вы входили с чужого компьютера или потеряли телефон — выйдите везде, кроме этого устройства.</p>
+      <div class="flex items-center gap-4">
+        <button type="button" class="btn-secondary" :disabled="sessions.busy" @click="signOutEverywhere">Выйти на всех устройствах</button>
+        <p v-if="sessions.message" class="text-sm" :class="sessions.ok ? 'text-gold-light' : 'text-red-300'">{{ sessions.message }}</p>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -96,7 +106,8 @@ definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Настройки зала — Allegro', robots: 'noindex, nofollow' })
 
 const api = useApi()
-const { user } = useAuth()
+const auth = useAuth()
+const { user } = auth
 const u = user.value!
 const form = reactive({
   display_name: u.display_name,
@@ -118,15 +129,31 @@ async function changePassword() {
   password.busy = true
   password.message = ''
   try {
-    await api('/api/users/me/password', { method: 'POST', body: { current_password: password.current, new_password: password.next } })
+    await auth.changePassword(password.current, password.next)
     password.ok = true
-    password.message = 'Пароль изменён'
+    password.message = 'Пароль изменён, на других устройствах нужно войти заново'
     password.current = password.next = ''
   } catch (e) {
     password.ok = false
     password.message = apiError(e)
   } finally {
     password.busy = false
+  }
+}
+
+const sessions = reactive({ busy: false, message: '', ok: false })
+async function signOutEverywhere() {
+  sessions.busy = true
+  sessions.message = ''
+  try {
+    await auth.signOutEverywhere()
+    sessions.ok = true
+    sessions.message = 'Готово: остальные устройства вышли из аккаунта'
+  } catch (e) {
+    sessions.ok = false
+    sessions.message = apiError(e)
+  } finally {
+    sessions.busy = false
   }
 }
 

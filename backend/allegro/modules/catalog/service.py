@@ -1,6 +1,7 @@
 """Use cases of the catalog module: works (opuses) with score sync, collections, the library, performances.
 
-Public API for other modules: `opus_brief`, `opus_id_by_slug`, `resolve_opus_target`, `visible_published_opus`,
+Public API for other modules: `opus_brief`, `opuses_out`, `performance_out`, `recent_opuses`, `recent_performances`,
+`opus_id_by_slug`, `resolve_opus_target`, `visible_published_opus`,
 `search_opuses`, `popular_tags`, `count_opuses`, `count_performances`.
 """
 import uuid
@@ -420,7 +421,12 @@ def _performance_values(user, values: dict, performance: Optional[Performance] =
 
 def create_performance(db: Session, user, data: PerformanceIn) -> Performance:
     values = _performance_values(user, data.model_dump(exclude_none=True))
-    visible_published_opus(db, data.opus_id)
+    opus = visible_published_opus(db, data.opus_id)
+    if opus:
+        # The work is the composer's: its title and composer come from the site, not typed again
+        values["title"], values["composer_name"] = opus.title, None
+    elif not (values.get("title") or "").strip():
+        raise Invalid("Укажите, что исполняется")
     performance = Performance(performer_id=user.id, **values)
     db.add(performance)
     db.commit()
@@ -432,7 +438,11 @@ def update_performance(db: Session, user, performance_id: uuid.UUID, data: Perfo
     performance = _own_performance(db, performance_id, user)
     values = _performance_values(user, data.model_dump(exclude_unset=True), performance)
     if "opus_id" in values:
-        visible_published_opus(db, values["opus_id"])
+        opus = visible_published_opus(db, values["opus_id"])
+        if opus:  # the work's own title and composer
+            values["title"], values["composer_name"] = opus.title, None
+    if values.get("title", "") is None:
+        values.pop("title")  # a performance always keeps a title
     if performance.audio_type == "hosted_file" and values.get("audio_source", performance.audio_source) != performance.audio_source:
         delete_own_after_commit(db, user.username, performance.audio_source)
     for field, value in values.items():
@@ -463,6 +473,21 @@ def count_opuses(db: Session, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]
 
 def count_performances(db: Session, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
     return repo.count_by(db, Performance.performer_id, user_ids, Performance.status == "published")
+
+
+def recent_opuses(db: Session, before, limit: int) -> list[Opus]:
+    """New works of visible composers, newest first (the feed)"""
+    stmt = select(Opus).where(Opus.status == "published", visible_authors(Opus.author_id))
+    if before:
+        stmt = stmt.where(Opus.created_at < before)
+    return list(db.scalars(stmt.order_by(Opus.created_at.desc()).limit(limit)).unique())
+
+
+def recent_performances(db: Session, before, limit: int) -> list[Performance]:
+    stmt = select(Performance).where(Performance.status == "published", visible_authors(Performance.performer_id))
+    if before:
+        stmt = stmt.where(Performance.created_at < before)
+    return list(db.scalars(stmt.order_by(Performance.created_at.desc()).limit(limit)).unique())
 
 
 def search_opuses(db: Session, words: list[str], limit: int) -> list[Opus]:

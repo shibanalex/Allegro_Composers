@@ -50,6 +50,7 @@ backend/
 │       ├── publications/  # блог, статьи, новости, материалы
 │       ├── media/         # загрузка файлов
 │       ├── site/          # страницы «О нас»/«Ссылки», предложения
+│       ├── feed/          # лента главной: новое из всех залов
 │       └── search/        # поиск по всему сайту
 ├── migrations/            # Alembic
 ├── scripts/               # демо-данные, «тень», пароль, импорт из Telegram
@@ -75,10 +76,11 @@ backend/
 |----------------|-----------------------------------------------------|----------------------------------|
 | `accounts`     | `users`, `access_links`                             | `visible_authors`, `author_named`, `authors_matching`, `search_members`, `get_visible_user`, `get_active_user`, `register_stat`, `stats_for`; `deps` (текущий пользователь, `require(Capability)`); `roles` |
 | `discussion`   | `comments`                                          | `register_target`, `count_comments` |
-| `catalog`      | `opuses`, `score_sync_markers`, `measure_sync_markers`, `collections`, `collection_items`, `performances` | `opus_brief`, `opus_id_by_slug`, `visible_published_opus`, `resolve_opus_target`, `search_opuses`, `popular_tags`, `count_opuses`, `count_performances` |
-| `publications` | `posts`, `materials`                                | `resolve_post_target`, `search_posts`, `count_posts`, `count_articles` |
+| `catalog`      | `opuses`, `score_sync_markers`, `measure_sync_markers`, `collections`, `collection_items`, `performances` | `opus_brief`, `opus_id_by_slug`, `visible_published_opus`, `resolve_opus_target`, `search_opuses`, `popular_tags`, `count_opuses`, `count_performances`, `recent_opuses`, `recent_performances` |
+| `publications` | `posts`, `materials`                                | `posts_out`, `recent_posts`, `resolve_post_target`, `search_posts`, `count_posts`, `count_articles` |
 | `media`        | —                                                   | —                                |
 | `site`         | `site_pages`, `feedback`                            | —                                |
+| `feed`         | —                                                   | —                                |
 | `search`       | —                                                   | —                                |
 
 **Правила** (их проверяет `tests/test_architecture.py`):
@@ -87,7 +89,7 @@ backend/
 2. Модуль обращается к другому только через его `service`, `schemas`, `deps`, `roles` —
    никогда через `models`, `repository` или `api`.
 3. Зависимости идут в одну сторону, по порядку:
-   `accounts → discussion → catalog → publications → media → site → search`.
+   `accounts → discussion → catalog → publications → media → site → feed → search`.
    Модуль может зависеть только от модулей левее себя, поэтому циклов нет.
 4. Всё, что связывает модули «против течения», — регистрации в `allegro/main.py`:
    - каталог и публикации регистрируют в discussion свои объекты для комментариев
@@ -115,12 +117,14 @@ backend/
 
 | Роль        | Может публиковать                          | Вкладки зала |
 |-------------|---------------------------------------------|--------------|
-| composer    | сочинения, статьи, исполнения, блог         | Выставка · Библиотека · Статьи · Исполнения · Блог · Материалы · О себе |
+| composer    | сочинения, статьи, блог                     | Выставка · Библиотека · Статьи · Блог · Материалы · О себе |
 | theorist    | статьи и обзоры, блог                       | Статьи · Блог · Материалы · О себе |
 | performer   | исполнения, блог                            | Исполнения · Блог · Материалы · О себе |
 | listener    | блог, комментарии                           | Блог · Материалы · О себе |
 
-Администратор (`users.is_admin`) может всё, плюс новости, приглашения, модерацию.
+Администратор (`users.is_admin`) сохраняет права своей роли и получает сверху новости, приглашения,
+модерацию. Исполнение сочинения публикует исполнитель: в карточке название берётся из опуса, так что
+автор сочинения и автор исполнения никогда не путаются.
 В API права проверяются зависимостью `require(Capability.X)`, на сайте — `useAuth().can('x')`.
 Если у участника есть содержимое вне его роли (скажем, сменил роль), вкладка всё равно видна.
 
@@ -130,7 +134,18 @@ backend/
 хоть один участник.
 
 **Одноразовые ссылки** (`access_links`): приглашения и сброс пароля. В базе хранится только SHA-256
-от секрета, сама ссылка показывается администратору один раз. Писем сайт не отправляет.
+от секрета, сама ссылка показывается администратору один раз. Писем сайт не отправляет. Ссылка
+«погашается» одним условным `UPDATE … WHERE used_at IS NULL`, поэтому два одновременных запроса не
+создадут по одному приглашению двух участников.
+
+**Сеансы.** В токене есть номер версии `users.session_version`. Смена пароля, сброс пароля и кнопка
+«Выйти на всех устройствах» увеличивают его — все старые токены перестают действовать, текущее
+устройство получает новый.
+
+**Лента** (`feed`, `GET /api/feed?kind=all|works|performances|articles|blogs&before=…`): новые
+сочинения, исполнения, статьи и записи блогов всех участников, по времени. Каждый источник отдаёт
+свою страницу по составному индексу, модуль сливает их; следующая страница — по курсору `before`
+(времени последнего элемента), а не по смещению, поэтому новые записи не сдвигают страницы.
 
 **Почта** необязательна и хранится зашифрованной (Fernet), плюс HMAC-хеш для поиска и уникальности.
 Ключи выводятся из `SECRET_KEY` (или `EMAIL_ENCRYPTION_KEY`). Копия базы сама по себе адресов не раскрывает.
@@ -147,16 +162,19 @@ backend/
 
 ## 5. Фронтенд (Nuxt 3)
 
-- `pages/` — страницы: главная (вкладки «Сочинения», «Исполнения», «Статьи и обзоры», «Блоги»),
+- `pages/` — страницы: главная (лента со всех залов, фильтры «Сочинения», «Исполнения», «Статьи и обзоры», «Блоги»),
   зал `/@username`, опус, пост, `/about` («О нас», «Ссылки», «Новости», «Предложения»),
   `/admin`, `/settings` («Оформить зал»), `/register?invite=…`, `/reset?token=…`, `/setup`, `/search`.
 - `components/` — `OpusCatalog` (каталог с фильтрами: на главной — всех, в зале — одного
-  композитора), `PerformanceList/Card/Form`, `HallChannel` (блог и общая лента), `PageTabs`
+  композитора), `PerformanceList/Card/Form`, `FeedItem` (запись ленты), `HallChannel` (блог зала), `PageTabs`
   (вкладки-разделители папки), просмотрщики нот `ScoreViewer` (PDF) и `MusicXmlViewer`.
 - `composables/useAuth.ts` — кто вошёл, настройки сообщества, `can(capability)`.
-- **Стили залов** (барокко и классицизм, романтизм, модерн, авангард): цвета Tailwind и шрифт
-  заголовков — CSS-переменные (`assets/css/styles.css`, `:root`). Атрибут `data-hall-theme` на
-  зале переопределяет их, поэтому весь зал перекрашивается без отдельной вёрстки.
+- **Стили залов** (барокко и классицизм, романтизм, модерн, авангард): все цвета Tailwind, все
+  шрифты (`serif`, `display`, `elegant`, `caps`, `script`) и фон — CSS-переменные
+  (`assets/css/styles.css`, `:root` — романтизм). Зал ставит `data-hall-theme` на `<html>`
+  (`useHead`), блок темы переопределяет переменные и форму рамок, поэтому меняется вся страница,
+  включая шапку и подвал. Шрифты эпохи (`THEME_FONTS` в `utils/labels.ts`) подгружаются только
+  в зале с этой темой. Логотип (`.brand`) от темы не зависит.
 - Даты всегда по московскому времени — чтобы сервер (UTC) и браузер рисовали одно и то же.
 - SEO: `server/routes/robots.txt.ts`, `server/routes/sitemap.xml.ts`, канонические ссылки
   (`plugins/seo.ts`), разметка schema.org для композиторов и сочинений, переадресация на основной

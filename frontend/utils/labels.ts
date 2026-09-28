@@ -49,7 +49,7 @@ export const MATERIAL_KINDS: Record<string, string> = {
 }
 
 export const ROLES: Record<string, { label: string; icon: string; about: string }> = {
-  composer: { label: 'Композитор', icon: '♪', about: 'Выставка и библиотека сочинений, статьи, исполнения, блог' },
+  composer: { label: 'Композитор', icon: '♪', about: 'Выставка и библиотека сочинений, статьи, блог' },
   theorist: { label: 'Теоретик / музыковед', icon: '¶', about: 'Статьи и обзоры, блог, материалы' },
   performer: { label: 'Исполнитель', icon: '♫', about: 'Исполнения — свои записи любых сочинений, блог' },
   listener: { label: 'Слушатель', icon: '♡', about: 'Блог и обсуждения: слушать, читать, делиться мыслями' },
@@ -69,3 +69,12 @@ export const FEEDBACK_STATUSES: Record<string, string> = {
   done: 'Сделано',
   declined: 'Отклонено',
 }
+
+/** Google Fonts of each hall era (romanticism is the site's own set, always loaded) */
+export const THEME_FONTS: Record<string, string[]> = {
+  baroque: ['Prata', 'Alegreya:ital,wght@0,400;0,500;0,700;1,400;1,500', 'Playfair+Display+SC:wght@400;700'],
+  modern: ['Kurale', 'Philosopher:ital,wght@0,400;0,700;1,400'],
+  avantgarde: ['Oswald:wght@400;500;600', 'Jost:ital,wght@0,400;0,500;1,400'],
+}
+export const themeFontsUrl = (families: string[]) =>
+  `https://fonts.googleapis.com/css2?${families.map((f) => `family=${f}`).join('&')}&display=swap`

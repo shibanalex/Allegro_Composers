@@ -27,8 +27,8 @@ def client_address(request: Request) -> str:
 
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     token = _token_from_request(request)
-    user_id = decode_access_token(token) if token else None
-    return service.get_active_user(db, user_id) if user_id else None
+    claims = decode_access_token(token) if token else None
+    return service.get_active_user(db, *claims) if claims else None
 
 
 def get_current_user(user: Optional[User] = Depends(get_optional_user)) -> User:

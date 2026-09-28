@@ -1,6 +1,6 @@
 <template>
-  <!-- A member's hall in the style of their era (data-hall-theme): portrait, name, manifesto, and sections by role -->
-  <div v-if="profile" class="hall" :data-hall-theme="profile.hall_theme">
+  <!-- A member's hall in the style of their era (data-hall-theme on <html>): portrait, name, manifesto, sections by role -->
+  <div v-if="profile" class="hall">
     <header class="hall-header relative mt-8 grid items-center gap-10 px-2 py-12 sm:mt-12 md:grid-cols-[auto_minmax(0,1fr)] md:gap-14 md:px-10">
       <CornerFlourish class="hall-flourish absolute left-0 top-0 w-14 sm:w-20" />
       <CornerFlourish class="hall-flourish absolute right-0 top-0 w-14 -scale-x-100 sm:w-20" />
@@ -114,7 +114,7 @@ function onFeatured(saved: Opus) {
 
 // Sections of a hall by role; a section outside the role still shows when it has content
 const ROLE_TABS: Record<string, string[]> = {
-  composer: ['exhibition', 'library', 'articles', 'performances', 'blog', 'materials', 'about'],
+  composer: ['exhibition', 'library', 'articles', 'blog', 'materials', 'about'],
   theorist: ['articles', 'blog', 'materials', 'about'],
   performer: ['performances', 'blog', 'materials', 'about'],
   listener: ['blog', 'materials', 'about'],
@@ -137,16 +137,12 @@ const tabs = computed(() => {
   return shown.length ? shown : all.filter((t) => t.id === 'about')
 })
 
-// The hall's style may need its own heading face
-const THEME_FONTS: Record<string, string> = {
-  baroque: 'Playfair+Display+SC:wght@400;700',
-  modern: 'Kurale',
-  avantgarde: 'Oswald:wght@400;500;600',
-}
+// The whole page takes the hall's era — header, footer and canvas too — and loads that era's faces
 useHead({
+  htmlAttrs: { 'data-hall-theme': computed(() => profile.value?.hall_theme || 'romantic') },
   link: computed(() => {
-    const family = THEME_FONTS[profile.value?.hall_theme || '']
-    return family ? [{ rel: 'stylesheet', href: `https://fonts.googleapis.com/css2?family=${family}&display=swap` }] : []
+    const families = THEME_FONTS[profile.value?.hall_theme || '']
+    return families ? [{ rel: 'stylesheet', href: themeFontsUrl(families) }] : []
   }),
 })
 

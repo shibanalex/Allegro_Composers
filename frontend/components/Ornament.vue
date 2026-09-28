@@ -1,5 +1,5 @@
 <template>
-  <svg viewBox="0 0 320 40" fill="none" class="text-gold/70" aria-hidden="true">
+  <svg viewBox="0 0 320 40" fill="none" class="ornament text-gold/70" aria-hidden="true">
     <defs>
       <linearGradient id="orn-fade-l" x1="0" x2="1"><stop offset="0" stop-color="currentColor" stop-opacity="0" /><stop offset="1" stop-color="currentColor" /></linearGradient>
       <linearGradient id="orn-fade-r" x1="1" x2="0"><stop offset="0" stop-color="currentColor" stop-opacity="0" /><stop offset="1" stop-color="currentColor" /></linearGradient>

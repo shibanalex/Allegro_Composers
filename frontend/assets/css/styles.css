@@ -18,7 +18,18 @@
   --c-gold: 201 163 106;
   --c-gold-dark: 156 122 69;
   --c-gold-deep: 90 64 32;
+  /* Romanticism: 19th-century Russian book type, Garamond text, engraved small caps, a calligraphic hand */
   --font-display: "Old Standard TT", "EB Garamond", Georgia, serif;
+  --font-serif: "EB Garamond", Garamond, Georgia, serif;
+  --font-elegant: "EB Garamond", Garamond, Georgia, serif;
+  --font-caps: "Cormorant SC", "EB Garamond", serif;
+  --font-script: Tangerine, "Great Vibes", cursive;
+  /* The painted canvas behind everything: warm candle light from the upper left, a wine-red shadow below */
+  --canvas:
+    radial-gradient(ellipse 60% 50% at 15% -10%, rgb(196 140 66 / 0.14), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 95% 105%, rgb(110 24 22 / 0.22), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 45%, rgb(0 0 0 / 0.7) 100%),
+    #0b0908;
 }
 
 @layer base {
@@ -54,11 +65,7 @@
   /* ---------- Backdrop: dark canvas with a warm light from the upper left ---------- */
   .canvas-bg {
     @apply pointer-events-none fixed inset-0 -z-10;
-    background:
-      radial-gradient(ellipse 60% 50% at 15% -10%, rgba(196, 140, 66, 0.14), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 95% 105%, rgba(110, 24, 22, 0.22), transparent 70%),
-      radial-gradient(ellipse 120% 90% at 50% 40%, transparent 45%, rgba(0, 0, 0, 0.7) 100%),
-      #0b0908;
+    background: var(--canvas);
   }
   /* A fine grain, like canvas under varnish, so the dark areas don't look flat */
   .canvas-bg::after {
@@ -175,7 +182,7 @@
     content: '“';
     @apply absolute -top-8 left-1/2 -translate-x-1/2 font-display text-7xl text-gold/40;
   }
-  .prose-academia img { @apply my-10 w-full; box-shadow: 0 0 0 4px #9c7a45, 0 0 0 5px #000, 0 30px 60px -25px #000; }
+  .prose-academia img { @apply my-10 w-full; box-shadow: 0 0 0 4px rgb(var(--c-gold-dark)), 0 0 0 5px #000, 0 30px 60px -25px #000; }
   .prose-academia hr { @apply rule my-12 border-0; }
   .prose-academia code { @apply bg-ink-800 px-1.5 py-0.5 text-base text-gold-light; }
   .prose-academia pre { @apply overflow-x-auto bg-ink-950 p-4 text-sm; }
@@ -207,8 +214,8 @@
     transition: transform .85s cubic-bezier(.6, .05, .3, 1), filter .85s ease, opacity .85s ease;
     will-change: transform;
     /* The leaf is opaque paper: dark with a warm edge, casting a shadow on the page beneath */
-    background: linear-gradient(90deg, #0b0907 0%, #110d0a 85%, #1a140f 100%);
-    box-shadow: 18px 0 40px -10px rgba(0, 0, 0, .8), inset -1px 0 0 rgba(201, 163, 106, .25);
+    background: linear-gradient(90deg, rgb(var(--c-ink-900)) 0%, rgb(var(--c-ink-850)) 85%, rgb(var(--c-ink-800)) 100%);
+    box-shadow: 18px 0 40px -10px rgba(0, 0, 0, .8), inset -1px 0 0 rgb(var(--c-gold) / .25);
   }
   .turn-next-leave-active::after,
   .turn-prev-enter-active::after {
@@ -291,25 +298,25 @@
   }
   .range::-webkit-slider-runnable-track {
     height: 3px;
-    background: linear-gradient(90deg, #c9a36a var(--fill), rgba(201, 163, 106, .18) var(--fill));
+    background: linear-gradient(90deg, rgb(var(--c-gold)) var(--fill), rgb(var(--c-gold) / .18) var(--fill));
   }
   .range::-moz-range-track {
     height: 3px;
-    background: linear-gradient(90deg, #c9a36a var(--fill), rgba(201, 163, 106, .18) var(--fill));
+    background: linear-gradient(90deg, rgb(var(--c-gold)) var(--fill), rgb(var(--c-gold) / .18) var(--fill));
   }
   .range::-webkit-slider-thumb {
     @apply appearance-none rounded-full;
     width: 13px;
     height: 13px;
     margin-top: -5px;
-    background: radial-gradient(circle at 35% 35%, #f3dca6, #a67c3d);
-    box-shadow: 0 0 0 3px rgba(10, 8, 7, .8), 0 0 12px rgba(201, 163, 106, .5);
+    background: radial-gradient(circle at 35% 35%, rgb(var(--c-gold-pale)), rgb(var(--c-gold-dark)));
+    box-shadow: 0 0 0 3px rgb(var(--c-ink-900) / .8), 0 0 12px rgb(var(--c-gold) / .5);
   }
   .range::-moz-range-thumb {
     @apply rounded-full border-0;
     width: 13px;
     height: 13px;
-    background: radial-gradient(circle at 35% 35%, #f3dca6, #a67c3d);
+    background: radial-gradient(circle at 35% 35%, rgb(var(--c-gold-pale)), rgb(var(--c-gold-dark)));
   }
 
   .play-btn {
@@ -371,7 +378,7 @@
   align-items: baseline;
   gap: 0.55rem;
   padding: 0.65rem 1.35rem 0.55rem;
-  font-family: 'Cormorant SC', 'EB Garamond', serif;
+  font-family: var(--font-caps);
   font-weight: 600;
   font-size: 1.05rem;
   letter-spacing: 0.16em;
@@ -478,24 +485,15 @@
 }
 
 /* ======================================================================
-   Styles of a hall: the era its owner feels closest to (Оформить зал → Стиль).
-   Only the hall changes; the site around it stays the same.
+   Eras of a hall (Оформить зал → Стиль). The hall page puts data-hall-theme on <html>, so the whole page
+   follows — header, footer and the canvas included; the samples in the style picker carry it themselves.
+   Each era redefines the palette and every face; a few shapes differ on top.
    ====================================================================== */
-.hall { position: relative; }
-/* A full-width tint behind the hall, fading at the top and bottom */
-.hall::before {
-  content: '';
-  position: absolute;
-  inset: -1rem calc(50% - 50vw) -2rem;
-  z-index: -1;
-  pointer-events: none;
-  background: var(--hall-backdrop, none);
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 6rem, #000 calc(100% - 8rem), transparent);
-  mask-image: linear-gradient(180deg, transparent, #000 6rem, #000 calc(100% - 8rem), transparent);
-}
+[data-hall-theme] { font-family: var(--font-serif); }
 
-/* Барокко и классицизм: пурпур, старое золото, гравюрные прописные */
-.hall[data-hall-theme="baroque"] {
+/* Барокко и классицизм: пурпур и старое золото; дидона Prata (эпоха Бодони), гуманистическая Alegreya,
+   гравюрные прописные, каллиграфия «круглого письма» для псевдонима */
+[data-hall-theme="baroque"] {
   --c-ink-950: 10 4 7;
   --c-ink-900: 18 7 12;
   --c-ink-850: 26 10 17;
@@ -510,13 +508,27 @@
   --c-gold: 214 176 92;
   --c-gold-dark: 160 122 52;
   --c-gold-deep: 96 62 22;
-  --font-display: "Playfair Display SC", "Old Standard TT", Georgia, serif;
-  --hall-backdrop: radial-gradient(ellipse 70% 50% at 50% 0%, rgb(90 20 44 / 0.35), transparent 70%);
+  --font-display: Prata, "Playfair Display SC", Georgia, serif;
+  --font-serif: Alegreya, Georgia, serif;
+  --font-elegant: Alegreya, Georgia, serif;
+  --font-caps: "Playfair Display SC", Prata, serif;
+  --font-script: "Great Vibes", cursive;
+  --canvas:
+    radial-gradient(ellipse 70% 50% at 50% -10%, rgb(214 176 92 / 0.12), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 90% 100%, rgb(120 20 50 / 0.3), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 45%, rgb(0 0 0 / 0.75) 100%),
+    #120709;
+  font-synthesis: none; /* Prata has no italic: headings stay upright instead of a fake slant */
 }
-.hall[data-hall-theme="baroque"] :is(h1, h2, h3, .hall-name) { font-style: normal; letter-spacing: 0.04em; }
+[data-hall-theme="baroque"] :is(h1, h2, h3) { letter-spacing: 0.03em; }
+/* A double gilt edge on frames and portraits */
+[data-hall-theme="baroque"] :is(.frame, .portrait) { padding: 7px; box-shadow: 0 30px 60px -25px #000, 0 0 0 1px rgb(var(--c-gold-deep)), 0 0 0 4px rgb(var(--c-ink-900)), 0 0 0 5px rgb(var(--c-gold-dark)); }
+[data-hall-theme="baroque"] .btn-primary { letter-spacing: 0.24em; }
 
-/* Модерн: зелень, медь и латунь, плавные линии начала века */
-.hall[data-hall-theme="modern"] {
+/* Романтизм — значения по умолчанию (:root) */
+
+/* Модерн: зелень, медь и латунь; Kurale с росчерками начала века и Philosopher для текста; плавные линии */
+[data-hall-theme="modern"] {
   --c-ink-950: 3 8 7;
   --c-ink-900: 7 14 12;
   --c-ink-850: 11 20 17;
@@ -531,15 +543,28 @@
   --c-gold: 194 146 92;
   --c-gold-dark: 142 100 58;
   --c-gold-deep: 74 50 26;
-  --font-display: "Kurale", "Old Standard TT", Georgia, serif;
-  --hall-backdrop: radial-gradient(ellipse 80% 55% at 50% 0%, rgb(40 90 70 / 0.28), transparent 70%);
+  --font-display: Kurale, Georgia, serif;
+  --font-serif: Philosopher, "Trebuchet MS", sans-serif;
+  --font-elegant: Philosopher, "Trebuchet MS", sans-serif;
+  --font-caps: Philosopher, "Trebuchet MS", sans-serif;
+  --font-script: Kurale, Georgia, serif;
+  --canvas:
+    radial-gradient(ellipse 80% 55% at 20% -10%, rgb(60 130 100 / 0.22), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 90% 100%, rgb(194 146 92 / 0.16), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 45%, rgb(0 0 0 / 0.7) 100%),
+    #07100d;
+  font-synthesis: none;
 }
-.hall[data-hall-theme="modern"] :is(h1, h2, h3, .hall-name) { font-style: normal; }
-.hall[data-hall-theme="modern"] :is(.frame, .frame-inner, .card, .folder-body, .folder-sheet) { border-radius: 1.1rem; }
-.hall[data-hall-theme="modern"] .folder-tab { border-radius: 1.4rem 1.4rem 0 0; }
+[data-hall-theme="modern"] .eyebrow,
+[data-hall-theme="modern"] .folder-tab,
+[data-hall-theme="modern"] .btn { text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.18em; }
+/* The pseudonym in Kurale: same size as the romantic hand, no calligraphic padding */
+[data-hall-theme="modern"] .title-script:not(.brand) { font-weight: 400; padding: 0.1em 0; line-height: 1.2; }
+[data-hall-theme="modern"] :is(.frame, .frame-inner, .card, .folder-body, .folder-sheet, .field, .chip, .btn) { border-radius: 1rem; }
+[data-hall-theme="modern"] .folder-tab { border-radius: 1.4rem 1.4rem 0 0; }
 
-/* Авангард: чёрный, красный и белый, геометрия плаката */
-.hall[data-hall-theme="avantgarde"] {
+/* Авангард: чёрный, красный, белый — плакат 1920-х; узкий гротеск Oswald и геометрический Jost (как Futura) */
+[data-hall-theme="avantgarde"] {
   --c-ink-950: 8 8 8;
   --c-ink-900: 14 14 14;
   --c-ink-850: 20 20 20;
@@ -554,24 +579,34 @@
   --c-gold: 214 40 32;
   --c-gold-dark: 160 24 18;
   --c-gold-deep: 90 10 8;
-  --font-display: "Oswald", "Arial Narrow", sans-serif;
-  --hall-backdrop: linear-gradient(115deg, transparent 62%, rgb(214 40 32 / 0.12) 62%, rgb(214 40 32 / 0.12) 70%, transparent 70%);
+  --font-display: Oswald, "Arial Narrow", sans-serif;
+  --font-serif: Jost, "Century Gothic", sans-serif;
+  --font-elegant: Jost, "Century Gothic", sans-serif;
+  --font-caps: Oswald, "Arial Narrow", sans-serif;
+  --font-script: Oswald, "Arial Narrow", sans-serif;
+  --canvas:
+    linear-gradient(115deg, transparent 58%, rgb(214 40 32 / 0.14) 58%, rgb(214 40 32 / 0.14) 66%, transparent 66%),
+    radial-gradient(circle at 12% 18%, rgb(242 238 230 / 0.05) 0 9rem, transparent 9rem),
+    #0c0c0c;
+  font-synthesis: none;
 }
-.hall[data-hall-theme="avantgarde"] :is(h1, h2, h3, .hall-name) { font-style: normal; text-transform: uppercase; letter-spacing: 0.06em; }
-.hall[data-hall-theme="avantgarde"] .hall-flourish { display: none; }
-/* Flat colour instead of gilding, square corners */
-.hall[data-hall-theme="avantgarde"] :is(.frame, .portrait) { background: rgb(var(--c-gold)); }
-.hall[data-hall-theme="avantgarde"] :is(.portrait, .portrait > img, .portrait > div) { border-radius: 0; }
-.hall[data-hall-theme="avantgarde"] .btn-primary { background: rgb(var(--c-gold)); color: rgb(var(--c-parchment)); box-shadow: none; }
-.hall[data-hall-theme="avantgarde"] :is(.folder-tab, .folder-body, .folder-sheet, .card) { border-radius: 0; }
-.hall[data-hall-theme="avantgarde"] .title-script {
-  font-family: "Oswald", "Arial Narrow", sans-serif;
+[data-hall-theme="avantgarde"] :is(h1, h2, h3) { text-transform: uppercase; letter-spacing: 0.05em; }
+[data-hall-theme="avantgarde"] :is(.eyebrow, .folder-tab, .btn, .chip, .field-label) { text-transform: uppercase; letter-spacing: 0.12em; }
+/* No ornaments and no gilding: flat colour and square corners */
+[data-hall-theme="avantgarde"] :is(.hall-flourish, .ornament) { display: none; }
+[data-hall-theme="avantgarde"] :is(.frame, .portrait) { background: rgb(var(--c-gold)); box-shadow: 10px 10px 0 rgb(var(--c-parchment) / 0.08); }
+[data-hall-theme="avantgarde"] :is(.portrait, .portrait > img, .portrait > div, .folder-tab, .folder-body, .folder-sheet, .card, .chip, .btn, .field) { border-radius: 0; }
+[data-hall-theme="avantgarde"] .btn-primary { background: rgb(var(--c-gold)); color: rgb(var(--c-parchment)); box-shadow: none; }
+[data-hall-theme="avantgarde"] .title-script:not(.brand) {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 3vw, 2.25rem); /* a poster subtitle, not a script flourish */
+  padding: 0.2em 0;
   line-height: 1.2;
   background: none;
   color: rgb(var(--c-gold));
   filter: none;
 }
+/* The site's name keeps its own hand in every era */
+.brand { font-family: Tangerine, "Great Vibes", cursive; }

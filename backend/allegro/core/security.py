@@ -35,16 +35,18 @@ def verify_password(password: str, stored: str) -> bool:
 
 # ---------------------------------------------------------------- login tokens (JWT)
 
-def create_access_token(user_id: uuid.UUID) -> str:
+def create_access_token(user_id: uuid.UUID, session_version: int = 0) -> str:
+    """`ver` is the account's session version: raising it (new password, «выйти везде») voids older tokens"""
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
-    return jwt.encode({"sub": str(user_id), "exp": expire}, settings.secret_key, algorithm=settings.algorithm)
+    claims = {"sub": str(user_id), "ver": session_version, "exp": expire}
+    return jwt.encode(claims, settings.secret_key, algorithm=settings.algorithm)
 
 
-def decode_access_token(token: str) -> Optional[uuid.UUID]:
+def decode_access_token(token: str) -> Optional[tuple[uuid.UUID, int]]:
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        return uuid.UUID(payload["sub"])
-    except (jwt.InvalidTokenError, KeyError, ValueError):
+        return uuid.UUID(payload["sub"]), int(payload.get("ver", 0))
+    except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
         return None
 
 

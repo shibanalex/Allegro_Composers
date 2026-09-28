@@ -14,7 +14,7 @@
       />
       <div class="flex flex-wrap items-center gap-3">
         <label v-if="opus && opus.audio_type !== 'none'" class="flex cursor-pointer items-center gap-2 text-sm text-parchment-muted">
-          <input v-model="attachTime" type="checkbox" class="accent-[#c9a36a]">
+          <input v-model="attachTime" type="checkbox" class="accent-[rgb(var(--c-gold))]">
           Привязать к моменту
           <span class="font-mono text-gold-light">{{ formatTime(player.isCurrent(opus.slug) ? player.time : 0) }}</span>
         </label>

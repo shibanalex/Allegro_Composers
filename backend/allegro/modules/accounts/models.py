@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from allegro.core.db import Base
@@ -31,6 +31,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), default="listener", server_default="listener", index=True)  # roles.Role
     hall_theme: Mapped[str] = mapped_column(String(20), default="romantic", server_default="romantic")  # roles.HALL_THEMES
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # Raised on a new password or «выйти на всех устройствах»: login tokens carry it, older ones stop working
+    session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # "In the shadow": the account and everything it made are hidden from the site, but kept in the database
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", index=True)
     invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

@@ -34,7 +34,7 @@
           </span>
         </div>
         <div class="relative flex min-h-0 flex-1 items-center justify-center px-4 pb-8 sm:px-16" @click.self="close">
-          <img :src="images[current].url" :alt="images[current].name" class="max-h-full max-w-full object-contain" style="box-shadow: 0 0 0 5px #b08a50, 0 0 0 6px #000, 0 40px 80px -20px #000">
+          <img :src="images[current].url" :alt="images[current].name" class="max-h-full max-w-full object-contain" style="box-shadow: 0 0 0 5px rgb(var(--c-gold-dark)), 0 0 0 6px #000, 0 40px 80px -20px #000">
           <template v-if="images.length > 1">
             <button class="nav left-2 sm:left-4" aria-label="Предыдущее" @click="step(-1)">‹</button>
             <button class="nav right-2 sm:right-4" aria-label="Следующее" @click="step(1)">›</button>

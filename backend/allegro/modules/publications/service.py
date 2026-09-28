@@ -1,6 +1,7 @@
 """Use cases of the publications module: blog posts, articles, news, members' materials.
 
-Public API for other modules: `resolve_post_target`, `search_posts`, `count_posts`, `count_articles`.
+Public API for other modules: `posts_out`, `recent_posts`, `resolve_post_target`, `search_posts`, `count_posts`,
+`count_articles`.
 """
 import uuid
 from typing import Optional
@@ -238,6 +239,14 @@ def count_posts(db: Session, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
 
 def count_articles(db: Session, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
     return _count(db, user_ids, Post.kind == "article")
+
+
+def recent_posts(db: Session, kinds: list[str], before, limit: int) -> list[Post]:
+    """New posts of the given kinds by visible members, newest first (the feed)"""
+    stmt = select(Post).where(Post.status == "published", Post.kind.in_(kinds), visible_authors(Post.author_id))
+    if before:
+        stmt = stmt.where(Post.created_at < before)
+    return list(db.scalars(stmt.order_by(Post.created_at.desc()).limit(limit)).unique())
 
 
 def search_posts(db: Session, words: list[str], limit: int) -> list[Post]:

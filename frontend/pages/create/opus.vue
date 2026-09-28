@@ -210,7 +210,7 @@
           <option v-for="(label, v) in STATUSES" :key="v" :value="v">{{ label }}</option>
         </select>
         <label class="flex cursor-pointer items-center gap-2 text-parchment-muted">
-          <input v-model="form.featured" type="checkbox" class="accent-[#c9a36a]">
+          <input v-model="form.featured" type="checkbox" class="accent-[rgb(var(--c-gold))]">
           ★ На выставке
         </label>
         <button type="submit" class="btn-primary" :disabled="busy">{{ editing ? 'Сохранить' : 'Опубликовать' }}</button>

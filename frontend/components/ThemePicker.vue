@@ -7,13 +7,14 @@
       type="button"
       role="radio"
       :aria-checked="modelValue === id"
-      class="hall overflow-hidden border text-left transition"
+      class="overflow-hidden border text-left transition"
       :data-hall-theme="id"
       :class="modelValue === id ? 'border-gold ring-1 ring-gold' : 'border-gold/20 hover:border-gold/50'"
       @click="$emit('update:modelValue', id)"
     >
       <span class="block bg-ink-850 p-4">
-        <span class="hall-name block truncate font-display text-2xl italic text-parchment">Имя Фамилия</span>
+        <span class="block truncate font-display text-2xl text-parchment">Имя Фамилия</span>
+        <span class="block truncate font-elegant italic text-parchment-muted">Соната для скрипки, соч. 1</span>
         <span class="mt-2 flex items-center gap-2">
           <span class="h-3 w-10 bg-gold" />
           <span class="h-3 w-6 bg-gold-dark" />
@@ -32,8 +33,6 @@
 defineProps<{ modelValue: string }>()
 defineEmits<{ 'update:modelValue': [value: string] }>()
 
-// The samples need every style's heading face
-useHead({
-  link: [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@400;700&family=Kurale&family=Oswald:wght@400;500;600&display=swap' }],
-})
+// The samples are drawn with every era's own faces
+useHead({ link: [{ rel: 'stylesheet', href: themeFontsUrl(Object.values(THEME_FONTS).flat()) }] })
 </script>

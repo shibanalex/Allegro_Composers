@@ -12,12 +12,12 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['"EB Garamond"', 'Garamond', 'Georgia', 'serif'],
-        // Russian book type of the 19th century: aristocratic, with a calm italic and even figures in Cyrillic
+        // Faces come from CSS variables (assets/css/styles.css): each era of a hall has its own set
+        serif: ['var(--font-serif)'],
         display: ['var(--font-display)'],
-        elegant: ['"EB Garamond"', 'Garamond', 'Georgia', 'serif'],
-        caps: ['"Cormorant SC"', '"EB Garamond"', 'serif'],
-        script: ['Tangerine', '"Great Vibes"', 'cursive'], // Great Vibes covers Cyrillic
+        elegant: ['var(--font-elegant)'],
+        caps: ['var(--font-caps)'],
+        script: ['var(--font-script)'],
       },
       colors: {
         // Values live in assets/css/styles.css (:root) so a hall's style (data-hall-theme) can redefine them

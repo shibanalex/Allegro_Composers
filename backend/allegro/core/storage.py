@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import BinaryIO, Iterator, Optional
 
 from fastapi import UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from allegro.core.config import settings
 
@@ -71,7 +72,8 @@ class _BaseStorage:
         key = self.new_key(folder, file.filename)
         spool, size = await self._spool(file)
         with spool:
-            self._put(key, spool)
+            # boto3 and disk writes block: in a worker thread, so other requests keep being served meanwhile
+            await run_in_threadpool(self._put, key, spool)
         return {
             "key": key,
             "url": self.url(key),

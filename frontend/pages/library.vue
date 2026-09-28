@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// The catalogue of all works moved to the main page («Сочинения»); old links keep working
+// The main page's feed shows new works (each composer's full catalogue is in their hall); old links keep working
 const route = useRoute()
-await navigateTo({ path: '/', query: { ...route.query, tab: 'works' } }, { redirectCode: 301, replace: true })
+await navigateTo({ path: '/', query: { feed: 'works' } }, { redirectCode: 301, replace: true })
 </script>
 
 <template>
