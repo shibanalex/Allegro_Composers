@@ -153,6 +153,7 @@ def test_genre_brings_its_instruments(alice):
     own = create_opus(alice, title="Квартет для флейт", genre="quartet", instruments=["флейта"] * 4)
     assert own["instruments"] == ["флейта"] * 4
     assert client.patch(f"/api/opuses/{own['slug']}", headers=alice, json={"instruments": ["гитара"] * 4}).json()["instruments"] == ["гитара"] * 4
+    assert client.patch(f"/api/opuses/{own['slug']}", headers=alice, json={"instruments": ["Скрипки", "альт"]}).json()["instruments"] == ["скрипка", "альт"]
     for slug in (quartet["slug"], own["slug"]):
         client.delete(f"/api/opuses/{slug}", headers=alice)
 
