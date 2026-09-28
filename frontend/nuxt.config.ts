@@ -16,13 +16,17 @@ export default defineNuxtConfig({
       siteUrl: '', // the site's main address, e.g. https://allegro-cantabile.ru: canonical links, sitemap, redirect from other addresses
       yandexVerification: '', // code from Yandex.Webmaster (the content of its <meta name="yandex-verification">)
       googleVerification: '', // code from Google Search Console (<meta name="google-site-verification">)
+      metrikaId: '113130812', // Yandex.Metrika counter (plugins/metrika.client.ts); '' turns it off
     },
   },
   // Browser requests to /api and /media go through Nuxt in dev; in docker the gateway answers them first
   routeRules: {
     '/**': {
       headers: {
+        // No other site may show ours in a frame (clickjacking) — except Yandex.Metrika's session replay
+        // and click map. Browsers that know frame-ancestors use it; older ones fall back to the DENY.
         'X-Frame-Options': 'DENY',
+        'Content-Security-Policy': "frame-ancestors 'self' https://metrika.yandex.ru https://metrika.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://webvisor.com https://*.webvisor.com",
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
       },

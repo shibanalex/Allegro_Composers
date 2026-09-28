@@ -8,6 +8,11 @@
         <NuxtLink v-for="l in LINKS" :key="l.to" :to="l.to" class="transition hover:text-gold">{{ l.label }}</NuxtLink>
       </nav>
       <p class="font-caps text-xs tracking-[0.2em] text-parchment-faint/70">© {{ year }} Allegro</p>
+      <p class="max-w-md text-xs leading-relaxed text-parchment-faint/60">
+        Для статистики посещений сайт использует
+        <a href="https://yandex.ru/legal/metrica_termsofuse/" target="_blank" rel="noopener" class="underline decoration-gold/30 underline-offset-2 hover:text-gold-light">Яндекс Метрику</a>:
+        она собирает обезличенные данные о визитах и использует cookie.
+      </p>
     </div>
   </footer>
 </template>
