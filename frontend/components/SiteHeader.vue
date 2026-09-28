@@ -1,6 +1,6 @@
 <template>
   <header class="sticky top-0 z-40 border-b border-gold/10 bg-ink-950/80 backdrop-blur-md">
-    <div class="container-page flex h-16 items-center gap-2 sm:h-20 sm:gap-4 lg:gap-8">
+    <div class="container-page flex h-16 items-center gap-2 sm:h-20 sm:gap-4 lg:gap-8" :class="{ 'xl:max-w-[90rem]': route.meta.wide }">
       <NuxtLink to="/" class="group flex shrink-0 items-center gap-1" @click="menuOpen = false">
         <span class="hidden font-display text-2xl text-gold/80 transition group-hover:text-gold-light sm:inline">𝄞</span>
         <span class="title-script brand -ml-2 text-4xl sm:ml-0 sm:text-5xl">Allegro</span>
