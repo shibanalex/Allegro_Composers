@@ -121,6 +121,17 @@
     @apply border border-gold/10 bg-ink-850/70 p-6 shadow-2xl shadow-black/60 sm:p-8;
   }
 
+  /* The main feed: a panel under the header; on large screens the posts scroll inside it */
+  .feed-panel {
+    @apply flex flex-col border border-gold/15 bg-ink-950/60 shadow-2xl shadow-black/70 backdrop-blur-sm
+      lg:sticky lg:top-24 lg:h-[calc(100vh-17.5rem)] lg:min-h-[28rem];
+  }
+  .feed-panel-body {
+    @apply min-h-0 flex-1 p-3 sm:p-5 lg:overflow-y-auto lg:overscroll-contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--c-gold) / 0.35) transparent;
+  }
+
   .link {
     @apply text-gold underline decoration-gold/30 underline-offset-4 transition hover:decoration-gold;
   }

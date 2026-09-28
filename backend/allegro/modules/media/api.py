@@ -9,7 +9,7 @@ from allegro.modules.media.schemas import Uploaded
 
 router = APIRouter(tags=["media"])
 
-Purpose = Literal["score", "musicxml", "audio", "image", "attachment"]
+Purpose = Literal["score", "musicxml", "audio", "image", "cover", "attachment"]
 
 
 @router.post("/api/media", response_model=list[Uploaded], status_code=status.HTTP_201_CREATED)

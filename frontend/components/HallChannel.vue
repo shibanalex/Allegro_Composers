@@ -42,7 +42,7 @@
         <!-- A long article: shown as a card leading to the full text -->
         <NuxtLink v-if="p.kind === 'article'" :to="`/posts/${p.slug}`" class="group flex gap-5">
           <div v-if="p.cover_url" class="frame frame-thin hidden h-24 w-32 shrink-0 sm:block">
-            <div class="frame-inner"><img :src="p.cover_url" alt="" class="h-full w-full object-cover"></div>
+            <div class="frame-inner"><MediaImg :src="p.cover_url" alt="" class="h-full w-full object-cover" /></div>
           </div>
           <div class="min-w-0">
             <p class="eyebrow text-xs">Статья</p>

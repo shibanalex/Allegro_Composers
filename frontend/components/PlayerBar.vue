@@ -23,7 +23,7 @@
           <div v-show="player.track?.audio_type === 'youtube'" class="frame frame-thin hidden h-[54px] w-24 shrink-0 sm:block">
             <div class="frame-inner"><div ref="ytHost" class="h-full w-full" /></div>
           </div>
-          <img v-if="player.track?.audio_type !== 'youtube' && player.track?.cover_url" :src="player.track.cover_url" alt="" class="hidden h-12 w-12 shrink-0 object-cover ring-1 ring-gold/40 sm:block">
+          <MediaImg v-if="player.track?.audio_type !== 'youtube' && player.track?.cover_url" :src="player.track.cover_url" alt="" class="hidden h-12 w-12 shrink-0 object-cover ring-1 ring-gold/40 sm:block" />
 
           <button class="play-btn h-11 w-11" :aria-label="player.playing ? 'Пауза' : 'Играть'" @click="player.toggle()">
             <PlayIcon :playing="player.playing" :loading="player.loading" />

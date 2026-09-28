@@ -23,8 +23,8 @@
           </template>
         </ClientOnly>
         <div v-else class="frame">
-          <div class="frame-inner aspect-[4/3]">
-            <img v-if="opus.cover_url" :src="opus.cover_url" :alt="opus.title" class="h-full w-full object-cover">
+          <div class="frame-inner aspect-square">
+            <MediaImg v-if="opus.cover_url" :src="opus.cover_url" :alt="opus.title" class="h-full w-full object-cover" />
           </div>
           <p class="bg-ink-950 p-4 text-center font-elegant italic text-parchment-faint">Автор ещё не загрузил партитуру</p>
         </div>

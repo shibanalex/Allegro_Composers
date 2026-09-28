@@ -21,7 +21,7 @@ const props = withDefaults(defineProps<{
   hint?: string
   accept?: string
   multiple?: boolean
-  purpose?: 'score' | 'audio' | 'image' | 'attachment'
+  purpose?: 'score' | 'musicxml' | 'audio' | 'image' | 'cover' | 'attachment'
 }>(), { label: 'Добавить файлы', multiple: false, purpose: 'attachment' })
 const emit = defineEmits<{ uploaded: [files: Uploaded[], raw: File[]]; error: [message: string] }>()
 

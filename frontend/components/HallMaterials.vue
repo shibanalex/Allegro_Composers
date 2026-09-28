@@ -32,7 +32,7 @@
           </div>
           <div v-if="form.kind === 'book'">
             <p class="field-label">Обложка</p>
-            <img v-if="form.cover_url" :src="form.cover_url" alt="" class="h-32 border border-gold/30 object-cover">
+            <MediaImg v-if="form.cover_url" :src="form.cover_url" alt="" class="h-32 border border-gold/30 object-cover" />
             <FileDropzone v-else label="Обложка" accept="image/*" purpose="image" @uploaded="(f) => (form.cover_url = f[0].url)" @error="(m) => (error = m)" />
           </div>
         </div>
@@ -54,7 +54,7 @@
           <article v-for="m in books" :key="m.id" class="flex gap-5">
             <div class="frame frame-thin h-40 w-28 shrink-0">
               <div class="frame-inner flex items-center justify-center bg-gradient-to-b from-oxblood to-ink-900">
-                <img v-if="m.cover_url" :src="m.cover_url" :alt="m.title" class="h-full w-full object-cover">
+                <MediaImg v-if="m.cover_url" :src="m.cover_url" :alt="m.title" class="h-full w-full object-cover" />
                 <span v-else class="px-2 text-center font-display text-sm italic leading-tight text-gold-light/80">{{ m.title }}</span>
               </div>
             </div>

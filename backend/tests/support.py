@@ -37,6 +37,16 @@ def register(username, display_name=None, role="composer", **extra):
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
+def picture(width=1200, height=600, fmt="PNG") -> bytes:
+    """A real picture (uploads of pictures are decoded, so a few magic bytes are not enough)"""
+    import io
+
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new("RGB", (width, height), (120, 80, 40)).save(out, fmt)
+    return out.getvalue()
+
+
 def upload(headers, name, content, content_type, purpose):
     r = client.post("/api/media", headers=headers, data={"purpose": purpose}, files={"files": (name, content, content_type)})
     assert r.status_code == 201, r.text

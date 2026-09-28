@@ -8,7 +8,7 @@
       <CornerFlourish class="hall-flourish absolute bottom-0 right-0 w-14 -scale-100 sm:w-20" />
 
       <div class="portrait mx-auto h-64 w-52 sm:h-72 sm:w-56">
-        <img v-if="profile.avatar_url" :src="profile.avatar_url" :alt="profile.display_name">
+        <MediaImg v-if="profile.avatar_url" :src="profile.avatar_url" :alt="profile.display_name" />
         <div v-else class="flex items-center justify-center bg-ink-700 font-display text-6xl italic text-gold/50">{{ initials(profile.display_name) }}</div>
       </div>
 

@@ -61,8 +61,8 @@
       <ul class="divide-y divide-gold/10" :class="{ 'opacity-50 transition': pending }">
         <li v-for="o in items" :key="o.id" class="group flex items-center gap-4 py-5 sm:gap-6">
           <PlayButton :opus="o" />
-          <NuxtLink :to="`/opus/${o.slug}`" class="frame frame-thin hidden h-16 w-24 shrink-0 sm:block">
-            <div class="frame-inner"><img v-if="o.cover_url" :src="o.cover_url" alt="" class="h-full w-full object-cover" loading="lazy"></div>
+          <NuxtLink :to="`/opus/${o.slug}`" class="frame frame-thin hidden h-16 w-16 shrink-0 sm:block">
+            <div class="frame-inner"><MediaImg v-if="o.cover_url" :src="o.cover_url" alt="" class="h-full w-full object-cover" loading="lazy" /></div>
           </NuxtLink>
           <div class="min-w-0 flex-1">
             <NuxtLink :to="`/opus/${o.slug}`" class="block">

@@ -2,8 +2,8 @@
   <!-- Feed card with a built-in mini player -->
   <article class="group">
     <NuxtLink :to="`/opus/${opus.slug}`" class="frame block transition duration-500 group-hover:-translate-y-1">
-      <div class="frame-inner aspect-[16/10]">
-        <img v-if="opus.cover_url" :src="opus.cover_url" :alt="opus.title" loading="lazy" class="h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.03] group-hover:opacity-100">
+      <div class="frame-inner aspect-square">
+        <MediaImg v-if="opus.cover_url" :src="opus.cover_url" :alt="opus.title" loading="lazy" class="h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.03] group-hover:opacity-100" />
         <div v-else class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-700 to-ink-900">
           <span class="font-display text-7xl italic text-gold/25">{{ opus.title.charAt(0) }}</span>
         </div>

@@ -5,7 +5,7 @@ Run from backend/:  python -m pytest tests/test_platform.py
 """
 import pytest
 
-from tests.support import PDF, client, create_opus, register, upload
+from tests.support import PDF, client, create_opus, picture, register, upload
 
 
 @pytest.fixture(scope="module")
@@ -64,6 +64,34 @@ def test_media_upload_rules(alice):
     score = upload(alice, "trio.pdf", PDF, "application/pdf", "score")
     assert score["key"].startswith("scores/alice/")
     assert client.get(score["url"]).content == PDF
+
+
+def test_pictures_get_previews_and_covers_become_square(alice):
+    import io
+
+    from PIL import Image
+
+    from allegro.core.storage import storage
+    size = lambda url: Image.open(io.BytesIO(client.get(url).content)).size  # noqa: E731
+
+    photo = upload(alice, "wide.jpg", picture(3000, 1500, "JPEG"), "image/jpeg", "image")
+    assert photo["key"].endswith("_wide.jpg") and size(photo["url"]) == (3000, 1500)  # the original is kept
+    assert photo["preview_url"] == photo["url"] + ".preview.webp" and size(photo["preview_url"]) == (800, 400)
+
+    cover = upload(alice, "cover.png", picture(1200, 700), "image/png", "cover")
+    assert cover["key"].startswith("covers/alice/") and cover["key"].endswith(".webp")
+    assert size(cover["url"]) == (700, 700) and size(cover["preview_url"]) == (700, 700)
+
+    # a file that only pretends to be a picture, and a decompression bomb, are refused
+    fake = client.post("/api/media", headers=alice, data={"purpose": "image"}, files={"files": ("x.png", b"\x89PNG fake", "image/png")})
+    assert fake.status_code == 415
+    bomb = client.post("/api/media", headers=alice, data={"purpose": "image"}, files={"files": ("b.png", picture(7000, 6000), "image/png")})
+    assert bomb.status_code == 415
+
+    # deleting the work removes the cover together with its preview
+    opus = create_opus(alice, title="С обложкой", cover_url=cover["url"])
+    assert client.delete(f"/api/opuses/{opus['slug']}", headers=alice).status_code == 204
+    assert not storage.exists(cover["key"]) and not storage.exists(cover["key"] + ".preview.webp")
 
 
 # ---------------------------------------------------------------- catalog
@@ -301,7 +329,7 @@ def test_pdf_pages_follow_musicxml_page_breaks(alice):
 def test_blog_posts_like_a_channel(alice, bob):
     short = client.post("/api/posts", headers=alice, json={"kind": "note", "content_md": "Сегодня дописал коду. Завтра — запись."})
     assert short.status_code == 201 and short.json()["title"] == ""
-    photo = upload(alice, "desk.png", b"\x89PNG", "image/png", "image")
+    photo = upload(alice, "desk.png", picture(), "image/png", "image")
     media_only = client.post("/api/posts", headers=alice, json={"kind": "note", "attachments": [
         {"url": photo["url"], "name": "desk.png", "content_type": "image/png", "size": 4}]})
     assert media_only.status_code == 201

@@ -16,9 +16,9 @@
       <!-- A new work -->
       <template v-if="item.opus">
         <div class="group flex gap-5">
-          <NuxtLink :to="`/opus/${item.opus.slug}`" class="frame frame-thin hidden h-28 w-40 shrink-0 sm:block">
+          <NuxtLink :to="`/opus/${item.opus.slug}`" class="frame frame-thin hidden h-28 w-28 shrink-0 sm:block">
             <div class="frame-inner">
-              <img v-if="item.opus.cover_url" :src="item.opus.cover_url" alt="" class="h-full w-full object-cover" loading="lazy">
+              <MediaImg v-if="item.opus.cover_url" :src="item.opus.cover_url" alt="" class="h-full w-full object-cover" loading="lazy" />
               <div v-else class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-700 to-ink-900">
                 <span class="font-display text-5xl italic text-gold/25">{{ item.opus.title.charAt(0) }}</span>
               </div>
@@ -57,7 +57,7 @@
           <span class="mt-2 inline-block font-caps text-sm font-semibold tracking-[0.15em] text-gold">Читать →</span>
         </div>
         <div v-if="item.post.cover_url" class="frame frame-thin hidden h-28 w-40 shrink-0 sm:block">
-          <div class="frame-inner"><img :src="item.post.cover_url" alt="" class="h-full w-full object-cover" loading="lazy"></div>
+          <div class="frame-inner"><MediaImg :src="item.post.cover_url" alt="" class="h-full w-full object-cover" loading="lazy" /></div>
         </div>
       </NuxtLink>
 

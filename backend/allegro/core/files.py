@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from allegro.core.db import after_commit
 from allegro.core.errors import Invalid
+from allegro.core.images import is_picture, preview_key
 from allegro.core.storage import storage
 
 
@@ -40,6 +41,8 @@ def delete_own_after_commit(db: Session, username: str, key: Optional[str]) -> N
     """Remove a replaced/deleted file once the change is saved - but never one that belongs to someone else"""
     if key and owns_key(username, key):
         after_commit(db, lambda: storage.delete(key))
+        if is_picture(key):
+            after_commit(db, lambda: storage.delete(preview_key(key)))
 
 
 def delete_own_url_after_commit(db: Session, username: str, url: Optional[str]) -> None:

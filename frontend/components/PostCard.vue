@@ -6,7 +6,7 @@
   >
     <div class="frame shrink-0 transition duration-500 group-hover:-translate-y-1" :class="featured ? 'md:w-3/5' : ''">
       <div class="frame-inner aspect-[16/10]">
-        <img v-if="cover" :src="cover" :alt="post.title" loading="lazy" class="h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.03] group-hover:opacity-100">
+        <MediaImg v-if="cover" :src="cover" :alt="post.title" loading="lazy" class="h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.03] group-hover:opacity-100" />
         <div v-else class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-700 to-ink-900">
           <span class="font-display text-8xl italic text-gold/25">{{ post.title.charAt(0) }}</span>
         </div>

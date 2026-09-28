@@ -62,10 +62,10 @@
         <div>
           <p class="field-label">Обложка</p>
           <div v-if="form.cover_url" class="frame frame-thin relative w-72">
-            <div class="frame-inner aspect-[16/10]"><img :src="form.cover_url" class="h-full w-full object-cover" alt=""></div>
+            <div class="frame-inner aspect-square"><img :src="form.cover_url" class="h-full w-full object-cover" alt=""></div>
             <button type="button" class="btn-ghost absolute right-1 top-1 z-10 bg-ink-950/70 px-2 text-sm" @click="form.cover_url = null">✕</button>
           </div>
-          <FileDropzone v-else label="Загрузить обложку" accept="image/*" purpose="image" @uploaded="(f) => (form.cover_url = f[0].url)" @error="fail" />
+          <FileDropzone v-else label="Загрузить обложку" hint="обрежется до квадрата" accept="image/*" purpose="cover" @uploaded="(f) => (form.cover_url = f[0].url)" @error="fail" />
         </div>
       </fieldset>
 

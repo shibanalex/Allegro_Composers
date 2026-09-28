@@ -1,48 +1,53 @@
 <template>
   <div>
     <!-- Hero -->
-    <section class="relative mt-4 flex flex-col items-center px-6 pb-10 pt-12 text-center">
-      <div class="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[22rem] w-[22rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--c-gold)/0.14),transparent_65%)] blur-2xl" />
-      <p class="eyebrow animate-fade-up">Сообщество композиторов</p>
-      <h1 class="title-script brand animate-fade-up text-[5.5rem] sm:text-[7.5rem]" style="animation-delay: .1s">Allegro</h1>
-      <Ornament class="-mt-4 w-56 animate-fade-up" style="animation-delay: .2s" />
+    <!-- Hero: compact, so the whole feed panel fits on the first screen -->
+    <section class="relative flex flex-col items-center px-6 pb-5 pt-2 text-center">
+      <div class="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[14rem] w-[14rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--c-gold)/0.14),transparent_65%)] blur-2xl" />
+      <h1 class="title-script brand animate-fade-up text-[4rem] leading-none sm:text-[4.5rem]">Allegro</h1>
+      <p class="eyebrow mt-1 animate-fade-up" style="animation-delay: .1s">Сообщество композиторов</p>
     </section>
 
-    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <!-- The feed: everything new in the members' halls -->
-      <section class="mx-auto w-full max-w-2xl">
-        <nav class="mb-6 flex flex-wrap justify-center gap-2" aria-label="Что показывать в ленте">
-          <button
-            v-for="f in FILTERS"
-            :key="f.id"
-            type="button"
-            class="chip"
-            :class="{ active: kind === f.id }"
-            :aria-pressed="kind === f.id"
-            @click="choose(f.id)"
-          >
-            {{ f.label }}
-          </button>
-        </nav>
+    <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <!-- The feed: everything new in the members' halls, in one panel that scrolls on its own -->
+      <section class="feed-panel mx-auto w-full max-w-3xl" aria-label="Лента">
+        <header class="border-b border-gold/15 px-3 py-4 sm:px-5">
+          <nav class="flex flex-wrap justify-center gap-2" aria-label="Что показывать в ленте">
+            <button
+              v-for="f in FILTERS"
+              :key="f.id"
+              type="button"
+              class="chip"
+              :class="{ active: kind === f.id }"
+              :aria-pressed="kind === f.id"
+              @click="choose(f.id)"
+            >
+              {{ f.label }}
+            </button>
+          </nav>
+          <div v-if="user" class="mt-3 flex flex-wrap justify-center gap-2">
+            <NuxtLink v-if="can('publish_opus')" to="/create/opus" class="btn-secondary px-4 py-1.5 text-sm">+ Сочинение</NuxtLink>
+            <NuxtLink v-if="can('publish_performance')" :to="`/@${user.username}?tab=performances`" class="btn-secondary px-4 py-1.5 text-sm">+ Исполнение</NuxtLink>
+            <NuxtLink v-if="can('publish_article')" to="/create/post?kind=article" class="btn-secondary px-4 py-1.5 text-sm">+ Статья</NuxtLink>
+            <NuxtLink :to="`/@${user.username}?tab=blog`" class="btn-secondary px-4 py-1.5 text-sm">+ Запись</NuxtLink>
+          </div>
+        </header>
 
-        <div v-if="user" class="mb-6 flex flex-wrap justify-center gap-2">
-          <NuxtLink v-if="can('publish_opus')" to="/create/opus" class="btn-secondary px-4 py-1.5 text-sm">+ Сочинение</NuxtLink>
-          <NuxtLink v-if="can('publish_performance')" :to="`/@${user.username}?tab=performances`" class="btn-secondary px-4 py-1.5 text-sm">+ Исполнение</NuxtLink>
-          <NuxtLink v-if="can('publish_article')" to="/create/post?kind=article" class="btn-secondary px-4 py-1.5 text-sm">+ Статья</NuxtLink>
-          <NuxtLink :to="`/@${user.username}?tab=blog`" class="btn-secondary px-4 py-1.5 text-sm">+ Запись</NuxtLink>
-        </div>
-
-        <EmptyState v-if="!items.length && !loading">{{ EMPTY[kind] }}</EmptyState>
-        <div class="space-y-6" :class="{ 'opacity-60 transition': loading && !items.length }">
-          <FeedItem v-for="item in items" :key="`${item.type}-${item.opus?.id || item.performance?.id || item.post?.id}`" :item="item" />
-        </div>
-        <div v-if="nextBefore" class="mt-10 text-center">
-          <button class="btn-secondary" :disabled="loading" @click="more">{{ loading ? 'Загрузка…' : 'Показать ещё' }}</button>
+        <div ref="scroller" class="feed-panel-body">
+          <EmptyState v-if="!items.length && !loading">{{ EMPTY[kind] }}</EmptyState>
+          <div class="space-y-5" :class="{ 'opacity-60 transition': loading && !items.length }">
+            <FeedItem v-for="item in items" :key="`${item.type}-${item.opus?.id || item.performance?.id || item.post?.id}`" :item="item" />
+          </div>
+          <!-- Reaching this line loads the next page; the button is for keyboards and old browsers -->
+          <div v-if="nextBefore" ref="sentinel" class="py-8 text-center">
+            <button class="btn-secondary" :disabled="loading" @click="more">{{ loading ? 'Загрузка…' : 'Показать ещё' }}</button>
+          </div>
+          <p v-else-if="items.length" class="py-8 text-center font-elegant italic text-parchment-faint">Это всё — дальше тишина</p>
         </div>
       </section>
 
       <!-- Members: whose halls the feed comes from -->
-      <aside v-if="members.length" class="order-first lg:order-none">
+      <aside v-if="members.length">
         <div class="lg:sticky lg:top-28">
           <p class="eyebrow mb-4">Участники</p>
           <ul class="space-y-3">
@@ -114,13 +119,31 @@ watch(kind, () => {
   cursor.value = null
 })
 
+const scroller = ref<HTMLElement>()
+const sentinel = ref<HTMLElement>()
+
 function choose(id: Kind) {
   kind.value = id
+  scroller.value?.scrollTo({ top: 0 })
   router.replace({ query: { ...route.query, feed: id === 'all' ? undefined : id } })
 }
 
+// The next page loads a little before the end is reached. The viewport is the observer's root:
+// the panel's own scrolling clips the sentinel too, so this works both with and without it.
+let observer: IntersectionObserver | undefined
+onMounted(() => {
+  observer = new IntersectionObserver((entries) => {
+    if (entries.some((e) => e.isIntersecting)) more()
+  }, { rootMargin: '0px 0px 600px 0px' })
+  watch(sentinel, (el, old) => {
+    if (old) observer?.unobserve(old)
+    if (el) observer?.observe(el)
+  }, { immediate: true })
+})
+onBeforeUnmount(() => observer?.disconnect())
+
 async function more() {
-  if (!nextBefore.value) return
+  if (!nextBefore.value || loading.value) return
   loadingMore.value = true
   try {
     const page = await api<FeedPage>('/api/feed', { params: { kind: kind.value, limit: 15, before: nextBefore.value } })

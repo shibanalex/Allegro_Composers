@@ -10,12 +10,12 @@
         @click="current = i"
       >
         <div class="frame-inner">
-          <img
+          <MediaImg
             :src="img.url"
             :alt="img.name"
             loading="lazy"
             class="h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
-          >
+          />
         </div>
       </button>
     </div>

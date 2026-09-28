@@ -3,8 +3,8 @@
   <li class="group flex items-center gap-4 py-4 sm:gap-6">
     <span v-if="number" class="hidden w-8 shrink-0 text-right font-display text-xl italic text-gold/60 sm:block">{{ number }}</span>
     <PlayButton :opus="opus" size="sm" />
-    <NuxtLink :to="`/opus/${opus.slug}`" class="frame frame-thin hidden h-14 w-20 shrink-0 sm:block">
-      <div class="frame-inner"><img v-if="opus.cover_url" :src="opus.cover_url" alt="" class="h-full w-full object-cover" loading="lazy"></div>
+    <NuxtLink :to="`/opus/${opus.slug}`" class="frame frame-thin hidden h-14 w-14 shrink-0 sm:block">
+      <div class="frame-inner"><MediaImg v-if="opus.cover_url" :src="opus.cover_url" alt="" class="h-full w-full object-cover" loading="lazy" /></div>
     </NuxtLink>
     <div class="min-w-0 flex-1">
       <NuxtLink :to="`/opus/${opus.slug}`" class="block">

@@ -17,6 +17,9 @@ from starlette.concurrency import run_in_threadpool
 from allegro.core.config import settings
 
 CHUNK = 1024 * 1024
+# Not in every system's MIME table
+mimetypes.add_type("image/webp", ".webp")
+mimetypes.add_type("image/avif", ".avif")
 
 
 class UploadTooLarge(ValueError):
@@ -54,23 +57,24 @@ class _BaseStorage:
         prefix = self.url_prefix + "/"
         return url[len(prefix):] if url and url.startswith(prefix) else None
 
-    async def _spool(self, file: UploadFile) -> tuple[BinaryIO, int]:
+    async def spool(self, file: UploadFile, limit_mb: Optional[int] = None) -> tuple[BinaryIO, int]:
         """Read the upload into a temporary file, stopping at the size limit"""
-        limit = settings.max_upload_mb * 1024 * 1024
+        limit_mb = limit_mb or settings.max_upload_mb
+        limit = limit_mb * 1024 * 1024
         spool = tempfile.SpooledTemporaryFile(max_size=8 * CHUNK)
         size = 0
         while chunk := await file.read(CHUNK):
             size += len(chunk)
             if size > limit:
                 spool.close()
-                raise UploadTooLarge(f"Файл больше {settings.max_upload_mb} МБ")
+                raise UploadTooLarge(f"Файл больше {limit_mb} МБ")
             spool.write(chunk)
         spool.seek(0)
         return spool, size
 
     async def save_upload(self, file: UploadFile, folder: str) -> dict:
         key = self.new_key(folder, file.filename)
-        spool, size = await self._spool(file)
+        spool, size = await self.spool(file)
         with spool:
             # boto3 and disk writes block: in a worker thread, so other requests keep being served meanwhile
             await run_in_threadpool(self._put, key, spool)
@@ -93,6 +97,7 @@ class _BaseStorage:
     def read_bytes(self, key: str) -> bytes: ...
     def open_stream(self, key: str) -> Optional[Iterator[bytes]]: ...
     def exists(self, key: str) -> bool: ...
+    def keys(self, prefix: str) -> Iterator[str]: ...
     def delete(self, key: Optional[str]) -> None: ...
 
 
@@ -133,6 +138,13 @@ class LocalStorage(_BaseStorage):
 
     def exists(self, key: str) -> bool:
         return self.path(key).is_file()
+
+    def keys(self, prefix: str) -> Iterator[str]:
+        folder = self.root / prefix
+        if folder.is_dir():
+            for path in folder.rglob("*"):
+                if path.is_file():
+                    yield path.relative_to(self.root).as_posix()
 
     def delete(self, key: Optional[str]) -> None:
         if key:
@@ -181,6 +193,11 @@ class S3Storage(_BaseStorage):
             return True
         except Exception:
             return False
+
+    def keys(self, prefix: str) -> Iterator[str]:
+        for page in self.client.get_paginator("list_objects_v2").paginate(Bucket=self.bucket, Prefix=prefix):
+            for item in page.get("Contents", []):
+                yield item["Key"]
 
     def delete(self, key: Optional[str]) -> None:
         if key:

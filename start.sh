@@ -4,6 +4,8 @@ set -e
 
 cd /app/backend
 alembic upgrade head
+# Light copies of pictures that don't have one yet (idempotent; in the background, the site doesn't wait)
+( python -m scripts.make_previews || echo "Previews were not made" ) &
 
 # The API listens only inside the container; the site in front of it is the only way in.
 # Proxy headers are trusted from the site process alone, so a visitor can't fake their address.
