@@ -171,6 +171,7 @@ class SearchOpus(BaseModel):
     title: str
     subtitle: Optional[str] = None
     author: UserBrief
+    snippet: Optional[str] = None  # the words found in the description
 
 
 class SearchPost(BaseModel):
@@ -178,6 +179,8 @@ class SearchPost(BaseModel):
     title: str
     kind: str
     author: UserBrief
+    created_at: UTCDateTime
+    snippet: str = ""  # the words found in the text (blog posts are often untitled)
 
 
 class SearchResult(BaseModel):
@@ -185,3 +188,4 @@ class SearchResult(BaseModel):
     opuses: list[SearchOpus]
     posts: list[SearchPost]
     tags: list[str]
+    words: list[str] = []  # the stems searched for, to highlight them

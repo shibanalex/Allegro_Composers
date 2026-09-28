@@ -8,11 +8,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import String, cast, func, or_, select, update
 from sqlalchemy.orm import Session
 
-from allegro_common import enums
+from allegro_common import enums, textsearch
 from allegro_common.db import get_db
 from allegro_common.musicxml import page_start_times
 from allegro_common.deps import get_current_user, get_optional_user
-from allegro_common.media_refs import check_key, check_url, delete_own
 from allegro_common.media_refs import check_key, check_url, delete_own
 from allegro_common.models import (
     Collection, CollectionItem, Comment, MeasureSyncMarker, Opus, Post, ScoreSyncMarker, User,
@@ -445,35 +444,46 @@ def library_facets(db: Session = Depends(get_db)):
 
 
 @router.get("/api/search", response_model=SearchResult)
-def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(5, ge=1, le=20), db: Session = Depends(get_db)):
-    """Quick search (Ctrl+K) across composers, opuses, posts and instrument tags"""
-    needle = q.strip().lower()
+def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(5, ge=1, le=50), db: Session = Depends(get_db)):
+    """Search by words (Ctrl+K and the /search page): composers, opuses, posts - titles and texts - and tags"""
+    words = textsearch.stems(q)
+    if not words:
+        return SearchResult(composers=[], opuses=[], posts=[], tags=[], words=[])
     composers = db.scalars(
-        select(User).where(User.is_hidden.is_(False), or_(
-            func.lower(User.username).contains(needle, autoescape=True),
-            func.lower(User.display_name).contains(needle, autoescape=True),
-            func.lower(User.pseudonym).contains(needle, autoescape=True),
-        )).limit(limit)
+        select(User).where(
+            User.is_hidden.is_(False),
+            textsearch.matches_all([User.username, User.display_name, User.pseudonym, User.bio], words),
+        ).limit(limit)
     ).all()
     opuses = db.scalars(
-        select(Opus).where(Opus.status == "published", visible_authors(Opus.author_id), or_(
-            func.lower(Opus.title).contains(needle, autoescape=True),
-            func.lower(Opus.subtitle).contains(needle, autoescape=True),
-            func.lower(Opus.instrumentation).contains(needle, autoescape=True),
-            func.lower(cast(Opus.tags, String)).contains(needle, autoescape=True),
-        )).order_by(Opus.play_count.desc()).limit(limit)
+        select(Opus).where(
+            Opus.status == "published", visible_authors(Opus.author_id),
+            textsearch.matches_all([
+                Opus.title, Opus.subtitle, Opus.instrumentation, Opus.key_signature,
+                cast(Opus.tags, String), Opus.description_md,
+            ], words),
+        ).order_by(Opus.play_count.desc(), Opus.created_at.desc()).limit(limit)
     ).unique().all()
     posts = db.scalars(
-        select(Post).where(Post.status == "published", visible_authors(Post.author_id), func.lower(Post.title).contains(needle, autoescape=True))
-        .order_by(Post.created_at.desc()).limit(limit)
+        select(Post).where(
+            Post.status == "published", visible_authors(Post.author_id),
+            textsearch.matches_all([Post.title, Post.excerpt, Post.content_md], words),
+        ).order_by(Post.created_at.desc()).limit(limit)
     ).unique().all()
     all_tags = Counter(
         t for tags in db.scalars(select(Opus.tags).where(Opus.status == "published", visible_authors(Opus.author_id))) for t in (tags or [])
     )
-    tags = [t for t, _ in all_tags.most_common() if needle in t][:limit]
+    tags = [t for t, _ in all_tags.most_common() if all(w in t.lower().replace("ё", "е") for w in words)][:limit]
     return SearchResult(
         composers=[SearchComposer.model_validate(u) for u in composers],
-        opuses=[SearchOpus(slug=o.slug, title=o.title, subtitle=o.subtitle, author=o.author) for o in opuses],
-        posts=[SearchPost(slug=p.slug, title=p.title, kind=p.kind, author=p.author) for p in posts],
+        opuses=[SearchOpus(
+            slug=o.slug, title=o.title, subtitle=o.subtitle, author=o.author,
+            snippet=textsearch.snippet(o.description_md or "", words) if o.description_md else None,
+        ) for o in opuses],
+        posts=[SearchPost(
+            slug=p.slug, title=p.title, kind=p.kind, author=p.author, created_at=p.created_at,
+            snippet=textsearch.snippet(p.content_md or "", words),
+        ) for p in posts],
         tags=tags,
+        words=words,
     )

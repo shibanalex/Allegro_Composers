@@ -452,3 +452,16 @@ def test_first_setup_creates_the_only_owner(alice, monkeypatch):
     r = client.post("/api/auth/setup", json=body)
     assert r.status_code == 201, r.text
     assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()["username"] == "owner"
+
+
+def test_search_by_words_in_texts(alice):
+    """Untitled blog posts are found by the words of their text, whatever the ending; every word must match"""
+    client.post("/api/posts", headers=alice, json={"kind": "note", "content_md": "Наконец пришла книга по **полифонии** (Григорьев). Партитурная бумага тоже пришла."})
+    client.post("/api/posts", headers=alice, json={"kind": "note", "content_md": "Сегодня сходил в поле, ёлки в снегу"})
+    found = client.get("/api/search", params={"q": "полифония книги"}).json()
+    assert len(found["posts"]) == 1
+    post = found["posts"][0]
+    assert post["title"] == "" and "полифонии" in post["snippet"] and "**" not in post["snippet"]
+    assert client.get("/api/search", params={"q": "полифония космос"}).json()["posts"] == []  # all words must be there
+    assert len(client.get("/api/search", params={"q": "елки"}).json()["posts"]) == 1  # ё = е
+    assert client.get("/api/search", params={"q": "%"}).json()["posts"] == []  # no wildcards, no crash
