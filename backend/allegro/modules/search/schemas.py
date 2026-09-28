@@ -32,5 +32,5 @@ class SearchResult(BaseModel):
     composers: list[SearchComposer]  # members of any role (the name is kept for older clients)
     opuses: list[SearchOpus]
     posts: list[SearchPost]
-    tags: list[str]
+    instruments: list[str]  # instruments of the works: a click opens the catalogue filtered by one
     words: list[str] = []  # the stems searched for, to highlight them

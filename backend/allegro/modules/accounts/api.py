@@ -9,9 +9,9 @@ from allegro.core.db import get_db
 from allegro.core.errors import NotFound
 from allegro.core.security import create_access_token
 from allegro.modules.accounts import service
-from allegro.modules.accounts.deps import client_address, get_admin, get_current_user
+from allegro.modules.accounts.deps import client_address, get_admin, get_current_user, require
 from allegro.modules.accounts.models import AccessLink, User
-from allegro.modules.accounts.roles import capabilities_of
+from allegro.modules.accounts.roles import Capability, matrix, user_capabilities
 from allegro.modules.accounts.schemas import (
     AccessLinkOut, AdminUserOut, AdminUserUpdate, InviteIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
     ProfileOut, ProfileUpdate, RegisterIn, ResetIn, SetupIn, SiteConfig, TokenOut,
@@ -27,8 +27,8 @@ def _profile(db: Session, user: User) -> ProfileOut:
 def _me(db: Session, user: User) -> MeOut:
     profile = _profile(db, user)
     return MeOut(
-        **profile.model_dump(), email=service.email_of(user), is_admin=user.is_admin,
-        capabilities=sorted(c.value for c in capabilities_of(user.role, user.is_admin)),
+        **profile.model_dump(), email=service.email_of(user), is_admin=user.is_admin, is_moderator=user.is_moderator,
+        capabilities=sorted(c.value for c in user_capabilities(user)),
     )
 
 
@@ -118,19 +118,25 @@ def get_profile(username: str, db: Session = Depends(get_db)):
 
 # ---------------------------------------------------------------- administration
 
+@router.get("/api/roles")
+def roles_matrix():
+    """Who may do what: every capability and the roles and staff levels that have it"""
+    return matrix()
+
+
 @router.get("/api/admin/links", response_model=list[AccessLinkOut])
-def list_links(_: User = Depends(get_admin), db: Session = Depends(get_db)):
+def list_links(_: User = Depends(require(Capability.INVITE)), db: Session = Depends(get_db)):
     return [_link_out(link) for link in service.list_links(db)]
 
 
 @router.post("/api/admin/invites", response_model=AccessLinkOut, status_code=status.HTTP_201_CREATED)
-def create_invite(data: InviteIn, admin: User = Depends(get_admin), db: Session = Depends(get_db)):
+def create_invite(data: InviteIn, admin: User = Depends(require(Capability.INVITE)), db: Session = Depends(get_db)):
     link, token = service.create_invite(db, admin, data.note, data.role)
     return _link_out(link, token)
 
 
 @router.delete("/api/admin/links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
-def revoke_link(link_id: uuid.UUID, _: User = Depends(get_admin), db: Session = Depends(get_db)):
+def revoke_link(link_id: uuid.UUID, _: User = Depends(require(Capability.INVITE)), db: Session = Depends(get_db)):
     service.revoke_link(db, link_id)
 
 
@@ -144,7 +150,7 @@ def admin_users(_: User = Depends(get_admin), db: Session = Depends(get_db)):
 
 @router.patch("/api/admin/users/{user_id}", response_model=AdminUserOut)
 def admin_update_user(user_id: uuid.UUID, data: AdminUserUpdate, admin: User = Depends(get_admin), db: Session = Depends(get_db)):
-    user = service.admin_update_user(db, admin, user_id, data.is_hidden, data.is_admin)
+    user = service.admin_update_user(db, admin, user_id, data.is_hidden, data.is_admin, data.is_moderator)
     return AdminUserOut.model_validate(user).model_copy(update={"has_email": bool(user.email_hash)})
 
 

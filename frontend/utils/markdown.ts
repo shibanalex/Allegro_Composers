@@ -49,3 +49,12 @@ export const stripMarkdown = (text = '', max = 220) => {
   const plain = text.replace(/[#>*_`\[\]()!]/g, '').replace(/\s+/g, ' ').trim()
   return plain.length > max ? plain.slice(0, max) + '…' : plain
 }
+
+/** A post as another post shows it (the server sends the same shape for quotations and mentions) */
+export function briefOf(post: import('./types').Post): import('./types').PostBrief {
+  const image = post.attachments.find((a) => a.content_type?.startsWith('image/'))
+  return {
+    id: post.id, slug: post.slug, kind: post.kind, title: post.title, created_at: post.created_at, author: post.author,
+    preview: stripMarkdown(post.content_md, 300), image_url: post.cover_url || image?.url || null,
+  }
+}

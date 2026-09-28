@@ -66,8 +66,8 @@ USERS = [
 OPUSES = [
     {
         "author": "lev_orlovsky", "title": "Фортепианное трио ре минор", "subtitle": "op. 1, Ч. I: Allegro",
-        "slug": "piano-trio-d-minor", "parts": ("Скрипка", "Фортепиано"), "ensemble": "chamber", "form": "sonata", "key_signature": "ре минор",
-        "difficulty": 4, "year": 2026, "instrumentation": "Ф-но, Скрипка, Вч.", "tags": ["фортепиано", "скрипка", "виолончель"],
+        "slug": "piano-trio-d-minor", "parts": ("Скрипка", "Фортепиано"), "genre": "trio", "key_signature": "ре минор",
+        "year": 2026, "instruments": ["скрипка", "виолончель", "фортепиано"],
         "description_md": """Экспозиция строится на **терцовых соотношениях**: ре минор — фа мажор — ля минор вместо привычной доминанты.
 
 > Главная партия — вздох lamento, нисходящий тетрахорд в басу.
@@ -79,40 +79,40 @@ OPUSES = [
     },
     {
         "author": "lev_orlovsky", "title": "Прелюдия ми минор", "subtitle": "op. 2 № 1", "slug": "prelude-e-minor", "parts": ("Фортепиано (п. р.)", "Фортепиано (л. р.)"),
-        "ensemble": "solo", "form": "miniature", "key_signature": "ми минор", "difficulty": 2, "year": 2025,
-        "instrumentation": "Фортепиано", "tags": ["фортепиано"],
+        "genre": "solo", "key_signature": "ми минор", "year": 2025,
+        "instruments": ["фортепиано"],
         "description_md": "Миниатюра на одном мотиве: секунда вниз и возвращение. Почти Шопен, но с тишиной вместо педали.",
         "pdf": ("Prelude in E minor", "op. 2 No. 1", "Largo", ["Pno.", ""]),
         "pages": 2, "audio": ("e", True, 72, [0, 3, 4, 0], 14, []), "score_access": "view_only", "plays": 98, "palette": 4,
     },
     {
         "author": "lev_orlovsky", "title": "Флориография. I. Фиалка", "subtitle": "op. 3 № 1", "slug": "floriography-violet", "parts": ("Сопрано", "Фортепиано"),
-        "ensemble": "choir", "form": "miniature", "key_signature": "фа мажор", "difficulty": 3, "year": 2026,
-        "instrumentation": "Смешанный хор a cappella", "tags": ["хор", "сопрано"],
+        "genre": "choir", "key_signature": "фа мажор", "year": 2026,
+        "instruments": ["хор"],
         "description_md": "Первая пьеса цикла о языке цветов. Фиалка — скромность: хор поёт почти шёпотом, *pp* до самого конца.",
         "pdf": ("Floriography", "I. The Violet", "Andante semplice", ["S.", "A.", "T.", "B."]),
         "pages": 3, "audio": ("f", False, 66, [0, 3, 5, 4], 16, ["choir"]), "score_access": "free", "plays": 57, "palette": 3,
     },
     {
         "author": "lev_orlovsky", "title": "Флориография. II. Асфодель", "subtitle": "op. 3 № 2", "slug": "floriography-asphodel",
-        "ensemble": "choir", "form": "cantata", "key_signature": "ре минор", "difficulty": 4, "year": 2026,
-        "instrumentation": "Хор, струнные", "tags": ["хор", "струнные"],
+        "genre": "cantata", "key_signature": "ре минор", "year": 2026,
+        "instruments": ["хор", "струнный оркестр"],
         "description_md": "Асфодель — цветок забвения. Записи пока нет: только партитура.",
         "pdf": ("Floriography", "II. The Asphodel", "Lento", ["S.", "A.", "T.", "B."]),
         "pages": 2, "audio": None, "score_access": "free", "plays": 0, "palette": 1,
     },
     {
         "author": "maria_viola", "title": "Вариации на тему lamento", "subtitle": "для альта и фортепиано", "slug": "lamento-variations", "parts": ("Альт", "Фортепиано"),
-        "ensemble": "chamber", "form": "variations", "key_signature": "соль минор", "difficulty": 3, "year": 2025,
-        "instrumentation": "Альт, Ф-но", "tags": ["альт", "фортепиано"],
+        "genre": "duo_sonata", "key_signature": "соль минор", "year": 2025,
+        "instruments": ["альт", "фортепиано"],
         "description_md": "Пять вариаций на нисходящий тетрахорд. В третьей альт уходит в низкий регистр — проверяю, не тонет ли он.",
         "pdf": ("Variations on a Lamento", "for viola and piano", "Adagio", ["Vla.", "Pno."]),
         "pages": 3, "audio": ("g", True, 80, [0, 6, 5, 4], 24, ["violin"]), "score_access": "free", "plays": 131, "palette": 2,
     },
     {
         "author": "kostya_theory", "title": "Симфоническая поэма «Сумерки»", "subtitle": "для большого оркестра", "slug": "twilight-poem", "parts": ("Флейта", "Струнные"),
-        "ensemble": "orchestra", "form": "other", "key_signature": "до минор", "difficulty": 5, "year": 2024,
-        "instrumentation": "Большой симфонический оркестр", "tags": ["оркестр", "валторна"],
+        "genre": "orchestral", "key_signature": "до минор", "year": 2024,
+        "instruments": ["оркестр"],
         "description_md": "Попытка теоретика доказать, что он тоже умеет сочинять. Валторны — главные герои.",
         "pdf": ("Twilight", "Symphonic poem", "Maestoso", ["Fl.", "Hn.", "Vln.", "Vc."]),
         "pages": 4, "audio": ("c", True, 60, [0, 5, 3, 4], 22, ["horn", "strings"]), "score_access": "view_only", "plays": 76, "palette": 1,
@@ -295,9 +295,8 @@ def seed(visible: bool = False) -> None:
             opus = Opus(
                 author_id=users[data["author"]].id, title=data["title"], subtitle=data["subtitle"],
                 slug=unique_slug(db, Opus.slug, slug),
-                ensemble=data["ensemble"], form=data["form"], key_signature=data["key_signature"],
-                difficulty=data["difficulty"], year=data["year"], instrumentation=data["instrumentation"],
-                tags=data["tags"], description_md=data["description_md"],
+                genre=data["genre"], instruments=data["instruments"], key_signature=data["key_signature"],
+                year=data["year"], description_md=data["description_md"],
                 cover_url=put(f"covers/{slug}.svg", painting_svg(title, data["palette"], 10 + i)),
                 audio_type=audio_type, audio_source=audio_key, audio_duration_seconds=duration,
                 score_file_key=pdf_key, score_page_count=data["pages"], score_access=data["score_access"],

@@ -47,6 +47,7 @@ def wire_modules() -> None:
     # Discussion comments on things it doesn't know about: the owners say what exists and who owns it
     discussion.register_target("opus", catalog.resolve_opus_target)
     discussion.register_target("post", publications.resolve_post_target)
+    discussion.register_target("performance", catalog.resolve_performance_target)
     # Profiles show counters kept by other modules
     accounts.register_stat("opuses", catalog.count_opuses)
     accounts.register_stat("performances", catalog.count_performances)

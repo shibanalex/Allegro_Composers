@@ -12,12 +12,25 @@ export interface UserBrief {
 
 export interface Link { label: string; url: string }
 
+export type HallAccent = 'gold' | 'silver' | 'copper' | 'crimson' | 'emerald' | 'sapphire'
+export type HallTab = 'exhibition' | 'library' | 'articles' | 'performances' | 'blog' | 'materials' | 'about'
+
+export interface HallSettings {
+  cover_url?: string | null
+  epigraph?: string | null
+  epigraph_source?: string | null
+  accent?: HallAccent | null
+  tabs?: HallTab[] | null
+  pinned_post?: string | null
+}
+
 export interface Profile extends UserBrief {
   bio?: string | null
   about_md?: string | null
   links: Link[]
   role: Role
   hall_theme: HallTheme
+  hall: HallSettings
   created_at: string
   stats?: Partial<Record<'opuses' | 'performances' | 'posts' | 'articles', number>>
 }
@@ -25,6 +38,7 @@ export interface Profile extends UserBrief {
 export interface Me extends Profile {
   email?: string | null
   is_admin: boolean
+  is_moderator?: boolean
   capabilities: string[]
 }
 
@@ -45,13 +59,10 @@ export interface Opus {
   slug: string
   title: string
   subtitle?: string | null
-  instrumentation?: string | null
-  ensemble: string
-  form: string
+  genre: string
+  instruments: string[]
   key_signature?: string | null
-  difficulty?: number | null
   year?: number | null
-  tags: string[]
   description_md?: string | null
   cover_url?: string | null
   audio_type: 'none' | 'youtube' | 'hosted_file'
@@ -85,8 +96,23 @@ export interface OpusBrief {
   audio_source?: string | null
   audio_url?: string | null
   audio_duration_seconds?: number | null
+  cover_url?: string | null
   author: UserBrief
 }
+
+/** A post as another post shows it: a quotation, a mention */
+export interface PostBrief {
+  id: string
+  slug: string
+  kind: Post['kind']
+  title: string
+  preview: string
+  image_url?: string | null
+  created_at: string
+  author: UserBrief
+}
+
+export interface Reactions { count: number; mine: boolean }
 
 export interface Post {
   id: string
@@ -103,6 +129,7 @@ export interface Post {
   created_at: string
   author: UserBrief
   opus?: OpusBrief | null
+  quote?: PostBrief | null
   comment_count: number
 }
 
@@ -131,7 +158,7 @@ export interface Collection {
 export interface Page<T> { items: T[]; total: number }
 
 export interface Facet { value: string; label: string; count: number }
-export interface Facets { ensembles: Facet[]; forms: Facet[]; keys: Facet[]; difficulty: Facet[]; tags: Facet[] }
+export interface Facets { genres: Facet[]; instruments: Facet[]; keys: Facet[] }
 
 export interface Uploaded { key: string; url: string; name: string; content_type: string; size: number }
 
@@ -193,6 +220,7 @@ export interface AccessLink {
 
 export interface AdminUser extends UserBrief {
   is_admin: boolean
+  is_moderator?: boolean
   is_hidden: boolean
   has_email: boolean
   created_at: string
@@ -205,4 +233,5 @@ export interface FeedEntry {
   opus?: Opus | null
   performance?: Performance | null
   post?: Post | null
+  likes: Reactions
 }

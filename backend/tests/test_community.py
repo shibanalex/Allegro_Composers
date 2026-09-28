@@ -41,7 +41,7 @@ def listener():
 
 def test_roles_decide_what_can_be_published(admin, theorist, performer, listener):
     me = client.get("/api/auth/me", headers=listener).json()
-    assert me["role"] == "listener" and me["capabilities"] == []
+    assert me["role"] == "listener" and me["capabilities"] == ["comment", "publish_note", "react", "share_material"]
     # everyone keeps a blog
     for who in (theorist, performer, listener):
         assert client.post("/api/posts", headers=who, json={"kind": "note", "content_md": "Привет"}).status_code == 201
@@ -51,7 +51,7 @@ def test_roles_decide_what_can_be_published(admin, theorist, performer, listener
     r = client.post("/api/posts", headers=performer, json=article)
     assert r.status_code == 403 and "теоретики" in r.json()["detail"]
     # works: composers only
-    assert client.post("/api/opuses", headers=theorist, json={"title": "X", "ensemble": "solo", "form": "other"}).status_code == 403
+    assert client.post("/api/opuses", headers=theorist, json={"title": "X", "genre": "solo"}).status_code == 403
     # news: administrators only
     news = {"kind": "news", "title": "Открытие", "content_md": "Мы открылись"}
     assert client.post("/api/posts", headers=theorist, json=news).status_code == 403
@@ -149,13 +149,13 @@ def test_admin_cannot_lock_themselves_out(admin):
 # ---------------------------------------------------------------- showcase and performances
 
 def test_showcase_lists_featured_works(admin):
-    create_opus(admin, title="Этюд", ensemble="solo", form="miniature", featured=True)
-    create_opus(admin, title="Набросок", ensemble="solo", form="miniature")
+    create_opus(admin, title="Этюд", genre="solo", featured=True)
+    create_opus(admin, title="Набросок", genre="solo")
     featured = client.get("/api/opuses", params={"author": "mira", "featured": True}).json()
     assert [o["title"] for o in featured["items"]] == ["Этюд"]
     assert client.get("/api/opuses", params={"author": "mira"}).json()["total"] == 2
     facets = client.get("/api/library/facets", params={"author": "mira"}).json()
-    assert next(f for f in facets["forms"] if f["value"] == "miniature")["count"] == 2
+    assert next(f for f in facets["genres"] if f["value"] == "solo")["count"] == 2
 
 
 def test_performances(admin, performer, theorist):
@@ -272,7 +272,7 @@ def test_one_invitation_one_member(admin):
 
 def test_feed_brings_every_hall_together(admin, theorist):
     """The main page is a feed: works, performances, articles and posts of all members, newest first"""
-    create_opus(admin, title="Ноктюрн для ленты", ensemble="solo", form="miniature")
+    create_opus(admin, title="Ноктюрн для ленты", genre="solo")
     client.post("/api/posts", headers=theorist, json={"kind": "article", "title": "Статья для ленты", "content_md": "Текст"})
     client.post("/api/posts", headers=theorist, json={"kind": "note", "content_md": "Запись для ленты"})
     page = client.get("/api/feed", params={"limit": 3}).json()

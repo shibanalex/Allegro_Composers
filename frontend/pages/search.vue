@@ -50,10 +50,10 @@
           </div>
         </section>
 
-        <section v-if="result.tags.length">
-          <h2 class="eyebrow mb-4">Инструменты и теги</h2>
+        <section v-if="result.instruments.length">
+          <h2 class="eyebrow mb-4">Инструменты</h2>
           <div class="flex flex-wrap gap-2">
-            <NuxtLink v-for="t in result.tags" :key="t" :to="`/search?q=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
+            <NuxtLink v-for="t in result.instruments" :key="t" :to="`/search?q=${encodeURIComponent(t)}`" class="chip">{{ t }}</NuxtLink>
           </div>
         </section>
       </template>
@@ -68,7 +68,7 @@ interface SearchResult {
   composers: (UserBrief & { bio?: string | null })[]
   opuses: { slug: string; title: string; subtitle?: string | null; snippet?: string | null; author: UserBrief }[]
   posts: { slug: string; title: string; kind: keyof typeof POST_KINDS; snippet: string; created_at: string; author: UserBrief }[]
-  tags: string[]
+  instruments: string[]
   words: string[]
 }
 
@@ -90,7 +90,7 @@ const { data: result, pending } = await useAsyncData(
 )
 const total = computed(() => {
   const r = result.value
-  return r ? r.composers.length + r.opuses.length + r.posts.length + r.tags.length : 0
+  return r ? r.composers.length + r.opuses.length + r.posts.length + r.instruments.length : 0
 })
 
 function submit() {

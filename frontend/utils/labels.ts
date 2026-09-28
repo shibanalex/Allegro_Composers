@@ -1,26 +1,35 @@
 // Mirrors the backend vocabularies (allegro/modules/*: catalog/enums.py, accounts/roles.py, publications, site)
-export const ENSEMBLES: Record<string, string> = {
-  solo: 'Соло',
-  chamber: 'Камерный ансамбль',
-  orchestra: 'Симфонический оркестр',
-  choir: 'Хор',
+/** What a work is written for: one choice that suggests its usual instruments (the composer can edit them) */
+export const GENRES: Record<string, { label: string; instruments: string[] }> = {
+  solo: { label: 'Соло', instruments: ['фортепиано'] },
+  duo_sonata: { label: 'Соната для инструмента и фортепиано', instruments: ['скрипка', 'фортепиано'] },
+  duo: { label: 'Дуэт', instruments: [] },
+  trio: { label: 'Трио', instruments: ['скрипка', 'виолончель', 'фортепиано'] },
+  quartet: { label: 'Квартет', instruments: ['скрипка', 'скрипка', 'альт', 'виолончель'] },
+  quintet: { label: 'Квинтет', instruments: ['фортепиано', 'скрипка', 'скрипка', 'альт', 'виолончель'] },
+  ensemble: { label: 'Камерный ансамбль', instruments: [] },
+  concerto: { label: 'Концерт', instruments: ['фортепиано', 'оркестр'] },
+  symphony: { label: 'Симфония', instruments: ['оркестр'] },
+  orchestral: { label: 'Оркестровая пьеса', instruments: ['оркестр'] },
+  vocal: { label: 'Романс, песня', instruments: ['голос', 'фортепиано'] },
+  choir: { label: 'Хор', instruments: ['хор'] },
+  cantata: { label: 'Кантата, оратория, опера', instruments: ['солисты', 'хор', 'оркестр'] },
+  other: { label: 'Другое', instruments: [] },
 }
+export const genreLabel = (genre: string) => GENRES[genre]?.label || 'Другое'
 
-export const FORMS: Record<string, string> = {
-  sonata: 'Соната',
-  suite: 'Сюита',
-  miniature: 'Миниатюра',
-  variations: 'Вариации',
-  cantata: 'Кантата',
-  other: 'Другое',
-}
+/** Suggestions for the instrument list (any other name can be typed) */
+export const INSTRUMENTS = [
+  'фортепиано', 'скрипка', 'альт', 'виолончель', 'контрабас', 'флейта', 'гобой', 'кларнет', 'фагот', 'саксофон',
+  'валторна', 'труба', 'тромбон', 'туба', 'арфа', 'гитара', 'орган', 'клавесин', 'ударные', 'челеста', 'голос',
+  'хор', 'оркестр', 'струнный оркестр', 'солисты', 'баян', 'аккордеон', 'домра', 'балалайка', 'электроника',
+]
 
-export const DIFFICULTY: Record<number, string> = {
-  1: 'Начальная',
-  2: 'Лёгкая',
-  3: 'Средняя',
-  4: 'Сложная',
-  5: 'Виртуозная',
+/** «скрипка, скрипка, альт, виолончель» → «2 скрипки, альт, виолончель» */
+export function instrumentsText(list: string[]): string {
+  const counts = new Map<string, number>()
+  for (const name of list) counts.set(name, (counts.get(name) || 0) + 1)
+  return [...counts].map(([name, n]) => (n > 1 ? `${n} × ${name}` : name)).join(', ')
 }
 
 export const SCORE_ACCESS: Record<string, string> = {

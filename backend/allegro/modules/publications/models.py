@@ -30,6 +30,8 @@ class Post(Base):
     attachments: Mapped[list] = mapped_column(JSON, default=list)  # [{url, name, content_type, size}]
     tags: Mapped[list] = mapped_column(JSON, default=list)
     opus_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("opuses.id", ondelete="SET NULL"))
+    # A post quoting another one, like a repost with one's own words; the quoted post may disappear later
+    quote_post_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("posts.id", ondelete="SET NULL"), index=True)
     status: Mapped[str] = mapped_column(String(20), default="published", index=True)
     view_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
@@ -37,6 +39,21 @@ class Post(Base):
 
     author = relationship("User", lazy="joined")
     opus = relationship("Opus", lazy="joined")
+    quote = relationship("Post", remote_side=[id], lazy="joined", join_depth=1)
+
+
+class PostLink(Base):
+    """A post's text links to another post or a work (…/posts/<slug>, …/opus/<slug>).
+
+    Worked out once, when the post is saved, so a page can show «упоминания» without reading any texts.
+    """
+    __tablename__ = "post_links"
+
+    post_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
+    target_kind: Mapped[str] = mapped_column(String(20), primary_key=True)  # post | opus
+    target_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+
+    __table_args__ = (Index("ix_post_links_target", "target_kind", "target_id"),)
 
 
 class Material(Base):

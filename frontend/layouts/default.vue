@@ -19,4 +19,14 @@ import { usePlayer } from '~/stores/player'
 
 const player = usePlayer()
 const route = useRoute()
+
+// The visitor's style for the whole site; a hall page puts its owner's style over it
+const { theme } = useSiteTheme()
+useHead({
+  htmlAttrs: { 'data-hall-theme': theme },
+  link: computed(() => {
+    const families = THEME_FONTS[theme.value]
+    return families ? [{ rel: 'stylesheet', href: themeFontsUrl(families) }] : []
+  }),
+})
 </script>

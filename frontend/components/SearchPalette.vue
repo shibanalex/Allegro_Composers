@@ -91,7 +91,7 @@ watch(q, (value) => {
       groups.value = [
         { title: 'Участники', items: r.composers.map((u: any) => ({ to: `/@${u.username}`, title: u.display_name, hint: u.pseudonym || u.bio, user: u })) },
         { title: 'Опусы', items: r.opuses.map((o: any) => ({ to: `/opus/${o.slug}`, title: o.title, snippet: o.snippet, hint: [o.subtitle, o.author.display_name].filter(Boolean).join(' · '), icon: '♪' })) },
-        { title: 'Инструменты и теги', items: r.tags.map((t: string) => ({ to: `/search?q=${encodeURIComponent(t)}`, title: t, hint: 'все сочинения с этим тегом', icon: '#' })) },
+        { title: 'Инструменты', items: r.instruments.map((t: string) => ({ to: `/search?q=${encodeURIComponent(t)}`, title: t, hint: 'сочинения с этим инструментом', icon: '♩' })) },
         { title: 'Записи и статьи', items: r.posts.map((p: any) => ({
           to: `/posts/${p.slug}`,
           title: p.title || `Запись от ${formatDate(p.created_at)}`,

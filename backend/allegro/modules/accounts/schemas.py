@@ -102,6 +102,27 @@ class LoginIn(BaseModel):
     password: str = Field(max_length=128)
 
 
+HallAccent = Literal["gold", "silver", "copper", "crimson", "emerald", "sapphire"]
+HallTab = Literal["exhibition", "library", "articles", "performances", "blog", "materials", "about"]
+
+
+class HallSettings(BaseModel):
+    """How a member arranges their hall (the style itself is `hall_theme`)"""
+    cover_url: Optional[str] = Field(None, max_length=512)  # a banner behind the hall's heading
+    epigraph: Optional[str] = Field(None, max_length=300)  # a line under the name: a motto, a quotation
+    epigraph_source: Optional[str] = Field(None, max_length=120)
+    accent: Optional[HallAccent] = None  # None: the style's own colour
+    tabs: Optional[list[HallTab]] = Field(None, max_length=7)  # visible tabs in this order; None: the role's default
+    pinned_post: Optional[str] = Field(None, max_length=255)  # slug of a blog post shown first
+
+    @field_validator("tabs")
+    @classmethod
+    def _tabs(cls, v):
+        if v is not None and not v:
+            raise ValueError("Оставьте хотя бы одну вкладку")
+        return list(dict.fromkeys(v)) if v else v
+
+
 class ProfileOut(ORMModel):
     id: uuid.UUID
     username: str
@@ -113,13 +134,20 @@ class ProfileOut(ORMModel):
     links: list[Link] = []
     role: str
     hall_theme: str
+    hall: HallSettings = HallSettings()
     created_at: UTCDateTime
     stats: dict[str, int] = {}  # counts contributed by other modules: opuses, posts, articles, performances...
+
+    @field_validator("hall", mode="before")
+    @classmethod
+    def _hall(cls, v):
+        return v or {}
 
 
 class MeOut(ProfileOut):
     email: Optional[str] = None
     is_admin: bool
+    is_moderator: bool = False
     capabilities: list[str]
 
 
@@ -138,6 +166,7 @@ class ProfileUpdate(BaseModel):
     links: Optional[list[Link]] = Field(None, max_length=20)
     role: Optional[RoleName] = None
     hall_theme: Optional[HallTheme] = None
+    hall: Optional[HallSettings] = None
     email: Optional[str] = Field(None, max_length=255)  # "" removes it
 
     @field_validator("email")
@@ -196,6 +225,7 @@ class AccessLinkOut(ORMModel):
 
 class AdminUserOut(UserBrief):
     is_admin: bool
+    is_moderator: bool = False
     is_hidden: bool
     has_email: bool = False  # the address itself is never shown to administrators
     created_at: UTCDateTime
@@ -204,3 +234,4 @@ class AdminUserOut(UserBrief):
 class AdminUserUpdate(BaseModel):
     is_hidden: Optional[bool] = None
     is_admin: Optional[bool] = None
+    is_moderator: Optional[bool] = None

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from allegro.core import textsearch
 from allegro.modules.accounts.service import search_members
-from allegro.modules.catalog.service import popular_tags, search_opuses
+from allegro.modules.catalog.service import popular_instruments, search_opuses
 from allegro.modules.publications.service import search_posts
 from allegro.modules.search.schemas import SearchComposer, SearchOpus, SearchPost, SearchResult
 
@@ -11,8 +11,8 @@ from allegro.modules.search.schemas import SearchComposer, SearchOpus, SearchPos
 def search(db: Session, q: str, limit: int) -> SearchResult:
     words = textsearch.stems(q)
     if not words:
-        return SearchResult(composers=[], opuses=[], posts=[], tags=[], words=[])
-    tags = [t for t in popular_tags(db) if all(w in t.lower().replace("ё", "е") for w in words)][:limit]
+        return SearchResult(composers=[], opuses=[], posts=[], instruments=[], words=[])
+    instruments = [i for i in popular_instruments(db) if all(w in i for w in words)][:limit]
     return SearchResult(
         composers=[SearchComposer.model_validate(u) for u in search_members(db, words, limit)],
         opuses=[SearchOpus(
@@ -23,6 +23,6 @@ def search(db: Session, q: str, limit: int) -> SearchResult:
             slug=p.slug, title=p.title, kind=p.kind, author=p.author, created_at=p.created_at,
             snippet=textsearch.snippet(p.content_md or "", words),
         ) for p in search_posts(db, words, limit)],
-        tags=tags,
+        instruments=instruments,
         words=words,
     )

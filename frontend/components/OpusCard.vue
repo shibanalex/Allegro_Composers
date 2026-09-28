@@ -8,7 +8,7 @@
           <span class="font-display text-7xl italic text-gold/25">{{ opus.title.charAt(0) }}</span>
         </div>
         <span class="absolute left-3 top-3 z-10 border border-gold/40 bg-ink-950/70 px-2 py-0.5 font-caps text-xs font-semibold tracking-[0.15em] text-gold-light">
-          {{ ENSEMBLES[opus.ensemble] }}
+          {{ genreLabel(opus.genre) }}
         </span>
         <span v-if="opus.status !== 'published'" class="absolute right-3 top-3 z-10 bg-wine/90 px-2 py-0.5 font-caps text-xs font-semibold tracking-[0.15em] text-parchment">
           {{ STATUSES[opus.status] }}
@@ -37,9 +37,8 @@
     </div>
 
     <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-parchment-faint">
-      <span>{{ FORMS[opus.form] }}</span>
+      <span v-if="opus.instruments.length">{{ instrumentsText(opus.instruments) }}</span>
       <span v-if="opus.key_signature">{{ opus.key_signature }}</span>
-      <DifficultyDots v-if="opus.difficulty" :value="opus.difficulty" />
       <span v-if="opus.audio_duration_seconds" class="font-mono text-xs">{{ formatTime(opus.audio_duration_seconds) }}</span>
       <span v-if="opus.musicxml_url" title="Интерактивная партитура: курсор следует за записью">♫ MusicXML</span>
       <span v-else-if="opus.score_url" title="Есть партитура">𝄞 PDF</span>

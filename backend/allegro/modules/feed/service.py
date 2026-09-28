@@ -10,6 +10,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from allegro.modules.catalog.service import opuses_out, performance_out, recent_opuses, recent_performances
+from allegro.modules.discussion.schemas import ReactionsOut
+from allegro.modules.discussion.service import reaction_summary
 from allegro.modules.feed.schemas import FeedItem, FeedPage
 from allegro.modules.publications.service import posts_out, recent_posts
 
@@ -29,7 +31,15 @@ def _aware(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
-def feed(db: Session, kind: str, before: Optional[datetime], limit: int) -> FeedPage:
+def _with_likes(db: Session, items: list[FeedItem], user) -> None:
+    """Likes of the whole page: one query per type of entry, not one per entry"""
+    for type_ in ("opus", "performance", "post"):
+        page = {getattr(item, type_).id: item for item in items if item.type == type_}
+        for target_id, r in reaction_summary(db, type_, list(page), user).items():
+            page[target_id].likes = ReactionsOut(count=r.count, mine=r.mine)
+
+
+def feed(db: Session, kind: str, before: Optional[datetime], limit: int, user=None) -> FeedPage:
     sources = SOURCES[kind]
     items: list[FeedItem] = []
     if "opuses" in sources:
@@ -44,6 +54,7 @@ def feed(db: Session, kind: str, before: Optional[datetime], limit: int) -> Feed
                   for p in posts_out(db, recent_posts(db, post_kinds, before, limit))]
     items.sort(key=lambda item: _aware(item.created_at), reverse=True)
     page = items[:limit]
+    _with_likes(db, page, user)
     # a full page may have more behind it; a short one is the end
     next_before = _aware(page[-1].created_at).isoformat() if len(page) == limit else None
     return FeedPage(items=page, next_before=next_before)

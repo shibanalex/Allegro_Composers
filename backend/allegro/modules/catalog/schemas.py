@@ -26,13 +26,10 @@ class OpusFields(BaseModel):
     """Editable fields; every one optional so the same model serves PATCH"""
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     subtitle: Optional[str] = Field(None, max_length=255)
-    instrumentation: Optional[str] = Field(None, max_length=255)
-    ensemble: Optional[str] = None
-    form: Optional[str] = None
+    genre: Optional[str] = None
+    instruments: Optional[list[str]] = None
     key_signature: Optional[str] = Field(None, max_length=40)
-    difficulty: Optional[int] = Field(None, ge=1, le=5)
     year: Optional[int] = Field(None, ge=1000, le=2100)
-    tags: Optional[list[str]] = None
     description_md: Optional[str] = Field(None, max_length=50_000)
     cover_url: Optional[str] = Field(None, max_length=512)
     audio_type: Optional[Literal["none", "youtube", "hosted_file"]] = None
@@ -46,37 +43,25 @@ class OpusFields(BaseModel):
     status: Optional[Literal["published", "draft", "unlisted"]] = None
     featured: Optional[bool] = None  # on the composer's showcase
 
-    @field_validator("ensemble")
+    @field_validator("genre")
     @classmethod
-    def _ensemble(cls, v):
-        if v is not None and v not in enums.ENSEMBLES:
-            raise ValueError(f"Допустимо: {', '.join(enums.ENSEMBLES)}")
+    def _genre(cls, v):
+        if v is not None and v not in enums.GENRES:
+            raise ValueError(f"Допустимо: {', '.join(enums.GENRES)}")
         return v
 
-    @field_validator("form")
+    @field_validator("instruments")
     @classmethod
-    def _form(cls, v):
-        if v is not None and v not in enums.FORMS:
-            raise ValueError(f"Допустимо: {', '.join(enums.FORMS)}")
-        return v
-
-    @field_validator("tags")
-    @classmethod
-    def _tags(cls, v):
+    def _instruments(cls, v):
+        """The same instrument may repeat (a quartet has two violins); names are normalised for the filters"""
         if v is None:
             return v
-        seen, out = set(), []
-        for tag in (t.strip().lower() for t in v):
-            if tag and tag not in seen:
-                seen.add(tag)
-                out.append(tag[:40])
-        return out[:20]
+        return [name for name in (enums.normalize_instrument(i) for i in v) if name][:enums.MAX_INSTRUMENTS]
 
 
 class OpusCreate(OpusFields):
     title: str = Field(min_length=1, max_length=255)
-    ensemble: str
-    form: str
+    genre: str = "other"
     # PDF page-turn markers; empty = derive them from the MusicXML page layout when possible
     markers: list[Marker] = Field([], max_length=2000)
     measure_markers: list[MeasureMarker] = Field([], max_length=20_000)
@@ -93,13 +78,10 @@ class OpusOut(ORMModel):
     slug: str
     title: str
     subtitle: Optional[str] = None
-    instrumentation: Optional[str] = None
-    ensemble: str
-    form: str
+    genre: str
+    instruments: list[str] = []
     key_signature: Optional[str] = None
-    difficulty: Optional[int] = None
     year: Optional[int] = None
-    tags: list[str] = []
     description_md: Optional[str] = None
     cover_url: Optional[str] = None
     audio_type: str
@@ -159,11 +141,9 @@ class Facet(BaseModel):
 
 
 class Facets(BaseModel):
-    ensembles: list[Facet]
-    forms: list[Facet]
+    genres: list[Facet]
+    instruments: list[Facet]
     keys: list[Facet]
-    difficulty: list[Facet]
-    tags: list[Facet]
 
 
 class OpusBrief(ORMModel):
@@ -176,6 +156,7 @@ class OpusBrief(ORMModel):
     audio_source: Optional[str] = None
     audio_url: Optional[str] = None
     audio_duration_seconds: Optional[float] = None
+    cover_url: Optional[str] = None
     author: UserBrief
 
 

@@ -54,7 +54,7 @@ def upload(headers, name, content, content_type, purpose):
 
 
 def create_opus(headers, **fields):
-    body = {"title": "Трио ре минор", "ensemble": "chamber", "form": "sonata", **fields}
+    body = {"title": "Трио ре минор", "genre": "trio", **fields}
     r = client.post("/api/opuses", headers=headers, json=body)
     assert r.status_code == 201, r.text
     return r.json()

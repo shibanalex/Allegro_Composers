@@ -6,6 +6,7 @@ Run against PostgreSQL too:  MIGRATION_TEST_URL=postgresql://... python -m pytes
 """
 import os
 import tempfile
+import json
 import uuid
 from datetime import datetime, timezone
 
@@ -61,8 +62,8 @@ def test_upgrade_from_0005_keeps_every_work_and_post(engine):
         c.execute(text(
             "INSERT INTO opuses (id, author_id, title, slug, ensemble, form, tags, audio_type, score_access, "
             "audio_offset_seconds, auto_page_markers, status, play_count, created_at, updated_at) "
-            "VALUES (:id, :a, 'Трио', 'trio', 'chamber', 'sonata', '[]', 'none', 'free', 0, :f, 'published', 0, :t, :t)"
-        ), {"id": uid(opus), "a": uid(owner), "t": now, "f": False})
+            "VALUES (:id, :a, 'Трио', 'trio', 'chamber', 'sonata', :tags, 'none', 'free', 0, :f, 'published', 0, :t, :t)"
+        ), {"id": uid(opus), "a": uid(owner), "t": now, "f": False, "tags": '["фортепьяно", "скрипка", "лирика"]'})
         c.execute(text(
             "INSERT INTO posts (id, author_id, kind, title, slug, content_md, attachments, tags, status, view_count, created_at, updated_at) "
             "VALUES (:id, :a, 'note', '', 'zapis', 'Привет', '[]', '[]', 'published', 0, :t, :t)"
@@ -80,6 +81,10 @@ def test_upgrade_from_0005_keeps_every_work_and_post(engine):
         assert rows["owner"].is_admin and not rows["guest"].is_admin  # the earliest member is the owner
         assert rows["owner"].role == "composer"
         assert "example.com" not in rows["owner"].email_encrypted.lower()
+        # 0008: the old ensemble, form and tags become a genre and a list of instruments (free tags are dropped)
+        work = c.execute(text("SELECT genre, instruments FROM opuses")).one()
+        instruments = json.loads(work.instruments) if isinstance(work.instruments, str) else work.instruments
+        assert (work.genre, instruments) == ("duo_sonata", ["фортепиано", "скрипка"])
 
     from allegro.core.security import decrypt_email, email_index
     assert decrypt_email(rows["owner"].email_encrypted) == "owner@example.com"

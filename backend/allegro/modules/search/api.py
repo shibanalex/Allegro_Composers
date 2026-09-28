@@ -11,5 +11,5 @@ router = APIRouter(tags=["search"])
 
 @router.get("/api/search", response_model=SearchResult)
 def search(q: str = Query(min_length=1, max_length=100), limit: int = Query(5, ge=1, le=50), db: Session = Depends(get_db)):
-    """Members, works, posts (titles and texts) and tags; every word must be found, any ending"""
+    """Members, works, posts (titles and texts) and instruments; every word must be found, any ending"""
     return service.search(db, q, limit)

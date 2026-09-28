@@ -28,6 +28,18 @@
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
 
+    <!-- The post the owner pinned: first, whatever its date -->
+    <article v-if="pinnedPost" class="card mb-10 border-gold/40 !p-5 sm:!p-6">
+      <p class="eyebrow mb-3 text-xs">📌 Закреплено</p>
+      <h3 v-if="pinnedPost.title" class="mb-2 text-2xl italic">{{ pinnedPost.title }}</h3>
+      <MarkdownContent v-if="pinnedPost.content_md" :text="pinnedPost.content_md" variant="compact" />
+      <ImageGallery v-if="images(pinnedPost).length" :images="images(pinnedPost)" class="mt-4" />
+      <footer class="mt-4 flex items-center gap-5 text-sm text-parchment-faint">
+        <NuxtLink :to="`/posts/${pinnedPost.slug}`" class="transition hover:text-gold-light">Открыть →</NuxtLink>
+        <button v-if="isOwner" type="button" class="ml-auto transition hover:text-gold-light" @click="$emit('pin', null)">Открепить</button>
+      </footer>
+    </article>
+
     <EmptyState v-if="!posts.length">{{ isOwner ? 'Первая запись в блоге — за вами' : 'В блоге пока тихо' }}</EmptyState>
 
     <template v-for="(p, i) in posts" :key="p.id">
@@ -90,15 +102,19 @@
             <audio :src="a.url" controls preload="none" class="w-full" />
           </div>
           <AttachmentList v-if="files(p).length" :files="files(p)" class="mt-4" />
+          <OpusMiniCard v-if="p.opus" :opus="p.opus" class="mt-4" />
+          <QuoteCard v-if="p.quote" :post="p.quote" class="mt-4" />
         </template>
 
-        <footer class="mt-4 flex items-center gap-5 text-sm text-parchment-faint">
+        <footer class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-parchment-faint">
           <span>{{ timeOf(p) }}</span>
-          <span title="Просмотры">👁 {{ p.view_count }}</span>
+          <LikeButton kind="post" :id="p.id" :value="likes[p.id]" compact />
           <NuxtLink :to="`/posts/${p.slug}`" class="transition hover:text-gold-light">{{ discussLabel(p) }}</NuxtLink>
+          <button v-if="!isOwner && p.status === 'published' && can('publish_note')" type="button" class="transition hover:text-gold-light" @click="quoting = p">↻ Процитировать</button>
           <template v-if="isOwner && editing?.id !== p.id">
-            <NuxtLink v-if="p.kind === 'article'" :to="`/create/post?edit=${p.slug}`" class="ml-auto transition hover:text-gold-light">Изменить</NuxtLink>
-            <button v-else type="button" class="ml-auto transition hover:text-gold-light" @click="startEdit(p)">Изменить</button>
+            <button v-if="p.kind === 'note' && p.status === 'published' && p.slug !== pinned" type="button" class="ml-auto transition hover:text-gold-light" @click="$emit('pin', p.slug)">Закрепить</button>
+            <NuxtLink v-if="p.kind === 'article'" :to="`/create/post?edit=${p.slug}`" class="transition hover:text-gold-light" :class="{ 'ml-auto': p.slug === pinned }">Изменить</NuxtLink>
+            <button v-else type="button" class="transition hover:text-gold-light" :class="{ 'ml-auto': p.slug === pinned || p.status !== 'published' }" @click="startEdit(p)">Изменить</button>
             <button type="button" class="transition hover:text-red-300" @click="remove(p)">Удалить</button>
           </template>
         </footer>
@@ -108,19 +124,38 @@
     <div v-if="posts.length < total" class="mt-8 text-center">
       <button class="btn-secondary" :disabled="loading" @click="more">Ранее</button>
     </div>
+    <ShareDialog v-if="quoting" :quote="briefOf(quoting)" @close="quoting = null" />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Attachment, Page, Post, Uploaded } from '~/utils/types'
+import type { Attachment, Page, Post, Reactions, Uploaded } from '~/utils/types'
 
-const props = defineProps<{ username: string; isOwner: boolean; initial: Page<Post> }>()
+const props = defineProps<{ username: string; isOwner: boolean; initial: Page<Post>; pinned?: string | null }>()
+defineEmits<{ pin: [slug: string | null] }>()
 
 const api = useApi()
 const { user, registrationOpen, can } = useAuth()
 const posts = ref<Post[]>([...props.initial.items])
 const total = ref(props.initial.total)
 const loading = ref(false)
+
+// Likes of the visible posts: one request per page of posts, after the page is shown
+const likes = ref<Record<string, Reactions>>({})
+async function loadLikes(items: Post[]) {
+  const ids = items.map((p) => p.id).filter((id) => !(id in likes.value))
+  if (!ids.length) return
+  try {
+    Object.assign(likes.value, await api<Record<string, Reactions>>('/api/reactions/post', { params: { ids: ids.join(',') } }))
+  } catch {}
+}
+onMounted(() => loadLikes(posts.value))
+
+const { data: pinnedPost } = await useAsyncData(`pinned-${props.username}`, () =>
+  props.pinned ? api<Post>(`/api/posts/${props.pinned}`).catch(() => null) : Promise.resolve(null),
+  { watch: [() => props.pinned] },
+)
+const quoting = ref<Post | null>(null)
 
 const isAudio = (a: Attachment) => a.content_type?.startsWith('audio/')
 const images = (p: Post) => p.attachments.filter(isImage)
@@ -148,6 +183,7 @@ async function more() {
     })
     posts.value.push(...page.items)
     total.value = page.total
+    loadLikes(page.items)
   } finally {
     loading.value = false
   }

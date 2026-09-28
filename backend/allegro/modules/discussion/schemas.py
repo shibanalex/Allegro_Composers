@@ -22,6 +22,11 @@ class CommentIn(BaseModel):
         return self
 
 
+class ReactionsOut(BaseModel):
+    count: int
+    mine: bool  # the reader liked it
+
+
 class CommentOut(ORMModel):
     id: uuid.UUID
     opus_id: Optional[uuid.UUID] = None

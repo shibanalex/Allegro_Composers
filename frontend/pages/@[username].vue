@@ -1,7 +1,8 @@
 <template>
   <!-- A member's hall in the style of their era (data-hall-theme on <html>): portrait, name, manifesto, sections by role -->
   <div v-if="profile" class="hall">
-    <header class="hall-header relative mt-8 grid items-center gap-10 px-2 py-12 sm:mt-12 md:grid-cols-[auto_minmax(0,1fr)] md:gap-14 md:px-10">
+    <header class="hall-header relative isolate mt-8 grid items-center gap-10 px-2 py-12 sm:mt-12 md:grid-cols-[auto_minmax(0,1fr)] md:gap-14 md:px-10">
+      <div v-if="hall.cover_url" class="hall-banner" aria-hidden="true"><MediaImg :src="hall.cover_url" full /></div>
       <CornerFlourish class="hall-flourish absolute left-0 top-0 w-14 sm:w-20" />
       <CornerFlourish class="hall-flourish absolute right-0 top-0 w-14 -scale-x-100 sm:w-20" />
       <CornerFlourish class="hall-flourish absolute bottom-0 left-0 w-14 -scale-y-100 sm:w-20" />
@@ -17,6 +18,10 @@
         <h1 class="hall-name mt-3 text-5xl italic sm:text-6xl">{{ profile.display_name }}</h1>
         <p v-if="profile.pseudonym" class="title-script -ml-2 text-5xl sm:text-6xl">{{ profile.pseudonym }}</p>
         <p v-if="profile.bio" class="mt-4 max-w-2xl font-elegant text-2xl italic leading-snug text-parchment-muted">{{ profile.bio }}</p>
+        <blockquote v-if="hall.epigraph" class="mx-auto mt-5 max-w-xl border-l-2 border-gold/50 pl-4 text-left md:mx-0">
+          <p class="font-elegant text-xl italic text-parchment">«{{ hall.epigraph }}»</p>
+          <footer v-if="hall.epigraph_source" class="mt-1 font-caps text-sm font-semibold tracking-[0.15em] text-gold/80">— {{ hall.epigraph_source }}</footer>
+        </blockquote>
 
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3 md:justify-start">
           <a v-for="l in profile.links" :key="l.url" :href="safeUrl(l.url)" target="_blank" rel="noopener nofollow" class="chip">{{ l.label }} ↗</a>
@@ -52,7 +57,7 @@
       </template>
 
       <template #blog>
-        <HallChannel :username="username" :is-owner="isOwner" :initial="data?.posts || { items: [], total: 0 }" />
+        <HallChannel :username="username" :is-owner="isOwner" :initial="data?.posts || { items: [], total: 0 }" :pinned="hall.pinned_post" @pin="pin" />
       </template>
 
       <template #materials>
@@ -73,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Collection, Material, Opus, Page, Post, Profile } from '~/utils/types'
+import type { Collection, HallSettings, Material, Opus, Page, Post, Profile } from '~/utils/types'
 
 const route = useRoute()
 const api = useApi()
@@ -84,6 +89,15 @@ const { data: profile, error } = await useAsyncData(`profile-${username}`, () =>
 if (error.value || !profile.value) throw createError({ statusCode: 404, statusMessage: 'Автор не найден', fatal: true })
 
 const isOwner = computed(() => user.value?.username === username)
+const hall = computed<HallSettings>(() => profile.value?.hall || {})
+
+// «Закрепить» a blog post: saved in the hall's settings
+async function pin(slug: string | null) {
+  if (!profile.value) return
+  const next = { ...hall.value, pinned_post: slug }
+  await api('/api/users/me', { method: 'PATCH', body: { hall: next } })
+  profile.value.hall = next
+}
 const role = computed(() => ROLES[profile.value?.role || 'listener'] || ROLES.listener)
 
 // The owner also sees drafts and unlisted works in their own hall
@@ -130,16 +144,22 @@ const tabs = computed(() => {
     { id: 'materials', label: 'Материалы', count: materials.value.length },
     { id: 'about', label: 'О себе', count: null, empty: !profile.value?.about_md },
   ]
-  const own = ROLE_TABS[profile.value?.role || 'listener'] || ROLE_TABS.listener
+  // The owner may choose which sections to show and in what order («Оформить зал»); otherwise the role decides
+  const own = hall.value.tabs?.length ? hall.value.tabs : ROLE_TABS[profile.value?.role || 'listener'] || ROLE_TABS.listener
   const hasContent = (t: (typeof all)[number]) => !(t.empty ?? t.count === 0)
-  // The owner sees their role's sections (to fill them in); a visitor only the ones with something inside
-  const shown = all.filter((t) => hasContent(t) || (isOwner.value && own.includes(t.id)))
+  // The owner sees their sections (to fill them in); a visitor only the ones with something inside
+  const shown = hall.value.tabs?.length
+    ? own.map((id) => all.find((t) => t.id === id)!).filter((t) => t && (hasContent(t) || isOwner.value))
+    : all.filter((t) => hasContent(t) || (isOwner.value && own.includes(t.id)))
   return shown.length ? shown : all.filter((t) => t.id === 'about')
 })
 
 // The whole page takes the hall's era — header, footer and canvas too — and loads that era's faces
 useHead({
-  htmlAttrs: { 'data-hall-theme': computed(() => profile.value?.hall_theme || 'romantic') },
+  htmlAttrs: {
+    'data-hall-theme': computed(() => profile.value?.hall_theme || 'romantic'),
+    'data-hall-accent': computed(() => hall.value.accent || undefined),
+  },
   link: computed(() => {
     const families = THEME_FONTS[profile.value?.hall_theme || '']
     return families ? [{ rel: 'stylesheet', href: themeFontsUrl(families) }] : []

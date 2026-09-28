@@ -1,8 +1,8 @@
 """Use cases of the catalog module: works (opuses) with score sync, collections, the library, performances.
 
 Public API for other modules: `opus_brief`, `opuses_out`, `performance_out`, `recent_opuses`, `recent_performances`,
-`opus_id_by_slug`, `resolve_opus_target`, `visible_published_opus`,
-`search_opuses`, `popular_tags`, `count_opuses`, `count_performances`.
+`opus_id_by_slug`, `published_opus_ids`, `resolve_opus_target`, `resolve_performance_target`, `visible_published_opus`,
+`search_opuses`, `popular_instruments`, `count_opuses`, `count_performances`.
 """
 import uuid
 from collections import Counter
@@ -26,7 +26,7 @@ from allegro.modules.catalog.schemas import (
     YOUTUBE_ID, CollectionIn, CollectionOut, CollectionUpdate, Facet, Facets, Marker, MeasureMarker, OpusBrief,
     OpusCreate, OpusOut, OpusUpdate, PerformanceFields, PerformanceIn, PerformanceOut,
 )
-from allegro.modules.discussion.service import Target, count_comments
+from allegro.modules.discussion.service import Target, count_comments, forget_target
 
 
 # ---------------------------------------------------------------- shaping answers
@@ -91,12 +91,29 @@ def opus_id_by_slug(db: Session, slug: str) -> Optional[uuid.UUID]:
     return opus.id if opus else None
 
 
+def published_opus_ids(db: Session, slugs: list[str]) -> dict[str, uuid.UUID]:
+    """Works a post may link to, by slug (drafts and works of shadowed authors are left out)"""
+    if not slugs:
+        return {}
+    return dict(db.execute(
+        select(Opus.slug, Opus.id).where(Opus.slug.in_(slugs), Opus.status != "draft", visible_authors(Opus.author_id))
+    ).all())
+
+
 def resolve_opus_target(db: Session, opus_id: uuid.UUID, user) -> Optional[Target]:
     """Comments on an opus (registered with the discussion module)"""
     opus = db.get(Opus, opus_id)
     if not _visible(opus, user):
         return None
     return Target(owner_id=opus.author_id, has_recording=True)
+
+
+def resolve_performance_target(db: Session, performance_id: uuid.UUID, user) -> Optional[Target]:
+    """Likes of a performance (registered with the discussion module)"""
+    performance = db.get(Performance, performance_id)
+    if not performance or performance.performer.is_hidden:
+        return None
+    return Target(owner_id=performance.performer_id, has_recording=True)
 
 
 # ---------------------------------------------------------------- audio, files, markers
@@ -193,7 +210,8 @@ def list_opuses(db: Session, user, *, author=None, mine=False, **filters) -> tup
 def create_opus(db: Session, user, data: OpusCreate) -> Opus:
     values = data.model_dump(exclude={"markers", "measure_markers"}, exclude_none=True)
     values.setdefault("audio_type", "none")
-    values.setdefault("tags", [])
+    if "instruments" not in values:
+        values["instruments"] = list(enums.GENRES[data.genre][1])
     _normalize_audio(values)
     _check_files(user, values)
     _check_markers(data.markers, data.score_page_count)
@@ -244,6 +262,7 @@ def delete_opus(db: Session, user, slug: str) -> None:
     delete_own_after_commit(db, user.username, opus.score_file_key)
     delete_own_after_commit(db, user.username, opus.musicxml_file_key)
     delete_own_url_after_commit(db, user.username, opus.cover_url)
+    forget_target(db, "opus", opus.id)
     db.delete(opus)
     db.commit()
 
@@ -360,17 +379,14 @@ def facets(db: Session, author_username: Optional[str] = None) -> Facets:
             raise NotFound("Автор не найден")
         author_id = owner.id
     rows = repo.facet_rows(db, author_id)
-    ens = Counter(r.ensemble for r in rows)
-    forms = Counter(r.form for r in rows)
+    genres = Counter(r.genre for r in rows)
     keys = Counter(r.key_signature for r in rows if r.key_signature)
-    diff = Counter(r.difficulty for r in rows if r.difficulty)
-    tags = Counter(t for r in rows for t in (r.tags or []))
+    # a work counts once for an instrument, even with two violins
+    instruments = Counter(i for r in rows for i in set(r.instruments or []))
     return Facets(
-        ensembles=[Facet(value=k, label=v, count=ens[k]) for k, v in enums.ENSEMBLES.items()],
-        forms=[Facet(value=k, label=v, count=forms[k]) for k, v in enums.FORMS.items()],
+        genres=[Facet(value=k, label=v, count=genres[k]) for k, v in enums.GENRE_LABELS.items()],
+        instruments=[Facet(value=k, label=k, count=n) for k, n in instruments.most_common(30)],
         keys=[Facet(value=k, label=k, count=n) for k, n in sorted(keys.items())],
-        difficulty=[Facet(value=str(k), label=v, count=diff[k]) for k, v in enums.DIFFICULTY.items()],
-        tags=[Facet(value=k, label=k, count=n) for k, n in tags.most_common(30)],
     )
 
 
@@ -456,6 +472,7 @@ def delete_performance(db: Session, user, performance_id: uuid.UUID) -> None:
     performance = _own_performance(db, performance_id, user)
     if performance.audio_type == "hosted_file":
         delete_own_after_commit(db, user.username, performance.audio_source)
+    forget_target(db, "performance", performance.id)
     db.delete(performance)
     db.commit()
 
@@ -497,16 +514,17 @@ def search_opuses(db: Session, words: list[str], limit: int) -> list[Opus]:
         select(Opus).where(
             Opus.status == "published", visible_authors(Opus.author_id),
             textsearch.matches_all([
-                Opus.title, Opus.subtitle, Opus.instrumentation, Opus.key_signature,
-                cast(Opus.tags, String), Opus.description_md,
+                Opus.title, Opus.subtitle, Opus.key_signature,
+                cast(Opus.instruments, String), Opus.description_md,
             ], words),
         ).order_by(Opus.play_count.desc(), Opus.created_at.desc()).limit(limit)
     ).unique())
 
 
-def popular_tags(db: Session) -> list[str]:
-    all_tags = Counter(
-        t for tags in db.scalars(select(Opus.tags).where(Opus.status == "published", visible_authors(Opus.author_id)))
-        for t in (tags or [])
+def popular_instruments(db: Session) -> list[str]:
+    counts = Counter(
+        i for instruments in db.scalars(
+            select(Opus.instruments).where(Opus.status == "published", visible_authors(Opus.author_id))
+        ) for i in set(instruments or [])
     )
-    return [t for t, _ in all_tags.most_common()]
+    return [i for i, _ in counts.most_common()]

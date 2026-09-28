@@ -15,49 +15,32 @@
           <label class="field-label" for="o-title">Название</label>
           <input id="o-title" v-model="form.title" class="field text-xl" required placeholder="Фортепианное трио ре минор">
         </div>
-        <div class="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label class="field-label" for="o-sub">Подзаголовок</label>
-            <input id="o-sub" v-model="form.subtitle" class="field" placeholder="op. 1, Ч. I: Allegro">
-          </div>
-          <div>
-            <label class="field-label" for="o-instr">Инструментовка</label>
-            <input id="o-instr" v-model="form.instrumentation" class="field" placeholder="Ф-но, Скрипка, Вч.">
-          </div>
-          <div>
-            <label class="field-label" for="o-ens">Состав</label>
-            <select id="o-ens" v-model="form.ensemble" class="field">
-              <option v-for="(label, v) in ENSEMBLES" :key="v" :value="v">{{ label }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="o-form">Форма</label>
-            <select id="o-form" v-model="form.form" class="field">
-              <option v-for="(label, v) in FORMS" :key="v" :value="v">{{ label }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="o-key">Тональность</label>
-            <input id="o-key" v-model="form.key_signature" class="field" placeholder="ре минор" list="keys">
-            <datalist id="keys"><option v-for="k in KEY_SUGGESTIONS" :key="k" :value="k" /></datalist>
-          </div>
-          <div class="grid grid-cols-2 gap-5">
-            <div>
-              <label class="field-label" for="o-diff">Сложность</label>
-              <select id="o-diff" v-model.number="form.difficulty" class="field">
-                <option :value="null">—</option>
-                <option v-for="(label, v) in DIFFICULTY" :key="v" :value="Number(v)">{{ v }} · {{ label }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="field-label" for="o-year">Год</label>
-              <input id="o-year" v-model.number="form.year" type="number" min="1000" max="2100" class="field">
-            </div>
+        <div>
+          <label class="field-label" for="o-sub">Подзаголовок</label>
+          <input id="o-sub" v-model="form.subtitle" class="field" placeholder="op. 1, Ч. I: Allegro">
+        </div>
+        <div>
+          <p class="field-label">Жанр и состав</p>
+          <div class="flex flex-wrap gap-2">
+            <button v-for="(g, id) in GENRES" :key="id" type="button" class="chip" :class="{ active: form.genre === id }" :aria-pressed="form.genre === id" @click="chooseGenre(String(id))">
+              {{ g.label }}
+            </button>
           </div>
         </div>
         <div>
-          <label class="field-label" for="o-tags">Инструменты и теги (через запятую)</label>
-          <input id="o-tags" v-model="tagsText" class="field" placeholder="фортепиано, скрипка, виолончель">
+          <p class="field-label">Инструменты <span class="normal-case tracking-normal text-parchment-faint">— подставлены по жанру, можно изменить</span></p>
+          <InstrumentPicker v-model="instruments" @update:model-value="instrumentsEdited = true" />
+        </div>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label class="field-label" for="o-key">Тональность <span class="normal-case tracking-normal text-parchment-faint">— необязательно</span></label>
+            <input id="o-key" v-model="form.key_signature" class="field" placeholder="ре минор" list="keys">
+            <datalist id="keys"><option v-for="k in KEY_SUGGESTIONS" :key="k" :value="k" /></datalist>
+          </div>
+          <div>
+            <label class="field-label" for="o-year">Год</label>
+            <input id="o-year" v-model.number="form.year" type="number" min="1000" max="2100" class="field">
+          </div>
         </div>
         <div>
           <p class="field-label">Обложка</p>
@@ -236,8 +219,8 @@ const editing = typeof route.query.edit === 'string' ? route.query.edit : null
 useSeoMeta({ title: editing ? 'Редактирование опуса — Allegro' : 'Новый опус — Allegro', robots: 'noindex, nofollow' })
 
 const form = reactive({
-  title: '', subtitle: '', instrumentation: '', ensemble: 'solo', form: 'miniature', key_signature: '',
-  difficulty: null as number | null, year: new Date().getFullYear() as number | null,
+  title: '', subtitle: '', genre: 'solo', key_signature: '',
+  year: new Date().getFullYear() as number | null,
   description_md: '', cover_url: null as string | null,
   audio_type: 'hosted_file' as Opus['audio_type'], audio_source: null as string | null, audio_duration_seconds: null as number | null,
   score_file_key: null as string | null, score_page_count: null as number | null,
@@ -264,7 +247,16 @@ const onMusicXml = (files: Uploaded[]) => {
 watch(() => form.musicxml_file_key, (key) => {
   if (!key) pageMode.value = 'manual'
 })
-const tagsText = ref('')
+// The genre suggests the instruments until the composer edits the list themselves
+const instruments = ref<string[]>([...GENRES.solo.instruments])
+const instrumentsEdited = ref(false)
+function chooseGenre(genre: string) {
+  form.genre = genre
+  if (!instrumentsEdited.value || !instruments.value.length) {
+    instruments.value = [...(GENRES[genre]?.instruments || [])]
+    instrumentsEdited.value = false
+  }
+}
 const markerText = reactive<Record<number, string>>({})
 const audioName = ref('')
 const previewUrl = ref<string | null>(null)
@@ -285,14 +277,15 @@ if (editing) {
   const opus = await api<Opus>(`/api/opuses/${editing}`)
   Object.assign(form, {
     ...Object.fromEntries(Object.keys(form).map((k) => [k, (opus as any)[k] ?? (form as any)[k]])),
-    subtitle: opus.subtitle || '', instrumentation: opus.instrumentation || '', key_signature: opus.key_signature || '',
+    subtitle: opus.subtitle || '', key_signature: opus.key_signature || '',
     description_md: opus.description_md || '',
     audio_source: opus.audio_type === 'youtube' ? `https://youtu.be/${opus.audio_source}` : opus.audio_source,
     // The API returns public URLs; the form sends storage keys back (a null key would delete the file)
     score_file_key: keyFromUrl(opus.score_url),
     musicxml_file_key: keyFromUrl(opus.musicxml_url),
   })
-  tagsText.value = opus.tags.join(', ')
+  instruments.value = [...opus.instruments]
+  instrumentsEdited.value = true
   pageMode.value = opus.auto_page_markers && opus.musicxml_url ? 'auto' : 'manual'
   measureRows.value = opus.measure_markers.map((m) => ({ measure: m.measure_number, time: formatTime(m.timestamp_seconds) }))
   musicxmlName.value = opus.musicxml_url?.split('/').pop()?.replace(/^[0-9a-f]{12}_/, '') || ''
@@ -356,11 +349,10 @@ async function save() {
     const body = {
       ...form,
       subtitle: form.subtitle || null,
-      instrumentation: form.instrumentation || null,
       key_signature: form.key_signature || null,
       description_md: form.description_md || null,
       audio_source: form.audio_type === 'none' ? null : form.audio_source,
-      tags: tagsText.value.split(',').map((t) => t.trim()).filter(Boolean),
+      instruments: instruments.value,
       markers,
       measure_markers: form.audio_type === 'none' || !form.musicxml_file_key
         ? []

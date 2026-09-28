@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from allegro.core.errors import Forbidden, NotFound
 from allegro.core.ratelimit import AttemptLimiter
+from allegro.modules.accounts.roles import Capability, can
 from allegro.modules.accounts.service import visible_authors
 from allegro.modules.site.models import Feedback, SitePage, utcnow
 from allegro.modules.site.schemas import FeedbackIn, FeedbackUpdate
@@ -82,7 +83,7 @@ def delete_feedback(db: Session, user, feedback_id: uuid.UUID) -> None:
     item = db.get(Feedback, feedback_id)
     if not item:
         raise NotFound("Предложение не найдено")
-    if not user.is_admin and (item.author_id != user.id or item.status != "new" or item.reply_md):
+    if not can(user, Capability.MANAGE_SITE) and (item.author_id != user.id or item.status != "new" or item.reply_md):
         raise Forbidden("Удалить можно только своё предложение, пока на него не ответили")
     db.delete(item)
     db.commit()

@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Text, Uuid
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from allegro.core.db import Base
@@ -33,3 +33,17 @@ class Comment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
     author = relationship("User", lazy="joined")
+
+
+class Reaction(Base):
+    """«Нравится» on a work, a performance or a post: one per member and thing.
+
+    Like comments, it refers to things of other modules by kind and id. The primary key starts with the
+    target, so counting a page of posts is one grouped query over the index.
+    """
+    __tablename__ = "reactions"
+
+    target_kind: Mapped[str] = mapped_column(String(20), primary_key=True)  # opus | post | performance
+    target_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

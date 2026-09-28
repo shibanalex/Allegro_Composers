@@ -1,4 +1,5 @@
 """Queries of the catalog module (no commits here: transactions belong to the service)"""
+import json
 import uuid
 from typing import Optional
 
@@ -6,6 +7,7 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from allegro.modules.accounts.service import authors_matching, author_named, visible_authors
+from allegro.modules.catalog.enums import normalize_instrument
 from allegro.modules.catalog.models import Collection, Opus, Performance
 
 
@@ -14,8 +16,8 @@ def opus_by_slug(db: Session, slug: str) -> Optional[Opus]:
 
 
 def opus_page(
-    db: Session, *, author_username: Optional[str], owner_id: Optional[uuid.UUID], ensemble=None, form=None, key=None,
-    difficulty=None, tag=None, q=None, featured: Optional[bool] = None, sort="new", limit=20, offset=0,
+    db: Session, *, author_username: Optional[str], owner_id: Optional[uuid.UUID], genre=None, instrument=None, key=None,
+    q=None, featured: Optional[bool] = None, sort="new", limit=20, offset=0,
 ) -> tuple[list[Opus], int]:
     """Published works of visible authors (or all of the owner's own, drafts included)"""
     stmt = select(Opus)
@@ -25,26 +27,23 @@ def opus_page(
         stmt = stmt.where(Opus.status == "published", visible_authors(Opus.author_id))
     if author_username:
         stmt = stmt.where(author_named(Opus.author_id, author_username))
-    if ensemble:
-        stmt = stmt.where(Opus.ensemble == ensemble)
-    if form:
-        stmt = stmt.where(Opus.form == form)
+    if genre:
+        stmt = stmt.where(Opus.genre == genre)
     if key:
         stmt = stmt.where(Opus.key_signature == key)
-    if difficulty:
-        stmt = stmt.where(Opus.difficulty == difficulty)
     if featured is not None:
         stmt = stmt.where(Opus.featured.is_(featured))
-    if tag:
-        stmt = stmt.where(func.lower(cast(Opus.tags, String)).contains(f'"{tag.strip().lower()}"', autoescape=True))
+    if instrument:
+        # the list is stored as JSON text: match the quoted name, so «альт» doesn't find «альтовая флейта»
+        name = json.dumps(normalize_instrument(instrument), ensure_ascii=False)
+        stmt = stmt.where(cast(Opus.instruments, String).contains(name, autoescape=True))
     if q and q.strip():
         needle = q.strip().lower()
         stmt = stmt.where(or_(
             func.lower(Opus.title).contains(needle, autoescape=True),
             func.lower(Opus.subtitle).contains(needle, autoescape=True),
-            func.lower(Opus.instrumentation).contains(needle, autoescape=True),
             func.lower(Opus.key_signature).contains(needle, autoescape=True),
-            func.lower(cast(Opus.tags, String)).contains(needle, autoescape=True),
+            func.lower(cast(Opus.instruments, String)).contains(needle, autoescape=True),
             authors_matching(Opus.author_id, needle),
         ))
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
@@ -58,7 +57,7 @@ def opus_page(
 
 
 def facet_rows(db: Session, author_id: Optional[uuid.UUID] = None):
-    stmt = select(Opus.ensemble, Opus.form, Opus.key_signature, Opus.difficulty, Opus.tags).where(
+    stmt = select(Opus.genre, Opus.key_signature, Opus.instruments).where(
         Opus.status == "published", visible_authors(Opus.author_id),
     )
     if author_id:

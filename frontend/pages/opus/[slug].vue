@@ -33,7 +33,7 @@
       <!-- Passport, explication, critiques -->
       <aside class="space-y-12">
         <header>
-          <p class="eyebrow">{{ ENSEMBLES[opus.ensemble] }} · {{ FORMS[opus.form] }}</p>
+          <p class="eyebrow">{{ genreLabel(opus.genre) }}</p>
           <h1 class="mt-3 font-caps text-3xl font-semibold uppercase leading-tight tracking-[0.08em] text-parchment sm:text-4xl">{{ opus.title }}</h1>
           <p v-if="opus.subtitle" class="mt-2 font-display text-xl italic text-gold-light">{{ opus.subtitle }}</p>
 
@@ -46,9 +46,15 @@
           </NuxtLink>
 
           <dl class="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-y border-gold/15 py-4 text-parchment-muted">
-            <template v-if="opus.instrumentation"><dt class="field-label mb-0 self-center">Состав</dt><dd>{{ opus.instrumentation }}</dd></template>
+            <template v-if="opus.instruments.length">
+              <dt class="field-label mb-0 self-center">Состав</dt>
+              <dd class="flex flex-wrap gap-x-1">
+                <template v-for="(name, i) in [...new Set(opus.instruments)]" :key="name">
+                  <NuxtLink :to="`/search?q=${encodeURIComponent(name)}`" class="transition hover:text-gold-light">{{ instrumentsText(opus.instruments.filter((x) => x === name)) }}</NuxtLink><span v-if="i < new Set(opus.instruments).size - 1">,</span>
+                </template>
+              </dd>
+            </template>
             <template v-if="opus.key_signature"><dt class="field-label mb-0 self-center">Тональность</dt><dd>{{ opus.key_signature }}</dd></template>
-            <template v-if="opus.difficulty"><dt class="field-label mb-0 self-center">Сложность</dt><dd class="flex items-center gap-3"><DifficultyDots :value="opus.difficulty" /> {{ DIFFICULTY[opus.difficulty] }}</dd></template>
             <template v-if="opus.year"><dt class="field-label mb-0 self-center">Год</dt><dd>{{ opus.year }}</dd></template>
             <template v-if="opus.audio_duration_seconds"><dt class="field-label mb-0 self-center">Длительность</dt><dd class="font-mono text-sm">{{ formatTime(opus.audio_duration_seconds) }}</dd></template>
             <template v-if="opus.score_url || opus.musicxml_url">
@@ -60,9 +66,14 @@
             </template>
           </dl>
 
-          <div v-if="opus.tags.length" class="mt-4 flex flex-wrap gap-2">
-            <NuxtLink v-for="t in opus.tags" :key="t" :to="`/search?q=${encodeURIComponent(t)}`" class="chip">#{{ t }}</NuxtLink>
+          <!-- Like, share in one's blog -->
+          <div class="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-parchment-faint">
+            <LikeButton kind="opus" :id="opus.id" :value="likes" />
+            <button v-if="opus.status === 'published' && can('publish_note')" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" @click="sharing = true">
+              <span class="text-lg leading-none" aria-hidden="true">↻</span>Поделиться в блоге
+            </button>
           </div>
+          <ShareDialog v-if="sharing" :opus="opus" @close="sharing = false" @published="(p) => navigateTo(`/posts/${p.slug}`)" />
 
           <div v-if="isAuthor" class="mt-6 flex flex-wrap gap-3">
             <span v-if="opus.status !== 'published'" class="chip active">{{ STATUSES[opus.status] }}</span>
@@ -86,6 +97,13 @@
           </ul>
         </section>
 
+        <section v-if="mentions?.length">
+          <h2 class="font-caps text-lg font-semibold tracking-[0.2em] text-gold">Упоминания</h2>
+          <div class="mt-3 space-y-3">
+            <QuoteCard v-for="m in mentions" :key="m.id" :post="m" />
+          </div>
+        </section>
+
         <CommentThread :target="{ opus_id: opus.id }" :opus="opus" :owner-id="opus.author.id" title="Рецензии и разборы" @seek="seek" />
       </aside>
     </div>
@@ -100,7 +118,7 @@
 
 <script setup lang="ts">
 import { usePlayer } from '~/stores/player'
-import type { Opus, Page, Post } from '~/utils/types'
+import type { Opus, Page, Post, PostBrief, Reactions } from '~/utils/types'
 
 const route = useRoute()
 const api = useApi()
@@ -116,6 +134,11 @@ const { data: threadPage } = await useAsyncData(`opus-threads-${slug}`, () =>
 )
 const threads = computed(() => threadPage.value?.items || [])
 const { can } = useAuth()
+const { data: likes } = await useAsyncData(`opus-likes-${slug}`, () =>
+  api<Record<string, Reactions>>('/api/reactions/opus', { params: { ids: opus.value!.id } }).then((r) => r[opus.value!.id]).catch(() => null),
+)
+const { data: mentions } = await useAsyncData(`opus-mentions-${slug}`, () => api<PostBrief[]>(`/api/mentions/opus/${slug}`).catch(() => []))
+const sharing = ref(false)
 const { data: performancePage } = await useAsyncData(`opus-performances-count-${slug}`, () =>
   api<Page<unknown>>('/api/performances', { params: { opus: slug, limit: 1 } }),
 )

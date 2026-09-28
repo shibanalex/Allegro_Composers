@@ -60,7 +60,7 @@ defineEmits<{ seek: [seconds: number] }>()
 const api = useApi()
 const route = useRoute()
 const player = usePlayer()
-const { user, registrationOpen } = useAuth()
+const { user, registrationOpen, can } = useAuth()
 // A visitor can take part only by logging in or signing up; while sign-ups are closed they just read
 const canJoin = computed(() => !!user.value || registrationOpen.value)
 
@@ -75,7 +75,8 @@ const children = computed(() => {
   for (const c of comments.value) if (c.parent_id) (map[c.parent_id] ||= []).push(c)
   return map
 })
-const canModerate = (c: Comment) => !!user.value && (user.value.id === c.author.id || user.value.id === props.ownerId)
+// The commenter, the owner of the work or post, and moderators may remove a comment
+const canModerate = (c: Comment) => !!user.value && (user.value.id === c.author.id || user.value.id === props.ownerId || can('moderate'))
 
 const draft = ref('')
 const attachTime = ref(false)

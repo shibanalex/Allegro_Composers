@@ -30,8 +30,8 @@
               <p v-if="item.opus.subtitle" class="font-elegant text-lg italic text-parchment-muted">{{ item.opus.subtitle }}</p>
             </NuxtLink>
             <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-parchment-faint">
-              <span>{{ ENSEMBLES[item.opus.ensemble] }}</span>
-              <span>{{ FORMS[item.opus.form] }}</span>
+              <span>{{ genreLabel(item.opus.genre) }}</span>
+              <span v-if="item.opus.instruments.length">{{ instrumentsText(item.opus.instruments) }}</span>
               <span v-if="item.opus.key_signature">{{ item.opus.key_signature }}</span>
               <span v-if="item.opus.musicxml_url">♫ ноты с курсором</span>
               <span v-else-if="item.opus.score_url">𝄞 партитура</span>
@@ -70,19 +70,33 @@
           <audio :src="a.url" controls preload="none" class="w-full" />
         </div>
         <AttachmentList v-if="files.length" :files="files" class="mt-4" />
+        <OpusMiniCard v-if="item.post.opus" :opus="item.post.opus" class="mt-4" />
+        <QuoteCard v-if="item.post.quote" :post="item.post.quote" class="mt-4" />
       </template>
     </div>
 
-    <footer v-if="item.post" class="flex items-center gap-5 border-t border-gold/10 px-5 py-3 text-parchment-faint sm:px-8">
-      <NuxtLink :to="`/posts/${item.post.slug}`" class="transition hover:text-gold-light">
-        ✎ {{ item.post.comment_count ? `${item.post.comment_count} ${plural(item.post.comment_count, 'комментарий', 'комментария', 'комментариев')}` : 'Обсудить' }}
-      </NuxtLink>
+    <!-- Actions: like, discuss right here, quote or share, copy the link -->
+    <footer class="border-t border-gold/10 px-5 py-2.5 text-parchment-faint sm:px-8">
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <LikeButton :kind="item.type" :id="targetId" :value="item.likes" />
+        <button v-if="discussion" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" :aria-expanded="open" @click="open = !open">
+          <span class="text-lg leading-none" aria-hidden="true">✎</span>{{ discussion.label }}
+        </button>
+        <button v-if="shareable && can('publish_note')" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" @click="sharing = true">
+          <span class="text-lg leading-none" aria-hidden="true">↻</span>{{ item.post ? 'Процитировать' : 'Поделиться' }}
+        </button>
+        <button type="button" class="ml-auto inline-flex items-center gap-1.5 transition hover:text-gold-light" :title="link" @click="copyLink">
+          <span aria-hidden="true">🔗</span>{{ copied ? 'Ссылка скопирована' : 'Ссылка' }}
+        </button>
+      </div>
+      <div v-if="open && discussion" class="mt-4 border-t border-gold/10 pt-2">
+        <Suspense>
+          <CommentThread :target="discussion.target" :opus="item.opus" :owner-id="author.id" :title="discussion.title" />
+          <template #fallback><p class="py-4 font-elegant italic text-parchment-faint">Загружаю обсуждение…</p></template>
+        </Suspense>
+      </div>
     </footer>
-    <footer v-else-if="item.opus?.critique_count" class="border-t border-gold/10 px-5 py-3 text-parchment-faint sm:px-8">
-      <NuxtLink :to="`/opus/${item.opus.slug}`" class="transition hover:text-gold-light">
-        ✎ {{ item.opus.critique_count }} {{ plural(item.opus.critique_count, 'рецензия', 'рецензии', 'рецензий') }}
-      </NuxtLink>
-    </footer>
+    <ShareDialog v-if="sharing" :quote="item.post ? briefOf(item.post) : null" :opus="item.opus" @close="sharing = false" />
   </article>
 </template>
 
@@ -90,6 +104,41 @@
 import type { Attachment, FeedEntry } from '~/utils/types'
 
 const props = defineProps<{ item: FeedEntry }>()
+const { can } = useAuth()
+
+const targetId = computed(() => (props.item.opus || props.item.performance || props.item.post)!.id)
+
+// Comments open right under the entry; works have «рецензии», posts — comments; performances aren't discussed
+const discussion = computed(() => {
+  const { post, opus } = props.item
+  if (post) {
+    const n = post.comment_count
+    return { target: { post_id: post.id }, title: 'Обсуждение', label: n ? `${n} ${plural(n, 'комментарий', 'комментария', 'комментариев')}` : 'Обсудить' }
+  }
+  if (opus) {
+    const n = opus.critique_count
+    return { target: { opus_id: opus.id }, title: 'Рецензии', label: n ? `${n} ${plural(n, 'рецензия', 'рецензии', 'рецензий')}` : 'Рецензия' }
+  }
+  return null
+})
+const open = ref(false)
+
+// A post can be quoted, a work shared — both become a blog post of one's own
+const shareable = computed(() => !!(props.item.opus || (props.item.post && props.item.post.status === 'published')))
+const sharing = ref(false)
+
+const link = computed(() => {
+  const { post, opus, performance } = props.item
+  return post ? `/posts/${post.slug}` : opus ? `/opus/${opus.slug}` : performance?.opus ? `/opus/${performance.opus.slug}` : `/@${author.value.username}`
+})
+const copied = ref(false)
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(new URL(link.value, location.origin).href)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 2000)
+  } catch {}
+}
 
 const author = computed(() => props.item.opus?.author || props.item.performance?.performer || props.item.post!.author)
 

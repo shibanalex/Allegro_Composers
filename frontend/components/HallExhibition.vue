@@ -56,8 +56,7 @@ const props = defineProps<{ opuses: Opus[]; collections: Collection[]; isOwner: 
 const GROUPS = [
   { id: 'none', label: 'Все вместе' },
   { id: 'cycle', label: 'По циклам' },
-  { id: 'form', label: 'По форме' },
-  { id: 'ensemble', label: 'По составу' },
+  { id: 'genre', label: 'По жанру' },
   { id: 'year', label: 'По годам' },
 ] as const
 const SORTS = [
@@ -81,7 +80,8 @@ const group = ref<GroupId>('none')
 const sort = ref<SortId>('new')
 const view = ref<'grid' | 'list'>('grid')
 onMounted(() => {
-  group.value = saved('hall-group', 'none') as GroupId
+  const g = saved('hall-group', 'none')
+  group.value = GROUPS.some((x) => x.id === g) ? (g as GroupId) : 'none'  // an old choice may no longer exist
   sort.value = saved('hall-sort', 'new') as SortId
   view.value = saved('hall-view', 'grid') as 'grid' | 'list'
 })
@@ -119,8 +119,7 @@ const byKey = (keyOf: (o: Opus) => string, labels: Record<string, string>) => {
 }
 
 const groups = computed<Group[]>(() => {
-  if (group.value === 'form') return byKey((o) => o.form, FORMS)
-  if (group.value === 'ensemble') return byKey((o) => o.ensemble, ENSEMBLES)
+  if (group.value === 'genre') return byKey((o) => o.genre, Object.fromEntries(Object.entries(GENRES).map(([k, g]) => [k, g.label])))
   if (group.value === 'year') {
     const years = [...new Set(sorted.value.map(yearOf))].sort((a, b) => b - a)
     return years.map((y) => ({ key: String(y), title: String(y), items: sorted.value.filter((o) => yearOf(o) === y) }))

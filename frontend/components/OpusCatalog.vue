@@ -7,8 +7,8 @@
         <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gold/60">⌕</span>
       </form>
 
-      <FilterGroup title="Состав" :facets="facets?.ensembles" :active="query.ensemble" @pick="(v) => set({ ensemble: v })" />
-      <FilterGroup title="Форма" :facets="facets?.forms" :active="query.form" @pick="(v) => set({ form: v })" />
+      <FilterGroup title="Жанр и состав" :facets="facets?.genres" :active="query.genre" @pick="(v) => set({ genre: v })" />
+      <FilterGroup v-if="facets?.instruments.length" title="Инструмент" :facets="facets.instruments" :active="query.instrument" @pick="(v) => set({ instrument: v })" />
 
       <div v-if="facets?.keys.length">
         <p class="field-label">Тональность</p>
@@ -17,25 +17,6 @@
           <option v-for="k in facets?.keys" :key="k.value" :value="k.value">{{ k.label }} ({{ k.count }})</option>
         </select>
       </div>
-
-      <div>
-        <p class="field-label">Сложность исполнения</p>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="d in facets?.difficulty"
-            :key="d.value"
-            type="button"
-            class="chip gap-2"
-            :class="{ active: query.difficulty === d.value }"
-            :title="d.label"
-            @click="set({ difficulty: query.difficulty === d.value ? undefined : d.value })"
-          >
-            <DifficultyDots :value="Number(d.value)" />
-          </button>
-        </div>
-      </div>
-
-      <FilterGroup v-if="facets?.tags.length" title="Инструменты и теги" :facets="facets.tags" :active="query.tag" @pick="(v) => set({ tag: v })" />
 
       <button v-if="hasFilters" type="button" class="link font-caps text-sm font-semibold tracking-[0.15em]" @click="clearAll">Сбросить фильтры</button>
     </aside>
@@ -72,10 +53,9 @@
               </p>
             </NuxtLink>
             <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-parchment-muted">
-              <span>{{ ENSEMBLES[o.ensemble] }}</span>
-              <span>{{ FORMS[o.form] }}</span>
+              <span>{{ genreLabel(o.genre) }}</span>
+              <span v-if="o.instruments.length">{{ instrumentsText(o.instruments) }}</span>
               <span v-if="o.key_signature">{{ o.key_signature }}</span>
-              <DifficultyDots v-if="o.difficulty" :value="o.difficulty" />
               <span v-if="o.status !== 'published'" class="text-gold/80">{{ STATUSES[o.status] }}</span>
             </div>
           </div>
@@ -116,7 +96,7 @@ const route = useRoute()
 const router = useRouter()
 
 // Filters live in the address, so a filtered catalogue can be shared as a link
-const KEYS = ['ensemble', 'form', 'key', 'difficulty', 'tag', 'q', 'sort'] as const
+const KEYS = ['genre', 'instrument', 'key', 'q', 'sort'] as const
 const query = computed(() => Object.fromEntries(KEYS.map((k) => [k, route.query[k] as string | undefined])) as Record<(typeof KEYS)[number], string | undefined>)
 const hasFilters = computed(() => KEYS.some((k) => k !== 'sort' && query.value[k]))
 const search = ref(query.value.q || '')

@@ -24,11 +24,9 @@ router = APIRouter(tags=["catalog"])
 @router.get("/api/opuses", response_model=OpusPage)
 def list_opuses(
     author: Optional[str] = None,
-    ensemble: Optional[str] = None,
-    form: Optional[str] = None,
+    genre: Optional[str] = None,
+    instrument: Optional[str] = None,
     key: Optional[str] = None,
-    difficulty: Optional[int] = Query(None, ge=1, le=5),
-    tag: Optional[str] = None,
     q: Optional[str] = None,
     featured: Optional[bool] = None,
     sort: Literal["new", "popular", "title"] = "new",
@@ -42,7 +40,7 @@ def list_opuses(
     if mine and not user:
         raise Unauthorized("Требуется вход")
     items, total = service.list_opuses(
-        db, user, author=author, mine=mine, ensemble=ensemble, form=form, key=key, difficulty=difficulty, tag=tag,
+        db, user, author=author, mine=mine, genre=genre, instrument=instrument, key=key,
         q=q, featured=featured, sort=sort, limit=limit, offset=offset,
     )
     return OpusPage(items=service.opuses_out(db, items), total=total)

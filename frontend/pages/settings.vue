@@ -38,7 +38,13 @@
       <div>
         <p class="field-label">Стиль зала</p>
         <ThemePicker v-model="form.hall_theme" />
+        <p class="mt-2 text-sm text-parchment-faint">Так ваш зал видят все. Стиль всего сайта для себя выбирается значком в шапке.</p>
       </div>
+
+      <fieldset class="space-y-4 border-t border-gold/15 pt-8">
+        <legend class="mb-2 w-full font-display text-3xl italic text-parchment">Убранство зала</legend>
+        <HallSettingsEditor v-model="form.hall" :role="form.role" @error="(m) => { ok = false; message = m }" />
+      </fieldset>
 
       <div>
         <label class="field-label" for="s-about">О себе — биография, исполненные сочинения, инструментарий (Markdown)</label>
@@ -100,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Me } from '~/utils/types'
+import type { HallSettings, Me } from '~/utils/types'
 
 definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Настройки зала — Allegro', robots: 'noindex, nofollow' })
@@ -118,6 +124,7 @@ const form = reactive({
   links: u.links.map((l) => ({ ...l })),
   role: u.role,
   hall_theme: u.hall_theme,
+  hall: { ...(u.hall || {}) } as HallSettings,
   email: u.email || '',
 })
 const busy = ref(false)

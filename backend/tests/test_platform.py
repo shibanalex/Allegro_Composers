@@ -100,14 +100,14 @@ def test_opus_lifecycle(alice, bob):
     score = upload(alice, "trio.pdf", PDF, "application/pdf", "score")
     audio = upload(alice, "trio.wav", b"RIFF....WAVE", "audio/wav", "audio")
     opus = create_opus(
-        alice, subtitle="op. 1, Ч. I: Allegro", key_signature="ре минор", difficulty=4,
-        tags=["Фортепиано", "скрипка", "фортепиано"], instrumentation="Ф-но, Скрипка, Вч.",
+        alice, subtitle="op. 1, Ч. I: Allegro", key_signature="ре минор",
+        instruments=["Скрипка", "Вч.", "фортепьяно"],
         audio_type="hosted_file", audio_source=audio["key"], audio_duration_seconds=90,
         score_file_key=score["key"], score_page_count=3,
         markers=[{"page_number": 2, "timestamp_seconds": 30}, {"page_number": 1, "timestamp_seconds": 0}],
     )
     assert opus["slug"] == "trio-re-minor"
-    assert opus["tags"] == ["фортепиано", "скрипка"]
+    assert opus["genre"] == "trio" and opus["instruments"] == ["скрипка", "виолончель", "фортепиано"]  # names normalised
     assert [m["page_number"] for m in opus["markers"]] == [1, 2]
     assert opus["audio_url"] == audio["url"] and opus["score_url"] == score["url"]
     assert opus["author"]["username"] == "alice"
@@ -140,25 +140,37 @@ def test_opus_lifecycle(alice, bob):
 
 def test_youtube_validation(alice):
     r = client.post("/api/opuses", headers=alice, json={
-        "title": "X", "ensemble": "solo", "form": "miniature", "audio_type": "youtube", "audio_source": "not a link",
+        "title": "X", "genre": "solo", "audio_type": "youtube", "audio_source": "not a link",
     })
     assert r.status_code == 422
-    assert client.post("/api/opuses", headers=alice, json={"title": "X", "ensemble": "band", "form": "sonata"}).status_code == 422
+    assert client.post("/api/opuses", headers=alice, json={"title": "X", "genre": "band"}).status_code == 422
+
+
+def test_genre_brings_its_instruments(alice):
+    """The composer chooses «Квартет» and gets the usual instruments; their own list wins"""
+    quartet = create_opus(alice, title="Квартет №1", genre="quartet")
+    assert quartet["instruments"] == ["скрипка", "скрипка", "альт", "виолончель"]
+    own = create_opus(alice, title="Квартет для флейт", genre="quartet", instruments=["флейта"] * 4)
+    assert own["instruments"] == ["флейта"] * 4
+    assert client.patch(f"/api/opuses/{own['slug']}", headers=alice, json={"instruments": ["гитара"] * 4}).json()["instruments"] == ["гитара"] * 4
+    for slug in (quartet["slug"], own["slug"]):
+        client.delete(f"/api/opuses/{slug}", headers=alice)
 
 
 def test_library_filters_and_drafts(alice, bob):
-    create_opus(bob, title="Прелюдия до мажор", ensemble="solo", form="miniature", key_signature="до мажор", difficulty=2, tags=["фортепиано"])
-    create_opus(bob, title="Хорал", ensemble="choir", form="cantata", tags=["хор"])
-    create_opus(bob, title="Черновик сюиты", ensemble="orchestra", form="suite", status="draft")
+    create_opus(bob, title="Прелюдия до мажор", genre="solo", key_signature="до мажор")
+    create_opus(bob, title="Хорал", genre="choir")
+    create_opus(bob, title="Черновик сюиты", genre="orchestral", status="draft")
 
     def titles(**params):
         return {o["title"] for o in client.get("/api/opuses", params={"limit": 100, **params}).json()["items"]}
 
     assert "Черновик сюиты" not in titles()
-    assert titles(ensemble="solo") == {"Прелюдия до мажор"}
-    assert titles(form="cantata") == {"Хорал"}
-    assert titles(key="до мажор", difficulty=2) == {"Прелюдия до мажор"}
-    assert titles(tag="Фортепиано") >= {"Прелюдия до мажор", "Трио ре минор"}
+    assert titles(genre="solo") == {"Прелюдия до мажор"}
+    assert titles(genre="choir") == {"Хорал"}
+    assert titles(key="до мажор") == {"Прелюдия до мажор"}
+    assert titles(instrument="Фортепьяно") >= {"Прелюдия до мажор", "Трио ре минор"}  # any spelling
+    assert "Трио ре минор" not in titles(instrument="альт")
     assert titles(q="ТРИО") == {"Трио ре минор"}  # case-insensitive Cyrillic
     assert titles(q="теоретик") == {"Прелюдия до мажор", "Хорал"}  # by author name
     assert titles(author="bob") == {"Прелюдия до мажор", "Хорал"}
@@ -170,13 +182,13 @@ def test_library_filters_and_drafts(alice, bob):
     assert client.get(f"/api/opuses/{draft_slug}", headers=bob).status_code == 200
 
     facets = client.get("/api/library/facets").json()
-    counts = {f["value"]: f["count"] for f in facets["ensembles"]}
-    assert counts["solo"] == 1 and counts["orchestra"] == 0  # drafts are not counted
-    assert {"value": "фортепиано", "label": "фортепиано", "count": 2} in facets["tags"]
+    counts = {f["value"]: f["count"] for f in facets["genres"]}
+    assert counts["solo"] == 1 and counts["orchestral"] == 0  # drafts are not counted
+    assert {"value": "фортепиано", "label": "фортепиано", "count": 2} in facets["instruments"]
 
 
 def test_collections(alice, bob):
-    own = create_opus(alice, title="Флориография I", ensemble="solo", form="miniature")
+    own = create_opus(alice, title="Флориография I", genre="solo")
     foreign = client.get("/api/opuses", params={"author": "bob"}).json()["items"][0]
     rejected = client.post("/api/collections", headers=alice, json={"title": "Цикл", "opus_ids": [foreign["id"]]})
     assert rejected.status_code == 422
@@ -190,7 +202,7 @@ def test_collections(alice, bob):
 
 def test_search(alice):
     result = client.get("/api/search", params={"q": "фортеп"}).json()
-    assert "фортепиано" in result["tags"]
+    assert "фортепиано" in result["instruments"]
     assert {o["title"] for o in result["opuses"]} >= {"Трио ре минор"}
     composers = client.get("/api/search", params={"q": "алиса"}).json()["composers"]
     assert composers[0]["username"] == "alice"
@@ -270,7 +282,7 @@ def test_musicxml_upload_is_validated_by_content(alice):
 def test_opus_with_musicxml_cursor_sync(alice, bob):
     xml = upload(alice, "prelude.musicxml", MUSICXML, "text/xml", "musicxml")
     opus = create_opus(
-        alice, title="Прелюдия с курсором", ensemble="solo", form="miniature",
+        alice, title="Прелюдия с курсором", genre="solo",
         musicxml_file_key=xml["key"], audio_offset_seconds=1.5,
         measure_markers=[{"measure_number": 9, "timestamp_seconds": 20}, {"measure_number": 1, "timestamp_seconds": 1.5}],
     )
@@ -392,7 +404,7 @@ def test_ownership_of_uploaded_files(alice, bob):
     """Nobody can attach someone else's upload: steal a paid score through their own opus, or delete it"""
     from allegro.core.storage import storage
     pdf = upload(alice, "trio.pdf", PDF, "application/pdf", "score")
-    r = client.post("/api/opuses", headers=bob, json={"title": "Чужое", "ensemble": "solo", "form": "other", "score_file_key": pdf["key"]})
+    r = client.post("/api/opuses", headers=bob, json={"title": "Чужое", "genre": "solo", "score_file_key": pdf["key"]})
     assert r.status_code == 422
     r = client.post("/api/posts", headers=bob, json={"kind": "note", "content_md": "x", "attachments": [{"url": "javascript:alert(1)", "name": "a"}]})
     assert r.status_code == 422

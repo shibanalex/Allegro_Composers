@@ -10,12 +10,11 @@
       <NuxtLink :to="`/opus/${opus.slug}`" class="block">
         <span class="block truncate font-display text-lg transition group-hover:text-gold-light">{{ opus.title }}</span>
         <span class="block truncate text-sm italic text-parchment-faint">
-          <template v-if="opus.subtitle">{{ opus.subtitle }} · </template>{{ FORMS[opus.form] }}<template v-if="opus.key_signature"> · {{ opus.key_signature }}</template><template v-if="opus.year"> · {{ opus.year }}</template>
+          <template v-if="opus.subtitle">{{ opus.subtitle }} · </template>{{ genreLabel(opus.genre) }}<template v-if="opus.instruments.length"> ({{ instrumentsText(opus.instruments) }})</template><template v-if="opus.key_signature"> · {{ opus.key_signature }}</template><template v-if="opus.year"> · {{ opus.year }}</template>
         </span>
       </NuxtLink>
     </div>
     <span v-if="opus.status !== 'published'" class="chip active shrink-0">{{ STATUSES[opus.status] }}</span>
-    <DifficultyDots v-if="opus.difficulty" :value="opus.difficulty" class="hidden md:inline-flex" />
     <span class="hidden w-14 shrink-0 text-right font-mono text-sm text-parchment-faint md:block">{{ opus.audio_duration_seconds ? formatTime(opus.audio_duration_seconds) : '' }}</span>
     <span class="hidden w-20 shrink-0 text-right text-sm text-parchment-faint lg:block">
       {{ opus.musicxml_url ? '♫ XML' : opus.score_url ? '𝄞 PDF' : '' }}

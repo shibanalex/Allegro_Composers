@@ -38,8 +38,9 @@ def get_current_user(user: Optional[User] = Depends(get_optional_user)) -> User:
 
 
 def get_admin(user: User = Depends(get_current_user)) -> User:
-    if not user.is_admin:
-        raise Forbidden("Только для администраторов")
+    """Running the site: members' rights, pages, feedback answers (same as require(Capability.MANAGE_SITE))"""
+    if not can(user, Capability.MANAGE_SITE):
+        raise Forbidden(CAPABILITY_REFUSALS[Capability.MANAGE_SITE])
     return user
 
 

@@ -23,13 +23,10 @@ class Opus(Base):
     title: Mapped[str] = mapped_column(String(255), index=True)
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     subtitle: Mapped[Optional[str]] = mapped_column(String(255))  # "op. 1, Ч. I: Allegro"
-    instrumentation: Mapped[Optional[str]] = mapped_column(String(255))  # "Ф-но, Скрипка, Вч."
-    ensemble: Mapped[str] = mapped_column(String(20), index=True)  # enums.ENSEMBLES
-    form: Mapped[str] = mapped_column(String(20), index=True)  # enums.FORMS
+    genre: Mapped[str] = mapped_column(String(20), index=True, default="other")  # enums.GENRES: «Трио», «Концерт»…
+    instruments: Mapped[list] = mapped_column(JSON, default=list)  # ["скрипка", "виолончель", "фортепиано"]
     key_signature: Mapped[Optional[str]] = mapped_column(String(40), index=True)
-    difficulty: Mapped[Optional[int]] = mapped_column(Integer)  # 1..5
     year: Mapped[Optional[int]] = mapped_column(Integer)
-    tags: Mapped[list] = mapped_column(JSON, default=list)  # instrument / free tags
     description_md: Mapped[Optional[str]] = mapped_column(Text)  # explication / analysis
     cover_url: Mapped[Optional[str]] = mapped_column(String(512))
 

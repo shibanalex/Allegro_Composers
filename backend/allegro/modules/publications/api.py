@@ -1,6 +1,6 @@
 """HTTP layer of the publications module: blog posts, articles, news; members' materials"""
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
@@ -9,7 +9,7 @@ from allegro.core.db import get_db
 from allegro.modules.accounts.deps import get_current_user, get_optional_user
 from allegro.modules.publications import service
 from allegro.modules.publications.schemas import (
-    Kind, MaterialFields, MaterialIn, MaterialOut, PostCreate, PostFields, PostOut, PostPage,
+    Kind, MaterialFields, MaterialIn, MaterialOut, PostBrief, PostCreate, PostFields, PostOut, PostPage,
 )
 
 router = APIRouter(tags=["publications"])
@@ -34,6 +34,12 @@ def list_posts(
 @router.get("/api/posts/{slug}", response_model=PostOut)
 def get_post(slug: str, user=Depends(get_optional_user), db: Session = Depends(get_db)):
     return service.posts_out(db, [service.read_post(db, slug, user)])[0]
+
+
+@router.get("/api/mentions/{kind}/{slug}", response_model=list[PostBrief])
+def mentions(kind: Literal["post", "opus"], slug: str, db: Session = Depends(get_db)):
+    """Posts whose text links to this post or work"""
+    return service.mentions(db, kind, slug)
 
 
 @router.post("/api/posts", response_model=PostOut, status_code=status.HTTP_201_CREATED)

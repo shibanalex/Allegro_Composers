@@ -288,6 +288,13 @@ def update_profile(db: Session, user: User, data: ProfileUpdate) -> User:
             user.email_hash = user.email_encrypted = None
     if values.get("role") and values["role"] not in {r.value for r in Role}:
         raise Invalid("Неизвестная роль")
+    if "hall" in values:
+        hall = values["hall"] or {}
+        old_cover = (user.hall or {}).get("cover_url")
+        check_url(user.username, hall.get("cover_url"), [old_cover])
+        if hall.get("cover_url") != old_cover:
+            delete_own_url_after_commit(db, user.username, old_cover)
+        values["hall"] = {k: v for k, v in hall.items() if v is not None}
     for field, value in values.items():
         setattr(user, field, value)
     db.commit()
@@ -315,7 +322,8 @@ def all_users(db: Session) -> list[User]:
     return repo.all_users(db)
 
 
-def admin_update_user(db: Session, admin: User, user_id: uuid.UUID, is_hidden: Optional[bool], is_admin: Optional[bool]) -> User:
+def admin_update_user(db: Session, admin: User, user_id: uuid.UUID, is_hidden: Optional[bool], is_admin: Optional[bool],
+                      is_moderator: Optional[bool] = None) -> User:
     user = repo.by_id(db, user_id)
     if not user:
         raise NotFound("Аккаунт не найден")
@@ -325,6 +333,8 @@ def admin_update_user(db: Session, admin: User, user_id: uuid.UUID, is_hidden: O
         user.is_hidden = is_hidden
     if is_admin is not None:
         user.is_admin = is_admin
+    if is_moderator is not None:
+        user.is_moderator = is_moderator
     db.commit()
     return user
 

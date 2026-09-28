@@ -615,3 +615,18 @@
 }
 /* The site's name keeps its own hand in every era */
 .brand { font-family: Tangerine, "Great Vibes", cursive; }
+
+/* ---------------------------------------------------------------- hall accents
+   A hall may take another metal than its era's gold (HallSettings.accent); :root[…] outranks the era blocks */
+:root[data-hall-accent="silver"] { --c-gold-pale: 238 240 244; --c-gold-light: 210 216 226; --c-gold: 174 182 196; --c-gold-dark: 122 130 144; --c-gold-deep: 62 66 76; }
+:root[data-hall-accent="copper"] { --c-gold-pale: 246 208 182; --c-gold-light: 226 164 124; --c-gold: 196 124 82; --c-gold-dark: 146 84 50; --c-gold-deep: 82 44 24; }
+:root[data-hall-accent="crimson"] { --c-gold-pale: 246 196 196; --c-gold-light: 226 132 132; --c-gold: 198 78 78; --c-gold-dark: 146 44 48; --c-gold-deep: 82 22 26; }
+:root[data-hall-accent="emerald"] { --c-gold-pale: 204 238 214; --c-gold-light: 146 210 170; --c-gold: 94 174 124; --c-gold-dark: 58 124 86; --c-gold-deep: 28 66 44; }
+:root[data-hall-accent="sapphire"] { --c-gold-pale: 200 218 248; --c-gold-light: 146 176 234; --c-gold: 98 134 206; --c-gold-dark: 62 90 156; --c-gold-deep: 30 44 88; }
+
+/* The banner a member may put behind their hall's heading */
+.hall-banner {
+  position: absolute; inset: 0; z-index: -1; overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+}
+.hall-banner img { width: 100%; height: 100%; object-fit: cover; opacity: 0.35; }

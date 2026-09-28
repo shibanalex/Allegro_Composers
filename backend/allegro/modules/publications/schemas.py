@@ -37,6 +37,7 @@ class PostFields(BaseModel):
     attachments: Optional[list[Attachment]] = Field(None, max_length=50)
     tags: Optional[list[str]] = None
     opus_id: Optional[uuid.UUID] = None  # a post about a specific opus
+    quote_post_id: Optional[uuid.UUID] = None  # a post quoting another one (a repost with one's own words)
     status: Optional[Status] = None
 
 
@@ -44,6 +45,18 @@ class PostCreate(PostFields):
     kind: Kind
     title: str = Field("", max_length=255)
     content_md: str = ""
+
+
+class PostBrief(ORMModel):
+    """A post as another post shows it: a quotation, a mention"""
+    id: uuid.UUID
+    slug: str
+    kind: str
+    title: str
+    preview: str = ""  # the beginning of the text
+    image_url: Optional[str] = None  # the cover or the first picture
+    created_at: UTCDateTime
+    author: UserBrief
 
 
 class PostOut(ORMModel):
@@ -61,6 +74,7 @@ class PostOut(ORMModel):
     created_at: UTCDateTime
     author: UserBrief
     opus: Optional[OpusBrief] = None
+    quote: Optional[PostBrief] = None
     comment_count: int = 0
 
 

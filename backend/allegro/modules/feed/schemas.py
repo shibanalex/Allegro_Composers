@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from allegro.core.schemas import UTCDateTime
 from allegro.modules.catalog.schemas import OpusOut, PerformanceOut
+from allegro.modules.discussion.schemas import ReactionsOut
 from allegro.modules.publications.schemas import PostOut
 
 FeedKind = Literal["all", "works", "performances", "articles", "blogs"]
@@ -17,6 +18,7 @@ class FeedItem(BaseModel):
     opus: Optional[OpusOut] = None
     performance: Optional[PerformanceOut] = None
     post: Optional[PostOut] = None
+    likes: ReactionsOut = ReactionsOut(count=0, mine=False)
 
 
 class FeedPage(BaseModel):

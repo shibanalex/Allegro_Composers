@@ -118,7 +118,7 @@
         </section>
 
         <section v-if="tags.length" class="card !p-5">
-          <h2 class="eyebrow mb-4">Темы</h2>
+          <h2 class="eyebrow mb-4">Инструменты</h2>
           <div class="flex flex-wrap gap-2">
             <NuxtLink v-for="t in tags" :key="t.value" :to="`/search?q=${encodeURIComponent(t.value)}`" class="chip">
               {{ t.label }}<span class="ml-1.5 text-xs text-parchment-faint">{{ t.count }}</span>
@@ -237,7 +237,7 @@ const { data: side } = await useAsyncData('home-side', async () => {
 const members = computed(() => side.value?.users || [])
 const shownMembers = computed(() => members.value.slice(0, 8))
 const newOpuses = computed(() => side.value?.opuses?.items || [])
-const tags = computed(() => (side.value?.facets?.tags || []).slice(0, 14))
+const tags = computed(() => (side.value?.facets?.instruments || []).slice(0, 14))
 const counts = computed(() => ({ opuses: side.value?.opuses?.total ?? 0, posts: side.value?.posts?.total ?? 0 }))
 
 function activity(m: Profile) {
