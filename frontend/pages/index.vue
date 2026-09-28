@@ -13,7 +13,7 @@
       </p>
     </section>
 
-    <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[13rem_minmax(0,1fr)_20rem]">
+    <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[13rem_minmax(0,1fr)_20rem]">
       <!-- Left: what the feed shows, what one can publish, the community -->
       <aside class="sticky top-28 hidden xl:block">
         <p class="eyebrow mb-3">Лента</p>

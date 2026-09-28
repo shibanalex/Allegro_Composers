@@ -1,6 +1,6 @@
 <template>
   <!-- Rendered markdown; timecodes like 02:15 become buttons that emit `seek` -->
-  <div :class="variant === 'compact' ? 'prose-compact' : 'prose-academia'" @click="onClick" v-html="html" />
+  <div class="[overflow-wrap:anywhere]" :class="variant === 'compact' ? 'prose-compact' : 'prose-academia'" @click="onClick" v-html="html" />
 </template>
 
 <script setup lang="ts">

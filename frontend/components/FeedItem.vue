@@ -53,7 +53,7 @@
         <div class="min-w-0 flex-1">
           <p class="eyebrow text-xs">{{ POST_KINDS[item.post.kind] }}<template v-if="item.post.opus"> · об опусе «{{ item.post.opus.title }}»</template></p>
           <h3 class="mt-1 text-3xl leading-tight transition group-hover:text-gold-light">{{ item.post.title }}</h3>
-          <p class="mt-2 line-clamp-3 font-elegant text-lg italic text-parchment-muted">{{ item.post.excerpt || stripMarkdown(item.post.content_md, 260) }}</p>
+          <p class="mt-2 line-clamp-3 font-elegant text-lg italic text-parchment-muted [overflow-wrap:anywhere]">{{ item.post.excerpt || stripMarkdown(item.post.content_md, 260) }}</p>
           <span class="mt-2 inline-block font-caps text-sm font-semibold tracking-[0.15em] text-gold">Читать →</span>
         </div>
         <div v-if="item.post.cover_url" class="frame frame-thin hidden h-36 w-52 shrink-0 sm:block">
