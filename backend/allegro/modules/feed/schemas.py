@@ -8,7 +8,7 @@ from allegro.modules.catalog.schemas import OpusOut, PerformanceOut
 from allegro.modules.discussion.schemas import CommentPreview, ReactionsOut
 from allegro.modules.publications.schemas import PostOut
 
-FeedKind = Literal["all", "works", "performances", "articles", "blogs"]
+FeedKind = Literal["all", "works", "sketches", "feedback", "performances", "articles", "blogs"]
 
 
 class FeedItem(BaseModel):

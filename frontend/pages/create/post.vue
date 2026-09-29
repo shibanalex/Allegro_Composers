@@ -19,7 +19,7 @@
       </div>
 
       <!-- A review, or a blog post about a work on the site -->
-      <div v-if="form.kind !== 'news'">
+      <div v-if="form.kind !== 'news' && form.kind !== 'sketch'">
         <label class="field-label" for="p-opus">{{ form.kind === 'note' ? 'О каком сочинении запись (необязательно)' : 'Об опусе — если это обзор (необязательно)' }}</label>
         <select id="p-opus" v-model="form.opus_id" class="field">
           <option :value="null">— без опуса —</option>
@@ -63,6 +63,10 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-4 border-t border-gold/15 pt-6">
+        <label v-if="form.kind === 'sketch'" class="flex cursor-pointer items-center gap-2 text-parchment-muted">
+          <input v-model="form.seeking_feedback" type="checkbox" class="accent-[rgb(var(--c-gold))]">
+          Ищу отзыв
+        </label>
         <select v-model="form.status" class="field w-auto">
           <option v-for="(label, v) in STATUSES" :key="v" :value="v">{{ label }}</option>
         </select>
@@ -78,10 +82,11 @@ import type { Attachment, Opus, Page, Post, Uploaded } from '~/utils/types'
 
 definePageMeta({ middleware: 'auth' })
 
-const TITLES = { article: 'Новая статья', note: 'Запись в блог', news: 'Новость', workshop: 'Мастерская' } as const
+const TITLES = { article: 'Новая статья', note: 'Запись в блог', sketch: 'Эскиз', news: 'Новость', workshop: 'Мастерская' } as const
 const PLACEHOLDERS = {
   article: 'Терцовые соотношения в романтической экспозиции',
   note: 'Ноктюрн, который не хотел заканчиваться',
+  sketch: 'Импровизация в ре миноре',
   news: 'В Allegro появились исполнения',
   workshop: 'Послушайте экспозицию моего трио — не проседает ли фактура?',
 } as const
@@ -96,6 +101,7 @@ const kinds = computed(() => {
   if (can('publish_article')) list.push('article')
   if (can('publish_news')) list.push('news')
   if (form.kind === 'workshop') list.push('workshop') // an old thread being edited
+  if (form.kind === 'sketch') return ['sketch'] as Post['kind'][] // a sketch stays a sketch
   return list
 })
 const requested = route.query.kind as Post['kind'] | undefined
@@ -107,6 +113,7 @@ const form = reactive({
   kind: initialKind as Post['kind'],
   title: '', excerpt: '', content_md: '', cover_url: null as string | null,
   attachments: [] as Attachment[], opus_id: null as string | null, status: 'published',
+  seeking_feedback: false,
 })
 const previewing = ref(false)
 const busy = ref(false)
@@ -129,6 +136,7 @@ if (editing) {
   Object.assign(form, {
     kind: post.kind, title: post.title, excerpt: post.excerpt || '', content_md: post.content_md, cover_url: post.cover_url,
     attachments: post.attachments, opus_id: post.opus?.id || null, status: post.status,
+    seeking_feedback: !!post.seeking_feedback,
   })
   original = JSON.parse(JSON.stringify(payload()))
 } else if (typeof route.query.opus === 'string') {

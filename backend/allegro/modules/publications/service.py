@@ -29,7 +29,8 @@ from allegro.modules.publications.schemas import (
 
 # What each kind of publication takes (roles.py)
 KIND_CAPABILITY = {
-    "note": Capability.PUBLISH_NOTE, "article": Capability.PUBLISH_ARTICLE, "news": Capability.PUBLISH_NEWS,
+    "note": Capability.PUBLISH_NOTE, "sketch": Capability.PUBLISH_SKETCH,
+    "article": Capability.PUBLISH_ARTICLE, "news": Capability.PUBLISH_NEWS,
     "workshop": Capability.PUBLISH_NOTE,
 }
 # Links to posts and works in a text: relative or with any host (…/posts/<slug>, …/opus/<slug>)
@@ -98,6 +99,21 @@ def _check_files(user, values: dict, post: Optional[Post] = None) -> None:
         check_url(user.username, values["cover_url"], current)
     for attachment in values.get("attachments") or []:
         check_url(user.username, attachment["url"], current)
+
+
+SKETCH_TITLE = 120
+
+
+def _check_sketch(post_kind: str, title: str, attachments: list, values: dict) -> None:
+    """A sketch is one recording with a short title; the «ищу отзыв» flag belongs to sketches only"""
+    if post_kind != "sketch":
+        values.pop("seeking_feedback", None)
+        return
+    audio = [a for a in attachments if (a.get("content_type") or "").startswith("audio/")]
+    if len(audio) != 1 or len(attachments) != 1:
+        raise Invalid("В эскизе — одна запись: голосом или файлом")
+    if len(title.strip()) > SKETCH_TITLE:
+        raise Invalid(f"Название эскиза — не длиннее {SKETCH_TITLE} знаков")
 
 
 def _check_quote(db: Session, quote_id: Optional[uuid.UUID], post: Optional[Post] = None) -> None:
@@ -178,6 +194,7 @@ def create_post(db: Session, user, data: PostCreate) -> Post:
     _check_quote(db, data.quote_post_id)
     values = data.model_dump(exclude_none=True, mode="json")
     _check_files(user, values)
+    _check_sketch(data.kind, data.title, values.get("attachments") or [], values)
     values["title"] = data.title.strip()
     if data.opus_id:
         values["opus_id"] = data.opus_id
@@ -208,6 +225,9 @@ def update_post(db: Session, user, slug: str, data: PostFields) -> Post:
     for field, value in values.items():
         setattr(post, field, value)
     _check_text(post.kind, post.title or "", post.content_md or "", post.attachments or [], bool(post.quote_post_id or post.opus_id))
+    _check_sketch(post.kind, post.title or "", post.attachments or [], values)
+    if post.kind != "sketch":
+        post.seeking_feedback = False
     if "content_md" in values:
         _save_links(db, post)
     db.commit()
@@ -323,9 +343,12 @@ def count_articles(db: Session, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, in
     return _count(db, user_ids, Post.kind == "article")
 
 
-def recent_posts(db: Session, kinds: list[str], before, limit: int) -> list[Post]:
-    """New posts of the given kinds by visible members, newest first (the feed)"""
+def recent_posts(db: Session, kinds: list[str], before, limit: int, seeking_feedback: bool = False) -> list[Post]:
+    """New posts of the given kinds by visible members, newest first (the feed); or only the sketches
+    whose authors ask for feedback"""
     stmt = select(Post).where(Post.status == "published", Post.kind.in_(kinds), visible_authors(Post.author_id))
+    if seeking_feedback:
+        stmt = stmt.where(Post.seeking_feedback.is_(True))
     if before:
         stmt = stmt.where(Post.created_at < before)
     return list(db.scalars(stmt.order_by(Post.created_at.desc()).limit(limit)).unique())

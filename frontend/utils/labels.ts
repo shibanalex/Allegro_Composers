@@ -46,6 +46,7 @@ export const STATUSES: Record<string, string> = {
 
 export const POST_KINDS: Record<string, string> = {
   note: 'Запись в блоге',
+  sketch: 'Эскиз',
   article: 'Статья',
   news: 'Новости',
   workshop: 'Мастерская',

@@ -6,8 +6,9 @@
       <NuxtLink :to="`/@${author.username}`" class="shrink-0"><UserAvatar :user="author" :size="48" /></NuxtLink>
       <div class="min-w-0 flex-1 leading-tight">
         <NuxtLink :to="`/@${author.username}`" class="font-display text-xl italic text-parchment transition hover:text-gold-light">{{ author.display_name }}</NuxtLink>
-        <p class="truncate text-sm text-parchment-faint">
-          {{ action }} · <time :datetime="item.created_at">{{ when }}</time>
+        <p class="flex flex-wrap items-center gap-x-2 text-sm text-parchment-faint">
+          <span>{{ action }} · <time :datetime="item.created_at">{{ when }}</time></span>
+          <span v-if="item.post?.seeking_feedback" class="border border-gold/50 bg-gold/10 px-2 font-caps text-xs font-semibold tracking-[0.12em] text-gold-light">Ищет отзыв</span>
         </p>
       </div>
       <span class="hidden font-caps text-xs font-semibold tracking-[0.15em] text-gold/70 sm:block">{{ ROLES[author.role || 'listener']?.label }}</span>
@@ -15,6 +16,9 @@
       <div v-if="editLink || canDelete" ref="menuRoot" class="relative">
         <button type="button" class="px-2 text-2xl leading-none text-parchment-faint transition hover:text-gold-light" aria-label="Действия" :aria-expanded="menu" @click="menu = !menu">⋯</button>
         <div v-if="menu" class="absolute right-0 top-full z-30 mt-1 w-44 border border-gold/25 bg-ink-900/95 py-1 shadow-2xl shadow-black backdrop-blur">
+          <button v-if="mine && item.post?.kind === 'sketch'" type="button" class="block w-full px-4 py-2 text-left font-elegant text-lg text-parchment transition hover:bg-gold/10 hover:text-gold-light" @click="toggleFeedback">
+            {{ item.post.seeking_feedback ? 'Отзывов достаточно' : 'Ищу отзыв' }}
+          </button>
           <NuxtLink v-if="editLink" :to="editLink" class="block px-4 py-2 font-elegant text-lg text-parchment transition hover:bg-gold/10 hover:text-gold-light">Изменить</NuxtLink>
           <button v-if="canDelete" type="button" class="block w-full px-4 py-2 text-left font-elegant text-lg text-parchment transition hover:bg-gold/10 hover:text-red-300" @click="remove">Удалить</button>
         </div>
@@ -56,6 +60,13 @@
 
       <!-- A performance -->
       <PerformanceCard v-else-if="item.performance" :performance="item.performance" bare />
+
+      <!-- A sketch: a short title, one recording, a line of text -->
+      <template v-else-if="item.post && item.post.kind === 'sketch'">
+        <NuxtLink :to="`/posts/${item.post.slug}`" class="font-display text-2xl leading-tight text-parchment transition hover:text-gold-light">{{ item.post.title }}</NuxtLink>
+        <audio v-for="a in audios" :key="a.url" :src="a.url" controls preload="metadata" class="mt-3 w-full" />
+        <p v-if="item.post.content_md" class="mt-3 font-elegant text-lg italic text-parchment-muted [overflow-wrap:anywhere]">{{ item.post.content_md }}</p>
+      </template>
 
       <!-- An article, a review, the site's news -->
       <NuxtLink v-else-if="item.post && item.post.kind !== 'note'" :to="`/posts/${item.post.slug}`" class="group flex gap-5">
@@ -178,6 +189,12 @@ async function remove() {
     alert(apiError(e))
   }
 }
+async function toggleFeedback() {
+  menu.value = false
+  const post = props.item.post!
+  const saved = await api<{ seeking_feedback: boolean }>(`/api/posts/${post.slug}`, { method: 'PATCH', body: { seeking_feedback: !post.seeking_feedback } })
+  post.seeking_feedback = saved.seeking_feedback
+}
 const onDocClick = (e: MouseEvent) => {
   if (menuRoot.value && !menuRoot.value.contains(e.target as Node)) menu.value = false
 }
@@ -190,7 +207,7 @@ const targetId = computed(() => (props.item.opus || props.item.performance || pr
 const discussion = computed(() => {
   const { post, opus } = props.item
   const n = post ? post.comment_count : opus ? opus.critique_count : 0
-  const label = n ? `${n} ${plural(n, 'комментарий', 'комментария', 'комментариев')}` : 'Обсудить'
+  const label = n ? `${n} ${plural(n, 'комментарий', 'комментария', 'комментариев')}` : post?.seeking_feedback ? 'Оставить отзыв' : 'Обсудить'
   if (post) return { target: { post_id: post.id }, title: 'Комментарии', label }
   if (opus) return { target: { opus_id: opus.id }, title: 'Комментарии', label }
   return null
@@ -220,6 +237,7 @@ const action = computed(() => {
   if (props.item.opus) return 'новое сочинение'
   if (props.item.performance) return 'новое исполнение'
   const kind = props.item.post?.kind
+  if (kind === 'sketch') return 'эскиз'
   return kind === 'article' ? (props.item.post?.opus ? 'обзор' : 'статья') : kind === 'news' ? 'новости сообщества' : 'запись в блоге'
 })
 

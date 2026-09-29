@@ -119,7 +119,7 @@ export interface Reactions { count: number; mine: boolean }
 export interface Post {
   id: string
   slug: string
-  kind: 'article' | 'note' | 'news' | 'workshop'
+  kind: 'article' | 'note' | 'sketch' | 'news' | 'workshop'
   title: string
   excerpt?: string | null
   content_md: string
@@ -132,6 +132,8 @@ export interface Post {
   author: UserBrief
   opus?: OpusBrief | null
   quote?: PostBrief | null
+  /** Sketches: the author asks for feedback */
+  seeking_feedback?: boolean
   comment_count: number
 }
 

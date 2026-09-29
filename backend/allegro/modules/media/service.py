@@ -91,7 +91,11 @@ async def save_uploads(files: list[UploadFile], purpose: str, username: str) -> 
                 saved.append(await _save_picture(file, purpose, username))
                 continue
             # Every upload goes to the uploader's own folder: that is what proves ownership later (core.files)
-            saved.append(await storage.save_upload(file, f"{purpose}s/{username}"))
+            item = await storage.save_upload(file, f"{purpose}s/{username}")
+            # .webm/.mp4 are «video» by their extension; a voice note recorded in the browser is audio
+            if purpose == "audio" and item["content_type"].startswith("video/"):
+                item["content_type"] = "audio/" + item["content_type"].split("/", 1)[1]
+            saved.append(item)
         except UploadTooLarge as e:
             raise PayloadTooLarge(str(e))
     return saved

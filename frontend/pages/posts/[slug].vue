@@ -39,6 +39,12 @@
       <div class="frame-inner"><img :src="post.cover_url" :alt="heading" class="max-h-[70vh] w-full object-cover"></div>
     </figure>
 
+    <!-- A sketch's recording (and any audio attached to a post) plays right here -->
+    <div v-if="audios.length" class="mx-auto mb-10 max-w-prose space-y-3">
+      <p v-if="post.seeking_feedback" class="text-center"><span class="border border-gold/50 bg-gold/10 px-3 py-1 font-caps text-sm font-semibold tracking-[0.12em] text-gold-light">Автор ищет отзыв</span></p>
+      <audio v-for="a in audios" :key="a.url" :src="a.url" controls preload="metadata" class="w-full" />
+    </div>
+
     <article class="mx-auto max-w-prose">
       <MarkdownContent :text="post.content_md" :timecodes="!!post.opus" :class="{ dropcap: post.kind === 'article' }" @seek="seek" />
       <QuoteCard v-if="post.quote" :post="post.quote" class="mt-8" />
@@ -107,7 +113,9 @@ const sharing = ref(false)
 const heading = computed(() => post.value?.title || `Запись от ${formatDate(post.value?.created_at)}`)
 const isAuthor = computed(() => user.value?.id === post.value?.author.id)
 const images = computed(() => (post.value?.attachments || []).filter(isImage))
-const files = computed(() => (post.value?.attachments || []).filter((a) => !isImage(a)))
+const isAudio = (a: { content_type?: string | null }) => !!a.content_type?.startsWith('audio/')
+const audios = computed(() => (post.value?.attachments || []).filter(isAudio))
+const files = computed(() => (post.value?.attachments || []).filter((a) => !isImage(a) && !isAudio(a)))
 
 useSeoMeta({
   title: () => `${heading.value} — Allegro`,

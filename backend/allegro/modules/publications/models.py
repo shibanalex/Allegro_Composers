@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from allegro.core.db import Base
@@ -21,7 +21,7 @@ class Post(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    kind: Mapped[str] = mapped_column(String(20), index=True)  # note | article | news | workshop
+    kind: Mapped[str] = mapped_column(String(20), index=True)  # note | sketch | article | news | workshop
     title: Mapped[str] = mapped_column(String(255))
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     excerpt: Mapped[Optional[str]] = mapped_column(String(512))
@@ -33,6 +33,8 @@ class Post(Base):
     # A post quoting another one, like a repost with one's own words; the quoted post may disappear later
     quote_post_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("posts.id", ondelete="SET NULL"), index=True)
     status: Mapped[str] = mapped_column(String(20), default="published", index=True)
+    # A sketch whose author asks for feedback (only sketches have it)
+    seeking_feedback: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     view_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

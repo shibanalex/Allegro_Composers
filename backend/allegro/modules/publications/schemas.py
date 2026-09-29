@@ -9,13 +9,14 @@ from allegro.core.schemas import Attachment, ORMModel, UTCDateTime
 from allegro.modules.accounts.schemas import UserBrief
 from allegro.modules.catalog.schemas import OpusBrief
 
-# note: a blog post (everyone) · article: an article or review (composers, theorists) · news: the site's news
-# (administrators) · workshop: an old review request, kept for existing threads
-Kind = Literal["article", "note", "news", "workshop"]
+# note: a blog post (everyone) · sketch: a quick recording with a short title (composers) · article: an article
+# or review (composers, theorists) · news: the site's news (administrators) · workshop: an old review request
+Kind = Literal["article", "note", "sketch", "news", "workshop"]
 Status = Literal["published", "draft", "unlisted"]
 
 POST_KINDS = {
     "note": "Запись в блоге",
+    "sketch": "Эскиз",
     "article": "Статья",
     "news": "Новости",
     "workshop": "Мастерская",
@@ -38,6 +39,7 @@ class PostFields(BaseModel):
     tags: Optional[list[str]] = None
     opus_id: Optional[uuid.UUID] = None  # a post about a specific opus
     quote_post_id: Optional[uuid.UUID] = None  # a post quoting another one (a repost with one's own words)
+    seeking_feedback: Optional[bool] = None  # sketches: «ищу отзыв»
     status: Optional[Status] = None
 
 
@@ -75,6 +77,7 @@ class PostOut(ORMModel):
     author: UserBrief
     opus: Optional[OpusBrief] = None
     quote: Optional[PostBrief] = None
+    seeking_feedback: bool = False
     comment_count: int = 0
 
 

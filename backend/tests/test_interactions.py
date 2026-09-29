@@ -167,3 +167,32 @@ def test_memory_cache_expires_and_stays_bounded():
     assert c.get_many(["gone"]) == {}
     c.set_many({"c": 1, "d": 2, "e": 3}, ttl=60)  # over the limit: starts afresh
     assert len(c.get_many(["a", "b", "c", "d", "e"])) <= 3
+
+
+
+# ---------------------------------------------------------------- sketches
+
+def test_sketches_are_quick_recordings_that_may_ask_for_feedback(author, composer, reader):
+    voice = upload(composer, "voice.webm", b"\x1aE\xdf\xa3 webm", "audio/webm", "audio")
+    assert voice["content_type"] == "audio/webm"  # a browser recording is audio, not video
+    note = {"url": voice["url"], "name": "voice.webm", "content_type": voice["content_type"], "size": 9}
+    body = {"kind": "sketch", "title": "Импровизация в ре миноре", "attachments": [note], "seeking_feedback": True}
+
+    # composers only; one recording; a short title
+    assert client.post("/api/posts", headers=author, json=body).status_code == 403  # a theorist
+    assert client.post("/api/posts", headers=composer, json={**body, "attachments": []}).status_code == 422
+    assert client.post("/api/posts", headers=composer, json={**body, "title": "x" * 121}).status_code == 422
+    r = client.post("/api/posts", headers=composer, json=body)
+    assert r.status_code == 201 and r.json()["seeking_feedback"] is True
+    sketch = r.json()
+
+    def feed(kind):
+        return [i["post"]["id"] for i in client.get("/api/feed", params={"kind": kind}).json()["items"] if i.get("post")]
+
+    assert sketch["id"] in feed("sketches") and sketch["id"] in feed("feedback") and sketch["id"] in feed("all")
+    # enough feedback: the author takes the flag off
+    client.patch(f"/api/posts/{sketch['slug']}", headers=composer, json={"seeking_feedback": False})
+    assert sketch["id"] not in feed("feedback") and sketch["id"] in feed("sketches")
+    # the flag belongs to sketches only
+    note_post = client.post("/api/posts", headers=reader, json={"kind": "note", "content_md": "x", "seeking_feedback": True}).json()
+    assert note_post["seeking_feedback"] is False

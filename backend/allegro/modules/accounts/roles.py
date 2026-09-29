@@ -5,7 +5,7 @@ Every action that changes something is a *capability*. A member's capabilities a
 - what every member may do (comment, like, keep a blog, share materials);
 - what their musical role adds — the role is the member's own choice, at registration or later:
 
-      composer   — works (opuses), articles
+      composer   — works (opuses), sketches, articles
       theorist   — articles and reviews (musicologists)
       performer  — performances
       listener   — nothing more: listens, reads, discusses
@@ -47,6 +47,7 @@ class Capability(StrEnum):
     PUBLISH_OPUS = "publish_opus"
     PUBLISH_ARTICLE = "publish_article"
     PUBLISH_PERFORMANCE = "publish_performance"
+    PUBLISH_SKETCH = "publish_sketch"  # a quick voice note or improvisation
     # staff
     MODERATE = "moderate"
     INVITE = "invite"
@@ -57,7 +58,7 @@ class Capability(StrEnum):
 EVERY_MEMBER = frozenset({Capability.COMMENT, Capability.REACT, Capability.PUBLISH_NOTE, Capability.SHARE_MATERIAL})
 
 CAPABILITIES: dict[Role, frozenset[Capability]] = {
-    Role.COMPOSER: EVERY_MEMBER | {Capability.PUBLISH_OPUS, Capability.PUBLISH_ARTICLE},
+    Role.COMPOSER: EVERY_MEMBER | {Capability.PUBLISH_OPUS, Capability.PUBLISH_ARTICLE, Capability.PUBLISH_SKETCH},
     Role.THEORIST: EVERY_MEMBER | {Capability.PUBLISH_ARTICLE},
     Role.PERFORMER: EVERY_MEMBER | {Capability.PUBLISH_PERFORMANCE},
     Role.LISTENER: EVERY_MEMBER,
@@ -76,6 +77,7 @@ CAPABILITY_LABELS = {
     Capability.PUBLISH_OPUS: "Публиковать сочинения",
     Capability.PUBLISH_ARTICLE: "Писать статьи и обзоры",
     Capability.PUBLISH_PERFORMANCE: "Публиковать исполнения",
+    Capability.PUBLISH_SKETCH: "Выкладывать эскизы",
     Capability.MODERATE: "Модерировать",
     Capability.INVITE: "Приглашать участников",
     Capability.PUBLISH_NEWS: "Публиковать новости",
@@ -90,6 +92,7 @@ CAPABILITY_REFUSALS = {
     Capability.PUBLISH_OPUS: "Публиковать сочинения могут композиторы — роль меняется в «Оформить зал»",
     Capability.PUBLISH_ARTICLE: "Статьи пишут композиторы и теоретики — роль меняется в «Оформить зал»",
     Capability.PUBLISH_PERFORMANCE: "Исполнения публикуют исполнители — роль меняется в «Оформить зал»",
+    Capability.PUBLISH_SKETCH: "Эскизы выкладывают композиторы — роль меняется в «Оформить зал»",
     Capability.MODERATE: "Только для модераторов",
     Capability.INVITE: "Приглашать могут администраторы",
     Capability.PUBLISH_NEWS: "Новости публикуют администраторы",

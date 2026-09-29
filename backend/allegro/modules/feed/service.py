@@ -17,13 +17,15 @@ from allegro.modules.publications.service import posts_out, recent_posts
 
 # What each tab of the feed shows
 SOURCES = {
-    "all": ("opuses", "performances", "articles", "blogs", "news"),
+    "all": ("opuses", "sketches", "performances", "articles", "blogs", "news"),
     "works": ("opuses",),
+    "sketches": ("sketches",),
+    "feedback": ("sketches",),  # only the sketches that ask for feedback
     "performances": ("performances",),
     "articles": ("articles",),
     "blogs": ("blogs",),
 }
-POST_SOURCES = (("article", "articles"), ("note", "blogs"), ("news", "news"))
+POST_SOURCES = (("sketch", "sketches"), ("article", "articles"), ("note", "blogs"), ("news", "news"))
 
 
 def _aware(value: datetime) -> datetime:
@@ -58,7 +60,7 @@ def feed(db: Session, kind: str, before: Optional[datetime], limit: int, user=No
     post_kinds = [kind_ for kind_, source in POST_SOURCES if source in sources]
     if post_kinds:
         items += [FeedItem(type="post", created_at=p.created_at, post=p)
-                  for p in posts_out(db, recent_posts(db, post_kinds, before, limit))]
+                  for p in posts_out(db, recent_posts(db, post_kinds, before, limit, seeking_feedback=kind == "feedback"))]
     items.sort(key=lambda item: _aware(item.created_at), reverse=True)
     page = items[:limit]
     _with_likes(db, page, user)

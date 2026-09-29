@@ -34,6 +34,7 @@
         <template v-if="user">
           <p class="eyebrow mb-3 mt-8">Опубликовать</p>
           <div class="flex flex-col gap-2">
+            <button v-if="can('publish_sketch')" type="button" class="btn-secondary justify-start px-4 py-1.5 text-sm" @click="startSketch">+ Эскиз</button>
             <NuxtLink v-for="c in creates" :key="c.to" :to="c.to" class="btn-secondary justify-start px-4 py-1.5 text-sm">{{ c.label }}</NuxtLink>
           </div>
         </template>
@@ -64,8 +65,12 @@
           </button>
         </nav>
         <div v-if="user" class="mb-6 flex flex-wrap justify-center gap-2 xl:hidden">
+          <button v-if="can('publish_sketch')" type="button" class="btn-secondary px-4 py-1.5 text-sm" @click="startSketch">+ Эскиз</button>
           <NuxtLink v-for="c in creates" :key="c.to" :to="c.to" class="btn-secondary px-4 py-1.5 text-sm">{{ c.label }}</NuxtLink>
         </div>
+
+        <!-- A sketch in a minute, right above the feed -->
+        <SketchComposer v-if="sketching" ref="sketchPanel" class="mb-6" @close="sketching = false" @published="onSketch" />
 
         <EmptyState v-if="!items.length && !loading">{{ EMPTY[kind] }}</EmptyState>
         <div class="space-y-6" :class="{ 'opacity-60 transition': loading && !items.length }">
@@ -132,10 +137,12 @@ useSeoMeta({
   description: 'Сообщество композиторов, теоретиков и исполнителей: новые сочинения с партитурами и записями, исполнения, статьи и блоги.',
 })
 
-type Kind = 'all' | 'works' | 'performances' | 'articles' | 'blogs'
+type Kind = 'all' | 'works' | 'sketches' | 'feedback' | 'performances' | 'articles' | 'blogs'
 const FILTERS: { id: Kind; label: string; icon: string }[] = [
   { id: 'all', label: 'Всё', icon: '✦' },
   { id: 'works', label: 'Сочинения', icon: '♪' },
+  { id: 'sketches', label: 'Эскизы', icon: '✐' },
+  { id: 'feedback', label: 'Ждут отзыва', icon: '?' },
   { id: 'performances', label: 'Исполнения', icon: '♫' },
   { id: 'articles', label: 'Статьи и обзоры', icon: '§' },
   { id: 'blogs', label: 'Блоги', icon: '✎' },
@@ -143,6 +150,8 @@ const FILTERS: { id: Kind; label: string; icon: string }[] = [
 const EMPTY: Record<Kind, string> = {
   all: 'В залах пока тихо',
   works: 'Новых сочинений пока нет',
+  sketches: 'Эскизов пока нет',
+  feedback: 'Сейчас никто не ждёт отзыва',
   performances: 'Исполнений пока нет',
   articles: 'Статей пока нет',
   blogs: 'Записей пока нет',
@@ -169,11 +178,25 @@ const valid = (v: unknown): Kind => (FILTERS.some((f) => f.id === v) ? (v as Kin
 const kind = ref<Kind>(valid(route.query.feed))
 
 interface FeedPage { items: FeedEntry[]; next_before: string | null }
-const { data, pending } = await useAsyncData(
+const { data, pending, refresh } = await useAsyncData(
   'feed',
   () => api<FeedPage>('/api/feed', { params: { kind: kind.value, limit: 15 } }),
   { watch: [kind] },
 )
+
+// ---- «+ Эскиз»: the recorder opens above the feed; a published sketch appears at once
+const sketching = ref(false)
+const sketchPanel = ref<{ $el: HTMLElement }>()
+async function startSketch() {
+  sketching.value = true
+  await nextTick()
+  sketchPanel.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+async function onSketch() {
+  extra.value = []
+  cursor.value = null
+  await refresh()
+}
 const extra = ref<FeedEntry[]>([])
 const cursor = ref<string | null>(null)
 const keyOf = (item: FeedEntry) => `${item.type}-${item.opus?.id || item.performance?.id || item.post?.id}`
