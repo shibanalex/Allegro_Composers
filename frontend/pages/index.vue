@@ -4,7 +4,7 @@
     <section class="relative flex flex-col items-center px-6 pb-8 pt-8 text-center">
       <div class="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[20rem] w-[20rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--c-gold)/0.14),transparent_65%)] blur-2xl" />
       <p class="eyebrow animate-fade-up">Сообщество композиторов</p>
-      <h1 class="title-script brand animate-fade-up text-[4.5rem] leading-tight sm:text-[6rem]" style="animation-delay: .1s">Allegro</h1>
+      <h1 class="title-script brand animate-fade-up leading-tight [--brand:3.2rem] sm:[--brand:4.4rem]" style="animation-delay: .1s">Allegro</h1>
       <Ornament class="-mt-2 w-48 animate-fade-up" style="animation-delay: .2s" />
       <p class="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-1 font-elegant text-lg italic text-parchment-muted animate-fade-up" style="animation-delay: .3s">
         <span>{{ members.length }} {{ plural(members.length, 'участник', 'участника', 'участников') }}</span>

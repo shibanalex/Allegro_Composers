@@ -623,7 +623,44 @@
   filter: none;
 }
 /* The site's name keeps its own hand in every era */
-.brand { font-family: Tangerine, "Great Vibes", cursive; }
+/* The «Allegro» logo: its own face in every era. Where it stands says how big it is (--brand);
+   each era scales it (--brand-scale), since a narrow script and wide Roman capitals differ a lot. */
+.brand {
+  font-family: "Bodoni Moda", "Old Standard TT", Georgia, serif; /* romanticism: the high-contrast type of the time */
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(var(--brand, 2.5rem) * var(--brand-scale, 1));
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  /* Bodoni's display cut has hair-thin strokes that vanish in gold; the text cut keeps them visible */
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 16;
+  /* a lighter gilding than headings get: the type's hairlines must not sink into a dark band */
+  background-image: linear-gradient(172deg, rgb(var(--c-gold-pale)) 0%, rgb(var(--c-gold-light)) 30%, rgb(var(--c-gold)) 58%, rgb(var(--c-gold-light)) 82%, rgb(var(--c-gold)) 100%);
+}
+[data-hall-theme="baroque"] .brand {
+  font-family: "Cinzel Decorative", Prata, serif; /* Roman inscriptional capitals */
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  --brand-scale: 0.72;
+}
+[data-hall-theme="modern"] .brand {
+  font-family: "Alex Brush", Kurale, cursive; /* a flowing brush line of the Art Nouveau posters */
+  font-style: normal;
+  font-weight: 400;
+  --brand-scale: 1.3;
+}
+[data-hall-theme="avantgarde"] .brand {
+  font-family: Oswald, "Arial Narrow", sans-serif; /* a narrow poster grotesque, in capitals */
+  font-style: normal;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: none;
+  color: rgb(var(--c-gold));
+  --brand-scale: 0.9;
+}
 
 /* ---------------------------------------------------------------- hall accents
    A hall may take another metal than its era's gold (HallSettings.accent); :root[…] outranks the era blocks */

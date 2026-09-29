@@ -82,8 +82,8 @@ export const FEEDBACK_STATUSES: Record<string, string> = {
 
 /** Google Fonts of each hall era (romanticism is the site's own set, always loaded) */
 export const THEME_FONTS: Record<string, string[]> = {
-  baroque: ['Prata', 'Alegreya:ital,wght@0,400;0,500;0,700;1,400;1,500', 'Playfair+Display+SC:wght@400;700'],
-  modern: ['Kurale', 'Philosopher:ital,wght@0,400;0,700;1,400'],
+  baroque: ['Prata', 'Alegreya:ital,wght@0,400;0,500;0,700;1,400;1,500', 'Playfair+Display+SC:wght@400;700', 'Cinzel+Decorative:wght@900'],
+  modern: ['Kurale', 'Philosopher:ital,wght@0,400;0,700;1,400', 'Alex+Brush'],
   avantgarde: ['Oswald:wght@400;500;600', 'Jost:ital,wght@0,400;0,500;1,400'],
 }
 export const themeFontsUrl = (families: string[]) =>
