@@ -2,14 +2,16 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from allegro.core.db import get_db
 from allegro.core.errors import NotFound
 from allegro.core.security import create_access_token
 from allegro.modules.accounts import service
-from allegro.modules.accounts.deps import client_address, get_admin, get_current_user, require
+from allegro.modules.accounts.deps import (
+    clear_login_cookie, client_address, get_admin, get_current_user, require, set_login_cookie,
+)
 from allegro.modules.accounts.models import AccessLink, User
 from allegro.modules.accounts.roles import Capability, matrix, user_capabilities
 from allegro.modules.accounts.schemas import (
@@ -32,8 +34,9 @@ def _me(db: Session, user: User) -> MeOut:
     )
 
 
-def _token(db: Session, user: User) -> TokenOut:
-    return TokenOut(access_token=create_access_token(user.id, user.session_version), user=_me(db, user))
+def _token(db: Session, user: User, request: Request, response: Response) -> TokenOut:
+    set_login_cookie(request, response, create_access_token(user.id, user.session_version))
+    return TokenOut(user=_me(db, user))
 
 
 def _link_out(link: AccessLink, token: Optional[str] = None) -> AccessLinkOut:
@@ -55,20 +58,26 @@ def site_config(db: Session = Depends(get_db)):
 
 
 @router.post("/api/auth/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
-def register(data: RegisterIn, request: Request, db: Session = Depends(get_db)):
-    return _token(db, service.register(db, data, client_address(request)))
+def register(data: RegisterIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    return _token(db, service.register(db, data, client_address(request)), request, response)
 
 
 @router.post("/api/auth/setup", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
-def first_setup(data: SetupIn, request: Request, db: Session = Depends(get_db)):
+def first_setup(data: SetupIn, request: Request, response: Response, db: Session = Depends(get_db)):
     """The very first account of a fresh site, created with the SETUP_TOKEN code from the hosting settings.
     Once any account exists this is closed for good."""
-    return _token(db, service.setup(db, data, client_address(request)))
+    return _token(db, service.setup(db, data, client_address(request)), request, response)
 
 
 @router.post("/api/auth/login", response_model=TokenOut)
-def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
-    return _token(db, service.login(db, data.login, data.password, client_address(request)))
+def login(data: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    return _token(db, service.login(db, data.login, data.password, client_address(request)), request, response)
+
+
+@router.post("/api/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response):
+    """Signing out of this browser: the login cookie is removed"""
+    clear_login_cookie(response)
 
 
 @router.get("/api/auth/me", response_model=MeOut)
@@ -83,8 +92,8 @@ def check_link(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/api/auth/reset", response_model=TokenOut)
-def reset_password(data: ResetIn, request: Request, db: Session = Depends(get_db)):
-    return _token(db, service.reset_password(db, data.token, data.password, client_address(request)))
+def reset_password(data: ResetIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    return _token(db, service.reset_password(db, data.token, data.password, client_address(request)), request, response)
 
 
 # ---------------------------------------------------------------- profiles
@@ -103,15 +112,16 @@ def update_me(data: ProfileUpdate, user: User = Depends(get_current_user), db: S
 
 
 @router.post("/api/users/me/password", response_model=TokenOut)
-def change_password(data: PasswordChangeIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def change_password(data: PasswordChangeIn, request: Request, response: Response, user: User = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
     """A new password signs out every other device; this one gets a fresh token"""
-    return _token(db, service.change_password(db, user, data.current_password, data.new_password))
+    return _token(db, service.change_password(db, user, data.current_password, data.new_password), request, response)
 
 
 @router.post("/api/users/me/sessions/revoke", response_model=TokenOut)
-def sign_out_everywhere(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def sign_out_everywhere(request: Request, response: Response, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """«Выйти на всех устройствах»: every other login stops working; this one gets a fresh token"""
-    return _token(db, service.revoke_sessions(db, user))
+    return _token(db, service.revoke_sessions(db, user), request, response)
 
 
 @router.get("/api/users/{username}", response_model=ProfileOut)

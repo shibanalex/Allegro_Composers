@@ -32,7 +32,7 @@ GitHub (main) ──push──► Render: сборка Dockerfile ──► ко
 `REDIS_URL` — адрес Redis для кеша последних комментариев (Render → New → Key Value → Free, взять
 «Internal Key Value URL» вида `redis://red-…:6379`). Без него кеш живёт в памяти сервера.
 
-Необязательные: `WRITE_REQUESTS_PER_MINUTE`, `SEARCH_REQUESTS_PER_MINUTE`, `MAX_UPLOAD_MB`,
+Необязательные: `UPLOAD_DAILY_MB` (сколько участник может загрузить за сутки, 1024), `WRITE_REQUESTS_PER_MINUTE`, `SEARCH_REQUESTS_PER_MINUTE`, `MAX_UPLOAD_MB`,
 `INVITE_TTL_DAYS`, `RESET_LINK_TTL_HOURS`, `EMAIL_ENCRYPTION_KEY`.
 
 ## Бакет Yandex Object Storage
@@ -52,6 +52,7 @@ GitHub (main) ──push──► Render: сборка Dockerfile ──► ко
 1. Купить домен (Reg.ru, RU-CENTER, Timeweb, Beget — российская карта).
 2. Render → Settings → Custom Domains → добавить; вписать показанные записи DNS у регистратора.
 3. `NUXT_PUBLIC_SITE_URL=https://домен` — старый адрес `…onrender.com` будет переадресовывать.
+4. `SITE_URL=https://домен` — тот же адрес для сервера: по нему проверяются запросы старых браузеров (защита от CSRF).
 4. Заново подтвердить сайт в Яндекс.Вебмастере и Google Search Console, добавить `/sitemap.xml`.
 5. Сузить CORS бакета до домена. Хороший момент перенести сервис в регион Frankfurt (docs/SCALING.md).
 

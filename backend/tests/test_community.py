@@ -1,7 +1,7 @@
 """Roles, invitations, administration, performances, the showcase, site pages and suggestions"""
 import pytest
 
-from tests.support import client, create_opus, login, register, set_user, upload
+from tests.support import client, create_opus, login, register, set_user, token_of, upload
 
 
 MEMBERS = ["mira", "ivan_theory", "vera_violin", "sam_listens", "new_one", "petr_cello"]
@@ -244,12 +244,12 @@ def test_new_password_signs_out_other_devices():
     laptop = login("olga_harp")
     r = client.post("/api/users/me/password", headers=laptop, json={"current_password": "secret-pass", "new_password": "another-pass"})
     assert r.status_code == 200
-    fresh = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    fresh = {"Authorization": f"Bearer {token_of(r)}"}
     assert client.get("/api/auth/me", headers=phone).status_code == 401  # the other device is signed out
     assert client.get("/api/auth/me", headers=fresh).status_code == 200
     r = client.post("/api/users/me/sessions/revoke", headers=fresh)
     assert client.get("/api/auth/me", headers=fresh).status_code == 401
-    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).status_code == 200
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {token_of(r)}"}).status_code == 200
     set_user("olga_harp", is_hidden=True)
 
 

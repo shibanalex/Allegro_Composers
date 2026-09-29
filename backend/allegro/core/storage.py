@@ -172,10 +172,12 @@ class S3Storage(_BaseStorage):
         )
 
     def _put(self, key: str, stream: BinaryIO) -> None:
-        self.client.upload_fileobj(
-            stream, self.bucket, key,
-            ExtraArgs={"ContentType": content_type_for(key), "CacheControl": "public, max-age=604800"},
-        )
+        content_type = content_type_for(key)
+        extra = {"ContentType": content_type, "CacheControl": "public, max-age=604800"}
+        # Attachments are downloaded rather than opened (pictures, audio and PDF are shown as they are)
+        if key.startswith("attachments/") and not content_type.startswith(("image/", "audio/", "application/pdf")):
+            extra["ContentDisposition"] = "attachment"
+        self.client.upload_fileobj(stream, self.bucket, key, ExtraArgs=extra)
 
     def read_bytes(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.bucket, Key=self._check_key(key))["Body"].read()

@@ -197,8 +197,8 @@ class MeOut(ProfileOut):
 
 
 class TokenOut(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    """After signing in: the member; the login token itself is in an HttpOnly cookie, never in the answer
+    (a script injected into a page could read an answer, not that cookie)"""
     user: MeOut
 
 

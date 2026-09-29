@@ -1,6 +1,6 @@
 import type { Me, SiteConfig } from '~/utils/types'
 
-interface TokenOut { access_token: string; user: Me }
+interface TokenOut { user: Me }
 
 export interface JoinBody {
   username: string
@@ -16,15 +16,11 @@ export function useAuth() {
   const user = useState<Me | null>('auth-user', () => null)
   // How people join (by invitation for now) and whether a fresh site still needs its first account
   const config = useState<SiteConfig | null>('auth-config', () => null)
-  const token = useCookie<string | null>(TOKEN_COOKIE, {
-    maxAge: 60 * 60 * 24 * 14,
-    sameSite: 'lax',
-    secure: import.meta.client && location.protocol === 'https:',
-  })
+  // The login itself is an HttpOnly cookie set by the API; this readable marker only says «someone is signed in»
+  const session = useCookie<string | null>('allegro_session')
   const api = useApi()
 
   const accept = (result: TokenOut) => {
-    token.value = result.access_token
     user.value = result.user
   }
 
@@ -46,11 +42,10 @@ export function useAuth() {
       }
     },
     async fetchMe() {
-      if (!token.value) return (user.value = null)
+      if (!session.value) return (user.value = null)
       try {
         user.value = await api<Me>('/api/auth/me')
       } catch {
-        token.value = null
         user.value = null
       }
     },
@@ -74,8 +69,11 @@ export function useAuth() {
     async signOutEverywhere() {
       accept(await api<TokenOut>('/api/users/me/sessions/revoke', { method: 'POST' }))
     },
-    logout() {
-      token.value = null
+    async logout() {
+      try {
+        await api('/api/auth/logout', { method: 'POST' })
+      } catch {}
+      session.value = null
       user.value = null
     },
   }

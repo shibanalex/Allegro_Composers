@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 import allegro.models  # noqa: F401  (every table on the metadata before the first query)
 from allegro.core.config import settings
 from allegro.core.errors import register_error_handlers
-from allegro.core.ratelimit import RequestLimiter
+from allegro.core.ratelimit import RequestLimiter, client_ip
 from allegro.core.storage import storage
 from allegro.modules.accounts import api as accounts_api
 from allegro.modules.accounts import service as accounts
@@ -69,7 +69,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def flood_protection(request: Request, call_next):
-        client = request.client.host if request.client else ""
+        client = client_ip(request)
         path = request.url.path
         limiter = SEARCH_LIMIT if path == "/api/search" else WRITE_LIMIT if request.method in {"POST", "PUT", "PATCH", "DELETE"} else None
         if limiter and not limiter.allow(client):

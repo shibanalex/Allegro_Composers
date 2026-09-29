@@ -1,15 +1,18 @@
-export const TOKEN_COOKIE = 'allegro_token'
-
-/** $fetch bound to the API: same-origin in the browser, the internal address during SSR; adds the JWT. */
+/**
+ * $fetch bound to the API: same-origin in the browser, the internal address during SSR.
+ *
+ * Signing in is an HttpOnly cookie that the API sets itself: page scripts never see the token. The browser
+ * sends the cookie with every request to the site; the server rendering passes the visitor's cookie on.
+ */
 export function useApi() {
   const config = useRuntimeConfig()
-  const token = useCookie<string | null>(TOKEN_COOKIE)
+  const cookie = import.meta.server ? useRequestHeaders(['cookie']).cookie : undefined
   return $fetch.create({
     baseURL: import.meta.server ? config.apiInternal : '',
     onRequest({ options }) {
-      if (!token.value) return
+      if (!cookie) return
       const headers = new Headers(options.headers as HeadersInit | undefined)
-      headers.set('Authorization', `Bearer ${token.value}`)
+      headers.set('cookie', cookie)
       options.headers = headers
     },
   })

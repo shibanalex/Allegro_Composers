@@ -1,4 +1,5 @@
 """Shared test setup: an isolated database and media folder, the application, and helpers"""
+import http.cookiejar
 import os
 import tempfile
 
@@ -24,6 +25,13 @@ from allegro.main import app
 command.upgrade(Config("alembic.ini"), "head")
 
 client = TestClient(app)
+# Every test says who it is with an explicit header; a cookie jar would make «anonymous» requests signed in
+client.cookies.jar.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
+
+
+def token_of(response) -> str:
+    """The login token the API put into its HttpOnly cookie"""
+    return response.cookies["allegro_token"]
 
 PDF = b"%PDF-1.4 fake score"
 
@@ -34,7 +42,7 @@ def register(username, display_name=None, role="composer", **extra):
         "display_name": display_name or username.title(), "role": role, **extra,
     })
     assert r.status_code == 201, r.text
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+    return {"Authorization": f"Bearer {token_of(r)}"}
 
 
 def picture(width=1200, height=600, fmt="PNG") -> bytes:
@@ -74,4 +82,4 @@ def set_user(username, **values):
 def login(username, password="secret-pass"):
     r = client.post("/api/auth/login", json={"login": username, "password": password})
     assert r.status_code == 200, r.text
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+    return {"Authorization": f"Bearer {token_of(r)}"}

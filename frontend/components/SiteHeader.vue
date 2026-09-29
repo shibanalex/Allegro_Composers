@@ -99,8 +99,8 @@ const createRoot = ref<HTMLElement>()
 const profileRoot = ref<HTMLElement>()
 const shortcut = ref('Ctrl K')
 
-const logout = () => {
-  doLogout()
+const logout = async () => {
+  await doLogout()
   navigateTo('/')
 }
 

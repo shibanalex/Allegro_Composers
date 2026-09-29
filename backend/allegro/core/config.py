@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     media_dir: str = "media"
     media_url_prefix: str = "/media"
     max_upload_mb: int = 200
+    # How much one member may upload in 24 hours (administrators: no limit) — the storage is paid for
+    upload_daily_mb: int = 1024
     # Redis for the cache of recent comments (Render Key Value, Upstash…): redis://… or rediss://…
     # Empty: the cache lives in the server's memory (fine for one process)
     redis_url: str = ""
@@ -59,6 +61,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     debug: bool = False
+    # The login cookie is sent over HTTPS only. None: decided per request (the proxy's X-Forwarded-Proto)
+    cookie_secure: Optional[bool] = None
+    # The site's public addresses, for the CSRF check of browsers that send Origin but not Sec-Fetch-Site
+    # (Render sets RENDER_EXTERNAL_URL by itself; SITE_URL — one's own domain)
+    site_url: str = ""
+    render_external_url: str = ""
 
     @model_validator(mode="after")
     def _real_secret(self):

@@ -9,6 +9,13 @@ import time
 from allegro.core.errors import TooManyAttempts
 
 
+def client_ip(request) -> str:
+    """The visitor's address for the limits. On Render every request comes through Cloudflare, which puts the
+    real address into CF-Connecting-IP (and replaces any such header a visitor sends); without it — the
+    address uvicorn took from the proxy headers of the site's own server."""
+    return request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "")
+
+
 class AttemptLimiter:
     def __init__(self, max_attempts: int, window_seconds: int, message: str = "Слишком много попыток. Попробуйте позже."):
         self.max_attempts = max_attempts

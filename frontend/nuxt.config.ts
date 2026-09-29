@@ -29,6 +29,10 @@ export default defineNuxtConfig({
         'Content-Security-Policy': "frame-ancestors 'self' https://metrika.yandex.ru https://metrika.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://webvisor.com https://*.webvisor.com",
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
+        // HTTPS only, for a year (browsers ignore it on plain http, so local development is unaffected)
+        'Strict-Transport-Security': 'max-age=31536000',
+        // The microphone for sketches, on the site's own pages only; nothing else
+        'Permissions-Policy': 'microphone=(self), camera=(), geolocation=(), payment=(), usb=()',
       },
     },
     '/api/**': { proxy: `${apiInternal}/api/**` },

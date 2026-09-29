@@ -5,7 +5,7 @@ Run from backend/:  python -m pytest tests/test_platform.py
 """
 import pytest
 
-from tests.support import PDF, client, create_opus, picture, register, upload
+from tests.support import PDF, client, create_opus, picture, register, token_of, upload
 
 
 @pytest.fixture(scope="module")
@@ -442,7 +442,7 @@ def test_first_setup_creates_the_only_owner(alice, monkeypatch):
     assert client.post("/api/auth/setup", json={**body, "password": "short-pass"}).status_code == 422
     r = client.post("/api/auth/setup", json=body)
     assert r.status_code == 201, r.text
-    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token_of(r)}"}).json()
     assert me["username"] == "owner" and me["is_admin"] is True and "manage_site" in me["capabilities"]
 
 

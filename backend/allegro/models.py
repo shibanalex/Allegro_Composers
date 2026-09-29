@@ -5,5 +5,6 @@ from allegro.modules.catalog.models import (  # noqa: F401
     Collection, CollectionItem, MeasureSyncMarker, Opus, Performance, ScoreSyncMarker,
 )
 from allegro.modules.discussion.models import Comment, Reaction  # noqa: F401
+from allegro.modules.media.models import Upload  # noqa: F401
 from allegro.modules.publications.models import Material, Post, PostLink  # noqa: F401
 from allegro.modules.site.models import Feedback, SitePage  # noqa: F401
