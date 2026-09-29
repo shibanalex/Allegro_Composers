@@ -20,7 +20,6 @@ __pycache__/
 *.db
 *.sqlite3
 backend/media/
-backend/uploads/
 
 # ---------------------------------------------------------------- OS & editors
 .DS_Store
@@ -29,21 +28,13 @@ Thumbs.db
 .idea/
 *.log
 
-# ---------------------------------------------------------------- stray files
-# An empty file named "git" created by accident in the project root
-/git
-
 # ---------------------------------------------------------------- personal files
 # The founder's portrait: personal, not part of the code (uploaded to their hall separately)
 backend/Allegro.png
 
-# ---------------------------------------------------------------- legacy first version (superseded, kept on disk only)
-backend/railway.json
-backend/pyproject.toml
-frontend/src/
-frontend/index.html
-frontend/vite.config.js
-frontend/vercel.json
+# ---------------------------------------------------------------- local experiments
+# A sandbox of one's own (not part of the site): never pushed, never deployed
+backend/app/
 
 # Telegram export (other people's names and messages): imported into the DB, never pushed
 Moments Musicaux/

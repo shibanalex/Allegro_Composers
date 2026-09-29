@@ -26,8 +26,6 @@ ENV/
 .vscode/
 *.log
 .DS_Store
-allegro.db
-# Local uploads only (anchored: services/media is source code)
-/uploads/
-allegro_platform.db
+# Local data: the development database and uploaded files
+*.db
 /media/

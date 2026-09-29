@@ -10,14 +10,9 @@
 **/.env.*
 **/*.db
 backend/media
-backend/uploads
 backend/Allegro.png
 backend/tests
 backend/app
-backend/main.py
-backend/seed.py
-frontend/src
 Moments Musicaux
-git
 .git
 *.md
