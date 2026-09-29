@@ -10,7 +10,7 @@
         v-model="draft"
         rows="3"
         class="field resize-y font-serif"
-        :placeholder="opus ? 'Ваш разбор… Таймкоды вида 02:15 станут ссылками на запись' : 'Ваш комментарий…'"
+        :placeholder="opus ? 'Ваш комментарий… Таймкоды вида 02:15 станут ссылками на запись' : 'Ваш комментарий…'"
       />
       <div class="flex flex-wrap items-center gap-3">
         <label v-if="opus && opus.audio_type !== 'none'" class="flex cursor-pointer items-center gap-2 text-sm text-parchment-muted">
@@ -23,7 +23,7 @@
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
     <p v-else-if="canJoin" class="mt-4 font-elegant text-lg italic text-parchment-muted">
-      <NuxtLink :to="`/login?next=${encodeURIComponent(route.fullPath)}`" class="link">Войдите</NuxtLink>, чтобы оставить {{ opus ? 'рецензию' : 'комментарий' }}.
+      <NuxtLink :to="`/login?next=${encodeURIComponent(route.fullPath)}`" class="link">Войдите</NuxtLink>, чтобы оставить комментарий.
     </p>
 
     <ul v-if="roots.length" class="mt-8 space-y-7">

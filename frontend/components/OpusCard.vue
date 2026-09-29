@@ -42,7 +42,7 @@
       <span v-if="opus.audio_duration_seconds" class="font-mono text-xs">{{ formatTime(opus.audio_duration_seconds) }}</span>
       <span v-if="opus.musicxml_url" title="Интерактивная партитура: курсор следует за записью">♫ MusicXML</span>
       <span v-else-if="opus.score_url" title="Есть партитура">𝄞 PDF</span>
-      <span v-if="opus.critique_count" class="ml-auto">✎ {{ opus.critique_count }} {{ plural(opus.critique_count, 'рецензия', 'рецензии', 'рецензий') }}</span>
+      <span v-if="opus.critique_count" class="ml-auto">✎ {{ opus.critique_count }} {{ plural(opus.critique_count, 'комментарий', 'комментария', 'комментариев') }}</span>
     </div>
   </article>
 </template>

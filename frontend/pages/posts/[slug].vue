@@ -77,7 +77,7 @@
         :target="{ post_id: post.id }"
         :opus="post.opus"
         :owner-id="post.author.id"
-        :title="post.kind === 'workshop' ? 'Разборы' : 'Комментарии'"
+        title="Комментарии"
         @seek="seek"
       />
     </div>

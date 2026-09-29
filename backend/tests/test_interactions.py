@@ -133,3 +133,37 @@ def test_hall_settings(author, reader):
     assert client.patch("/api/users/me", headers=author, json={"hall": {"tabs": []}}).status_code == 422
     # someone else's picture can't be a banner
     assert client.patch("/api/users/me", headers=reader, json={"hall": {"cover_url": banner["url"]}}).status_code == 422
+
+
+# ---------------------------------------------------------------- the last comments in the feed (cached)
+
+def test_feed_shows_the_last_comments_and_forgets_them_on_change(author, reader):
+    post = _post(author, content_md="Что вы слушаете этой осенью?")
+
+    def preview():
+        item = next(i for i in client.get("/api/feed").json()["items"] if i.get("post") and i["post"]["id"] == post["id"])
+        return [c["content_md"] for c in item["comments"]]
+
+    assert preview() == []  # now cached as «no comments»
+    ids = []
+    for text in ("Малер", "Шнитке", "Пярт"):
+        r = client.post("/api/comments", headers=reader, json={"post_id": post["id"], "content_md": text})
+        ids.append(r.json()["id"])
+        assert preview()[-1] == text  # a new comment clears the cached thread at once
+    assert preview() == ["Шнитке", "Пярт"]  # the last two, oldest first
+    client.delete(f"/api/comments/{ids[-1]}", headers=reader)
+    assert preview() == ["Малер", "Шнитке"]
+
+
+def test_memory_cache_expires_and_stays_bounded():
+    import time
+
+    from allegro.core.cache import MemoryCache
+    c = MemoryCache(max_keys=3)
+    c.set_many({"a": [1], "b": {"x": "ё"}}, ttl=60)
+    assert c.get_many(["a", "b", "z"]) == {"a": [1], "b": {"x": "ё"}}
+    c.set_many({"gone": 1}, ttl=0)
+    time.sleep(0.01)
+    assert c.get_many(["gone"]) == {}
+    c.set_many({"c": 1, "d": 2, "e": 3}, ttl=60)  # over the limit: starts afresh
+    assert len(c.get_many(["a", "b", "c", "d", "e"])) <= 3

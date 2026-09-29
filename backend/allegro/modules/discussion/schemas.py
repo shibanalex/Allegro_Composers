@@ -22,6 +22,15 @@ class CommentIn(BaseModel):
         return self
 
 
+class CommentPreview(BaseModel):
+    """One of the last comments under a feed entry"""
+    id: uuid.UUID
+    parent_id: Optional[uuid.UUID] = None
+    content_md: str
+    created_at: UTCDateTime
+    author: UserBrief
+
+
 class ReactionsOut(BaseModel):
     count: int
     mine: bool  # the reader liked it

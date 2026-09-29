@@ -49,6 +49,7 @@
 
       <!-- The feed: everything new in the members' halls -->
       <section class="min-w-0" aria-label="Лента">
+        <SearchBox class="mb-5" />
         <nav class="mb-4 flex flex-wrap justify-center gap-2 xl:hidden" aria-label="Что показывать в ленте">
           <button
             v-for="f in FILTERS"
@@ -68,7 +69,7 @@
 
         <EmptyState v-if="!items.length && !loading">{{ EMPTY[kind] }}</EmptyState>
         <div class="space-y-6" :class="{ 'opacity-60 transition': loading && !items.length }">
-          <FeedItem v-for="item in items" :key="`${item.type}-${item.opus?.id || item.performance?.id || item.post?.id}`" :item="item" />
+          <FeedItem v-for="item in items" :key="keyOf(item)" :item="item" @removed="removed.add(keyOf(item))" />
         </div>
         <!-- Reaching this line loads the next page; the button is for keyboards and old browsers -->
         <div v-if="nextBefore" ref="sentinel" class="py-10 text-center">
@@ -117,21 +118,13 @@
           </p>
         </section>
 
-        <section v-if="tags.length" class="card !p-5">
-          <h2 class="eyebrow mb-4">Инструменты</h2>
-          <div class="flex flex-wrap gap-2">
-            <NuxtLink v-for="t in tags" :key="t.value" :to="`/search?q=${encodeURIComponent(t.value)}`" class="chip">
-              {{ t.label }}<span class="ml-1.5 text-xs text-parchment-faint">{{ t.count }}</span>
-            </NuxtLink>
-          </div>
-        </section>
       </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Facets, FeedEntry, Opus, Page, Profile } from '~/utils/types'
+import type { FeedEntry, Opus, Page, Profile } from '~/utils/types'
 
 definePageMeta({ wide: true })
 useSeoMeta({
@@ -183,7 +176,9 @@ const { data, pending } = await useAsyncData(
 )
 const extra = ref<FeedEntry[]>([])
 const cursor = ref<string | null>(null)
-const items = computed(() => [...(data.value?.items || []), ...extra.value])
+const keyOf = (item: FeedEntry) => `${item.type}-${item.opus?.id || item.performance?.id || item.post?.id}`
+const removed = reactive(new Set<string>())
+const items = computed(() => [...(data.value?.items || []), ...extra.value].filter((item) => !removed.has(keyOf(item))))
 const nextBefore = computed(() => (extra.value.length ? cursor.value : data.value?.next_before) || null)
 const loadingMore = ref(false)
 const loading = computed(() => pending.value || loadingMore.value)
@@ -226,18 +221,16 @@ async function more() {
 
 // The side columns: loaded together, none of them may break the page
 const { data: side } = await useAsyncData('home-side', async () => {
-  const [users, opuses, posts, facets] = await Promise.all([
+  const [users, opuses, posts] = await Promise.all([
     api<Profile[]>('/api/users').catch(() => [] as Profile[]),
     api<Page<Opus>>('/api/opuses', { params: { limit: 5 } }).catch(() => null),
     api<Page<unknown>>('/api/posts', { params: { limit: 1 } }).catch(() => null),
-    api<Facets>('/api/library/facets').catch(() => null),
   ])
-  return { users, opuses, posts, facets }
+  return { users, opuses, posts }
 })
 const members = computed(() => side.value?.users || [])
 const shownMembers = computed(() => members.value.slice(0, 8))
 const newOpuses = computed(() => side.value?.opuses?.items || [])
-const tags = computed(() => (side.value?.facets?.instruments || []).slice(0, 14))
 const counts = computed(() => ({ opuses: side.value?.opuses?.total ?? 0, posts: side.value?.posts?.total ?? 0 }))
 
 function activity(m: Profile) {

@@ -1,5 +1,5 @@
 <template>
-  <!-- PDF.js score viewer: turned by hand like a book (click, arrows, swipe) or by itself following the recording -->
+  <!-- PDF.js score viewer: the reader turns the pages like a book (click, arrows, swipe); the recording doesn't turn them -->
   <div ref="root" class="score-viewer" :class="{ 'is-fullscreen': fullscreen }">
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <span class="font-caps text-base font-semibold tracking-[0.15em] text-parchment-muted">
@@ -7,19 +7,6 @@
       </span>
 
       <div class="ml-auto flex flex-wrap items-center gap-2">
-        <button v-if="currentMarker && hasAudio" type="button" class="chip" title="Включить запись с начала этой страницы" @click="playFromPage">
-          ▶ С этой страницы
-        </button>
-        <button
-          v-if="hasMarkers"
-          type="button"
-          class="chip"
-          :class="{ active: follow }"
-          :title="follow ? 'Страницы листаются вслед за записью' : 'Включить автоперелистывание'"
-          @click="enableFollow"
-        >
-          ⟳ {{ follow ? 'Листать за записью' : 'Следовать за записью' }}
-        </button>
         <button v-if="canFullscreen" type="button" class="chip" :title="fullscreen ? 'Выйти (Esc)' : 'Страница целиком на весь экран'" @click="toggleFullscreen">
           {{ fullscreen ? '✕ Свернуть' : '⛶ Во весь экран' }}
         </button>
@@ -68,12 +55,7 @@
       <button type="button" class="pager-btn" :disabled="page >= pageCount" aria-label="Следующая страница" @click="manual(page + 1)">›</button>
     </div>
 
-    <!-- Runner: where the recording is within the visible page -->
-    <div v-if="pageProgress != null" class="mt-3 h-[3px] w-full bg-gold/15" aria-hidden="true">
-      <div class="h-full bg-gradient-to-r from-gold-dark via-gold to-gold-light shadow-[0_0_8px_rgba(201,163,106,.7)] transition-[width] duration-300 ease-linear" :style="{ width: `${pageProgress * 100}%` }" />
-    </div>
-
-    <!-- All pages: open any of them; the time shows where it starts in the recording -->
+    <!-- All pages: open any of them -->
     <div v-if="pageCount > 1 && !fullscreen" class="mt-5 flex flex-wrap gap-2">
       <button
         v-for="n in pageCount"
@@ -83,47 +65,31 @@
         :class="{ active: n === page }"
         @click="manual(n)"
       >
-        стр. {{ n }}<span v-if="hasAudio && markerFor(n)" class="ml-1 font-mono text-xs opacity-70">· {{ formatTime(markerFor(n)!.timestamp_seconds) }}</span>
+        стр. {{ n }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { pageAt, usePlayer } from '~/stores/player'
+import { usePlayer } from '~/stores/player'
 import type { Opus } from '~/utils/types'
 
 const props = defineProps<{ opus: Opus }>()
-const emit = defineEmits<{ seek: [seconds: number] }>()
-defineExpose({ enableFollow: () => enableFollow() })
 
 const player = usePlayer()
 const root = ref<HTMLElement>()
 const page = ref(1)
 const direction = ref(1)
-const follow = ref(true)
 const images = reactive<Record<number, string>>({})
 const aspect = ref('1 / 1.414')
 const error = ref('')
 const numPages = ref(0)
 // The PDF itself knows best; the stored count is only a first guess before it loads
 const pageCount = computed(() => numPages.value || props.opus.score_page_count || 1)
-const hasAudio = computed(() => props.opus.audio_type !== 'none')
-const hasMarkers = computed(() => hasAudio.value && props.opus.markers.length > 0)
-const markerFor = (n: number) => props.opus.markers.find((m) => m.page_number === n)
-const currentMarker = computed(() => markerFor(page.value))
 // The site's bottom player bar shows only for another work (this page has its own player on top)
 const otherTrackPlaying = computed(() => !!player.track && player.track.slug !== props.opus.slug)
 
-/** 0..1 through the visible page, from its marker to the next page's marker (or the end of the recording) */
-const pageProgress = computed(() => {
-  if (!player.isCurrent(props.opus.slug) || !props.opus.markers.length) return null
-  const start = currentMarker.value?.timestamp_seconds
-  if (start == null) return null
-  const next = props.opus.markers.find((m) => m.page_number > page.value)?.timestamp_seconds ?? player.duration
-  if (!next || next <= start) return null
-  return Math.min(1, Math.max(0, (player.time - start) / (next - start)))
-})
 
 // ---------------------------------------------------------------- rendering
 
@@ -163,24 +129,11 @@ async function goTo(n: number) {
   render(n - 1)
 }
 
-/** Turned by the reader: the recording no longer drives the pages */
+/** Turned by the reader */
 function manual(n: number) {
-  follow.value = false
   goTo(n)
 }
 
-function enableFollow() {
-  follow.value = true
-  if (player.isCurrent(props.opus.slug)) {
-    const target = pageAt(props.opus.markers, player.time)
-    if (target) goTo(target)
-  }
-}
-
-function playFromPage() {
-  if (!currentMarker.value) return
-  emit('seek', currentMarker.value.timestamp_seconds) // the page plays it and switches following back on
-}
 
 /** A tall page is read top to bottom: after a turn, bring the new page's top into view (under the sticky bars) */
 function showPageTop() {
@@ -225,12 +178,6 @@ function onKey(e: KeyboardEvent) {
   manual(page.value + (e.key === 'ArrowRight' ? 1 : -1))
 }
 
-// Follow the recording
-watch(() => player.isCurrent(props.opus.slug) ? player.time : null, (time) => {
-  if (time == null || !follow.value) return
-  const target = pageAt(props.opus.markers, time)
-  if (target && target !== page.value) goTo(target)
-})
 
 // ---------------------------------------------------------------- full screen: the whole page fits the screen
 
@@ -277,7 +224,6 @@ onMounted(async () => {
     pdf = await pdfjs.getDocument(props.opus.score_url!).promise
     numPages.value = pdf.numPages
     renderWidth = root.value?.clientWidth || 800
-    if (player.isCurrent(props.opus.slug)) page.value = pageAt(props.opus.markers, player.time) || 1
     await render(page.value)
     render(page.value + 1)
     window.addEventListener('resize', onResize)

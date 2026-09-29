@@ -89,6 +89,9 @@ class OpusOut(ORMModel):
     audio_url: Optional[str] = None
     audio_duration_seconds: Optional[float] = None
     score_url: Optional[str] = None
+    # Storage keys of the files, for the edit form to send back unchanged (the URLs above contain them anyway)
+    score_file_key: Optional[str] = None
+    musicxml_file_key: Optional[str] = None
     score_page_count: Optional[int] = None
     score_access: str
     musicxml_url: Optional[str] = None

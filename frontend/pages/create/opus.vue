@@ -103,7 +103,7 @@
           <!-- PDF -->
           <div class="card space-y-3">
             <p class="font-display text-xl italic text-parchment">𝄞 PDF</p>
-            <p class="text-sm text-parchment-faint">Печатная партитура. Страницы перелистываются, как в книге, в такт записи.</p>
+            <p class="text-sm text-parchment-faint">Печатная партитура. Читатель листает страницы сам, как книгу.</p>
             <div v-if="form.score_file_key" class="flex flex-wrap items-center gap-3 border border-gold/20 bg-ink-950/50 p-3">
               <span class="chip">𝄞 PDF · {{ form.score_page_count }} стр.</span>
               <button type="button" class="btn-ghost ml-auto text-sm" @click="form.score_file_key = null; form.score_page_count = null">Заменить</button>
@@ -120,7 +120,7 @@
         </div>
 
         <!-- Sync with the recording -->
-        <div v-if="form.audio_type !== 'none' && (form.musicxml_file_key || form.score_page_count)" class="card space-y-6">
+        <div v-if="form.audio_type !== 'none' && form.musicxml_file_key" class="card space-y-6">
           <div>
             <p class="font-display text-xl italic text-parchment">Синхронизация с записью</p>
             <p class="mt-1 text-sm text-parchment-faint">Прослушайте запись здесь и ставьте отметки кнопкой ⏱ в нужный момент.</p>
@@ -151,33 +151,6 @@
             </div>
           </template>
 
-          <!-- PDF: page turns -->
-          <div v-if="form.score_page_count">
-            <p class="field-label">Перелистывание страниц PDF</p>
-            <div class="mb-3 flex flex-wrap gap-2">
-              <button type="button" class="chip" :class="{ active: pageMode === 'auto' }" :disabled="!form.musicxml_file_key" @click="pageMode = 'auto'">
-                Автоматически по MusicXML
-              </button>
-              <button type="button" class="chip" :class="{ active: pageMode === 'manual' }" @click="pageMode = 'manual'">Вручную</button>
-            </div>
-            <p v-if="pageMode === 'auto'" class="text-sm text-parchment-faint">
-              Страницы перелистнутся там, где в MusicXML стоят разрывы страниц (их записывает нотный редактор), с учётом темпа и отметок тактов.
-              Число страниц в PDF и MusicXML должно совпадать — иначе задайте отметки вручную.
-            </p>
-            <template v-else>
-              <div class="mb-3 flex flex-wrap items-center gap-3">
-                <p class="text-sm text-parchment-faint">С какой секунды записи начинается каждая страница.</p>
-                <button type="button" class="link ml-auto font-caps text-sm font-semibold tracking-[0.15em]" :disabled="!duration" @click="distribute">Разложить равномерно</button>
-              </div>
-              <div class="grid gap-2 sm:grid-cols-2">
-                <div v-for="p in form.score_page_count" :key="p" class="flex items-center gap-3">
-                  <span class="w-16 font-caps text-sm font-semibold tracking-[0.1em] text-parchment-muted">стр. {{ p }}</span>
-                  <input v-model="markerText[p]" class="field py-1.5 font-mono" :placeholder="p === 1 ? '00:00' : 'мм:сс'">
-                  <button v-if="preview" type="button" class="btn-ghost shrink-0 px-2 text-sm" title="Отметить текущий момент записи" @click="stamp(p)">⏱</button>
-                </div>
-              </div>
-            </template>
-          </div>
         </div>
       </fieldset>
 
@@ -228,8 +201,6 @@ const form = reactive({
   musicxml_file_key: null as string | null, audio_offset_seconds: 0, featured: false,
 })
 const musicxmlName = ref('')
-// PDF page turns: derived from the MusicXML page breaks, or set by hand
-const pageMode = ref<'auto' | 'manual'>('manual')
 const measureRows = ref<{ measure: number | null; time: string }[]>([])
 const offsetText = computed({
   get: () => (form.audio_offset_seconds ? formatTime(form.audio_offset_seconds) : ''),
@@ -242,11 +213,7 @@ const addMeasureRow = () => {
 const onMusicXml = (files: Uploaded[]) => {
   form.musicxml_file_key = files[0].key
   musicxmlName.value = files[0].name
-  if (!Object.entries(markerText).some(([p, t]) => Number(p) > 1 && t)) pageMode.value = 'auto'
 }
-watch(() => form.musicxml_file_key, (key) => {
-  if (!key) pageMode.value = 'manual'
-})
 // The genre suggests the instruments until the composer edits the list themselves
 const instruments = ref<string[]>([...GENRES.solo.instruments])
 const instrumentsEdited = ref(false)
@@ -257,7 +224,6 @@ function chooseGenre(genre: string) {
     instrumentsEdited.value = false
   }
 }
-const markerText = reactive<Record<number, string>>({})
 const audioName = ref('')
 const previewUrl = ref<string | null>(null)
 const preview = ref<HTMLAudioElement>()
@@ -265,13 +231,28 @@ const busy = ref(false)
 const error = ref('')
 const fail = (m: string) => (error.value = m)
 
-const duration = computed(() => form.audio_duration_seconds || 0)
 const durationText = computed({
   get: () => (form.audio_duration_seconds ? formatTime(form.audio_duration_seconds) : ''),
   set: (v: string) => (form.audio_duration_seconds = parseTime(v)),
 })
 
-const keyFromUrl = (url?: string | null) => (url?.startsWith('/media/') ? url.slice('/media/'.length) : null)
+/** What the form would send: on editing, only what differs from this is sent (an untouched field never changes) */
+function payload() {
+  return {
+    ...form,
+    subtitle: form.subtitle || null,
+    key_signature: form.key_signature || null,
+    description_md: form.description_md || null,
+    audio_source: form.audio_type === 'none' ? null : form.audio_source,
+    instruments: instruments.value,
+    measure_markers: form.audio_type === 'none' || !form.musicxml_file_key
+      ? []
+      : measureRows.value
+          .filter((m) => m.measure && m.time && parseTime(m.time) != null)
+          .map((m) => ({ measure_number: Number(m.measure), timestamp_seconds: parseTime(m.time)! })),
+  }
+}
+let original: Record<string, unknown> = {}
 
 if (editing) {
   const opus = await api<Opus>(`/api/opuses/${editing}`)
@@ -280,18 +261,17 @@ if (editing) {
     subtitle: opus.subtitle || '', key_signature: opus.key_signature || '',
     description_md: opus.description_md || '',
     audio_source: opus.audio_type === 'youtube' ? `https://youtu.be/${opus.audio_source}` : opus.audio_source,
-    // The API returns public URLs; the form sends storage keys back (a null key would delete the file)
-    score_file_key: keyFromUrl(opus.score_url),
-    musicxml_file_key: keyFromUrl(opus.musicxml_url),
+    // Storage keys of the files, as the API gives them (a missing key would mean «remove the file»)
+    score_file_key: opus.score_file_key ?? null,
+    musicxml_file_key: opus.musicxml_file_key ?? null,
   })
   instruments.value = [...opus.instruments]
   instrumentsEdited.value = true
-  pageMode.value = opus.auto_page_markers && opus.musicxml_url ? 'auto' : 'manual'
   measureRows.value = opus.measure_markers.map((m) => ({ measure: m.measure_number, time: formatTime(m.timestamp_seconds) }))
   musicxmlName.value = opus.musicxml_url?.split('/').pop()?.replace(/^[0-9a-f]{12}_/, '') || ''
-  opus.markers.forEach((m) => (markerText[m.page_number] = formatTime(m.timestamp_seconds)))
   previewUrl.value = opus.audio_url || null
   audioName.value = opus.audio_source?.split('/').pop()?.replace(/^[0-9a-f]{12}_/, '') || ''
+  original = JSON.parse(JSON.stringify(payload()))
 }
 
 function onAudio(files: Uploaded[], raw: File[]) {
@@ -315,54 +295,27 @@ async function onScore(files: Uploaded[], raw: File[]) {
   } catch {
     form.score_page_count = Number(prompt('Сколько страниц в партитуре?', '1')) || 1
   }
-  if (!markerText[1]) markerText[1] = '00:00'
 }
 
 const onPreviewMeta = () => {
   if (preview.value && isFinite(preview.value.duration)) form.audio_duration_seconds = Math.round(preview.value.duration * 100) / 100
-}
-const stamp = (page: number) => {
-  if (preview.value) markerText[page] = formatTime(preview.value.currentTime)
-}
-const distribute = () => {
-  const pages = form.score_page_count || 1
-  for (let p = 1; p <= pages; p++) markerText[p] = formatTime(((p - 1) * duration.value) / pages)
 }
 
 async function save() {
   busy.value = true
   error.value = ''
   try {
-    // [] tells the API to derive page turns from the MusicXML page breaks
-    const markers = form.audio_type === 'none' || !form.score_page_count || pageMode.value === 'auto'
-      ? []
-      : Object.entries(markerText)
-          .filter(([p, t]) => t && Number(p) <= form.score_page_count!)
-          .map(([p, t]) => ({ page_number: Number(p), timestamp_seconds: parseTime(t) }))
-          .filter((m) => m.timestamp_seconds != null)
-    // A page marked after the recording ends would never be turned to while listening
-    const late = duration.value ? markers.find((m) => m.timestamp_seconds! > duration.value) : undefined
-    if (late) {
-      error.value = `Стр. ${late.page_number} отмечена на ${formatTime(late.timestamp_seconds)}, а запись длится ${formatTime(duration.value)}. Исправьте отметку.`
-      return
+    const body = payload()
+    let opus: Opus
+    if (editing) {
+      // Only what was changed goes to the server
+      const changed = Object.fromEntries(Object.entries(body).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(original[k])))
+      opus = Object.keys(changed).length
+        ? await api<Opus>(`/api/opuses/${editing}`, { method: 'PATCH', body: changed })
+        : await api<Opus>(`/api/opuses/${editing}`)
+    } else {
+      opus = await api<Opus>('/api/opuses', { method: 'POST', body })
     }
-    const body = {
-      ...form,
-      subtitle: form.subtitle || null,
-      key_signature: form.key_signature || null,
-      description_md: form.description_md || null,
-      audio_source: form.audio_type === 'none' ? null : form.audio_source,
-      instruments: instruments.value,
-      markers,
-      measure_markers: form.audio_type === 'none' || !form.musicxml_file_key
-        ? []
-        : measureRows.value
-            .filter((m) => m.measure && m.time && parseTime(m.time) != null)
-            .map((m) => ({ measure_number: Number(m.measure), timestamp_seconds: parseTime(m.time)! })),
-    }
-    const opus = editing
-      ? await api<Opus>(`/api/opuses/${editing}`, { method: 'PATCH', body })
-      : await api<Opus>('/api/opuses', { method: 'POST', body })
     await navigateTo(`/opus/${opus.slug}`)
   } catch (e) {
     error.value = apiError(e)

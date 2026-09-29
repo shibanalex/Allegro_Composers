@@ -18,9 +18,9 @@
         <input id="p-excerpt" v-model="form.excerpt" class="field" maxlength="512">
       </div>
 
-      <!-- A review: an article about a work on the site -->
-      <div v-if="form.kind === 'article' || form.kind === 'workshop'">
-        <label class="field-label" for="p-opus">Об опусе — если это обзор (необязательно)</label>
+      <!-- A review, or a blog post about a work on the site -->
+      <div v-if="form.kind !== 'news'">
+        <label class="field-label" for="p-opus">{{ form.kind === 'note' ? 'О каком сочинении запись (необязательно)' : 'Об опусе — если это обзор (необязательно)' }}</label>
         <select id="p-opus" v-model="form.opus_id" class="field">
           <option :value="null">— без опуса —</option>
           <option v-for="o in allOpuses" :key="o.id" :value="o.id">{{ o.title }} · {{ o.author.display_name }}</option>
@@ -120,12 +120,17 @@ useSeoMeta({ title: () => `${editing ? 'Редактирование' : TITLES[f
 const { data: published } = await useAsyncData('review-opuses', () => api<Page<Opus>>('/api/opuses', { params: { limit: 100, sort: 'title' } }))
 const allOpuses = computed(() => published.value?.items || [])
 
+// On editing, only what differs from the post as it was is sent: an untouched field never changes
+const payload = () => ({ ...form, excerpt: form.excerpt || null })
+let original: Record<string, unknown> = {}
+
 if (editing) {
   const post = await api<Post>(`/api/posts/${editing}`)
   Object.assign(form, {
     kind: post.kind, title: post.title, excerpt: post.excerpt || '', content_md: post.content_md, cover_url: post.cover_url,
     attachments: post.attachments, opus_id: post.opus?.id || null, status: post.status,
   })
+  original = JSON.parse(JSON.stringify(payload()))
 } else if (typeof route.query.opus === 'string') {
   form.opus_id = route.query.opus
 }
@@ -144,10 +149,16 @@ async function save() {
   busy.value = true
   error.value = ''
   try {
-    const body = { ...form, excerpt: form.excerpt || null, opus_id: form.kind === 'article' || form.kind === 'workshop' ? form.opus_id : null }
-    const post = editing
-      ? await api<Post>(`/api/posts/${editing}`, { method: 'PATCH', body })
-      : await api<Post>('/api/posts', { method: 'POST', body })
+    const body = payload()
+    let post: Post
+    if (editing) {
+      const changed = Object.fromEntries(Object.entries(body).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(original[k])))
+      post = Object.keys(changed).length
+        ? await api<Post>(`/api/posts/${editing}`, { method: 'PATCH', body: changed })
+        : await api<Post>(`/api/posts/${editing}`)
+    } else {
+      post = await api<Post>('/api/posts', { method: 'POST', body })
+    }
     await navigateTo(`/posts/${post.slug}`)
   } catch (e) {
     error.value = apiError(e)

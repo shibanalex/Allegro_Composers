@@ -121,6 +121,15 @@
     @apply border border-gold/10 bg-ink-850/70 p-6 shadow-2xl shadow-black/60 sm:p-8;
   }
 
+  /* A feed entry is one object: it lights up under the pointer and opens on a click */
+  .feed-entry {
+    @apply cursor-pointer transition duration-300;
+  }
+  .feed-entry:hover {
+    border-color: rgb(var(--c-gold) / 0.35);
+    box-shadow: 0 0 0 1px rgb(var(--c-gold) / 0.12), 0 24px 50px -20px rgb(0 0 0 / 0.8), 0 0 40px -18px rgb(var(--c-gold) / 0.35);
+  }
+
   /* A side column that scrolls on its own when taller than the screen */
   .thin-scroll {
     scrollbar-width: thin;
@@ -630,3 +639,6 @@
   mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
 }
 .hall-banner img { width: 100%; height: 100%; object-fit: cover; opacity: 0.35; }
+
+/* The browser's own blue «×» in search fields doesn't belong to any era */
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

@@ -34,6 +34,10 @@ services:
       - key: MEDIA_URL_PREFIX     # the bucket's public address, Yandex: https://storage.yandexcloud.net/<bucket>
         sync: false
 
+      # Optional: Redis (Render Key Value) for the cache of recent comments; without it the cache lives in memory
+      - key: REDIS_URL
+        sync: false
+
       # Joining by invitation links from an administrator (invite | open | closed)
       - key: REGISTRATION_MODE
         value: invite

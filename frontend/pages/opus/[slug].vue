@@ -17,7 +17,7 @@
           </template>
         </ClientOnly>
         <ClientOnly v-else-if="opus.score_url">
-          <ScoreViewer ref="viewer" :opus="opus" @seek="seek" />
+          <ScoreViewer :opus="opus" />
           <template #fallback>
             <div class="frame frame-thin"><div class="frame-inner flex aspect-[1/1.414] items-center justify-center bg-[#f5efe0] font-elegant text-xl italic text-ink-600">Партитура загружается…</div></div>
           </template>
@@ -104,7 +104,7 @@
           </div>
         </section>
 
-        <CommentThread :target="{ opus_id: opus.id }" :opus="opus" :owner-id="opus.author.id" title="Рецензии и разборы" @seek="seek" />
+        <CommentThread :target="{ opus_id: opus.id }" :opus="opus" :owner-id="opus.author.id" title="Комментарии" @seek="seek" />
       </aside>
     </div>
 
@@ -173,18 +173,16 @@ useHead({
   }))],
 })
 
-const viewer = ref<{ enableFollow: () => void }>()
 const view = ref<'musicxml' | 'pdf'>(opus.value.musicxml_url ? 'musicxml' : 'pdf')
 
-/** Timecode click: jump the recording there and let the score follow */
+/** Timecode click: jump the recording there */
 function seek(seconds: number) {
   if (!opus.value || opus.value.audio_type === 'none') return
   player.play(opus.value, seconds)
-  viewer.value?.enableFollow()
 }
 
 async function remove() {
-  if (!opus.value || !confirm(`Удалить «${opus.value.title}» вместе с файлами и рецензиями?`)) return
+  if (!opus.value || !confirm(`Удалить «${opus.value.title}» вместе с файлами и комментариями?`)) return
   if (player.isCurrent(opus.value.slug)) player.close()
   await api(`/api/opuses/${opus.value.slug}`, { method: 'DELETE' })
   navigateTo(`/@${opus.value.author.username}`)

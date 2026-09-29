@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from allegro.core.schemas import UTCDateTime
 from allegro.modules.catalog.schemas import OpusOut, PerformanceOut
-from allegro.modules.discussion.schemas import ReactionsOut
+from allegro.modules.discussion.schemas import CommentPreview, ReactionsOut
 from allegro.modules.publications.schemas import PostOut
 
 FeedKind = Literal["all", "works", "performances", "articles", "blogs"]
@@ -19,6 +19,7 @@ class FeedItem(BaseModel):
     performance: Optional[PerformanceOut] = None
     post: Optional[PostOut] = None
     likes: ReactionsOut = ReactionsOut(count=0, mine=False)
+    comments: list[CommentPreview] = []  # the last ones (works and posts), from the cache
 
 
 class FeedPage(BaseModel):

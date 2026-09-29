@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from allegro.modules.catalog.service import opuses_out, performance_out, recent_opuses, recent_performances
 from allegro.modules.discussion.schemas import ReactionsOut
-from allegro.modules.discussion.service import reaction_summary
+from allegro.modules.discussion.service import latest_comments, reaction_summary
 from allegro.modules.feed.schemas import FeedItem, FeedPage
 from allegro.modules.publications.service import posts_out, recent_posts
 
@@ -39,6 +39,13 @@ def _with_likes(db: Session, items: list[FeedItem], user) -> None:
             page[target_id].likes = ReactionsOut(count=r.count, mine=r.mine)
 
 
+def _with_comments(db: Session, items: list[FeedItem]) -> None:
+    for type_ in ("opus", "post"):
+        page = {getattr(item, type_).id: item for item in items if item.type == type_}
+        for target_id, comments in latest_comments(db, type_, list(page)).items():
+            page[target_id].comments = comments or []
+
+
 def feed(db: Session, kind: str, before: Optional[datetime], limit: int, user=None) -> FeedPage:
     sources = SOURCES[kind]
     items: list[FeedItem] = []
@@ -55,6 +62,7 @@ def feed(db: Session, kind: str, before: Optional[datetime], limit: int, user=No
     items.sort(key=lambda item: _aware(item.created_at), reverse=True)
     page = items[:limit]
     _with_likes(db, page, user)
+    _with_comments(db, page)
     # a full page may have more behind it; a short one is the end
     next_before = _aware(page[-1].created_at).isoformat() if len(page) == limit else None
     return FeedPage(items=page, next_before=next_before)

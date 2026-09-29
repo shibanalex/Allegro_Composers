@@ -70,6 +70,8 @@ export interface Opus {
   audio_url?: string | null
   audio_duration_seconds?: number | null
   score_url?: string | null
+  score_file_key?: string | null
+  musicxml_file_key?: string | null
   score_page_count?: number | null
   score_access: 'free' | 'view_only' | 'paid'
   musicxml_url?: string | null
@@ -234,4 +236,6 @@ export interface FeedEntry {
   performance?: Performance | null
   post?: Post | null
   likes: Reactions
+  /** The last comments (works and posts) */
+  comments?: { id: string; parent_id?: string | null; content_md: string; created_at: string; author: UserBrief }[]
 }

@@ -63,54 +63,11 @@
 </template>
 
 <script setup lang="ts">
-import type { UserBrief } from '~/utils/types'
-
-interface Item { to: string; title: string; hint?: string | null; snippet?: string | null; icon?: string; user?: UserBrief }
+import type { SearchItem as Item } from '~/composables/useLiveSearch'
 
 const state = useSearchPalette()
-const api = useApi()
-const q = ref('')
-const loading = ref(false)
-const active = ref(0)
+const { q, loading, groups, words, items, active, move } = useLiveSearch(5)
 const input = ref<HTMLInputElement>()
-const groups = ref<{ title: string; items: Item[] }[]>([])
-const words = ref<string[]>([])
-const items = computed(() => groups.value.flatMap((g) => g.items))
-
-let timer: ReturnType<typeof setTimeout> | undefined
-let requestId = 0
-watch(q, (value) => {
-  clearTimeout(timer)
-  if (!value.trim()) return (groups.value = [])
-  timer = setTimeout(async () => {
-    const id = ++requestId
-    loading.value = true
-    try {
-      const r = await api<any>('/api/search', { params: { q: value.trim(), limit: 5 } })
-      if (id !== requestId) return
-      groups.value = [
-        { title: 'Участники', items: r.composers.map((u: any) => ({ to: `/@${u.username}`, title: u.display_name, hint: u.pseudonym || u.bio, user: u })) },
-        { title: 'Опусы', items: r.opuses.map((o: any) => ({ to: `/opus/${o.slug}`, title: o.title, snippet: o.snippet, hint: [o.subtitle, o.author.display_name].filter(Boolean).join(' · '), icon: '♪' })) },
-        { title: 'Инструменты', items: r.instruments.map((t: string) => ({ to: `/search?q=${encodeURIComponent(t)}`, title: t, hint: 'сочинения с этим инструментом', icon: '♩' })) },
-        { title: 'Записи и статьи', items: r.posts.map((p: any) => ({
-          to: `/posts/${p.slug}`,
-          title: p.title || `Запись от ${formatDate(p.created_at)}`,
-          snippet: p.snippet,
-          hint: `${POST_KINDS[p.kind]} · ${p.author.display_name}`,
-          icon: '¶',
-        })) },
-      ].filter((g) => g.items.length)
-      words.value = r.words || []
-      active.value = 0
-    } finally {
-      if (id === requestId) loading.value = false
-    }
-  }, 180)
-})
-
-const move = (d: number) => {
-  if (items.value.length) active.value = (active.value + d + items.value.length) % items.value.length
-}
 const close = () => {
   state.open = false
 }

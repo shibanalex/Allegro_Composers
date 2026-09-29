@@ -50,7 +50,7 @@
         <span class="rule flex-1" />
       </div>
 
-      <article class="card mb-5 !p-5 sm:!p-6">
+      <article class="card mb-5 !p-5 sm:!p-6" :class="{ 'feed-entry': editing?.id !== p.id }" @click="openPost($event, p)">
         <!-- A long article: shown as a card leading to the full text -->
         <NuxtLink v-if="p.kind === 'article'" :to="`/posts/${p.slug}`" class="group flex gap-5">
           <div v-if="p.cover_url" class="frame frame-thin hidden h-24 w-32 shrink-0 sm:block">
@@ -156,6 +156,14 @@ const { data: pinnedPost } = await useAsyncData(`pinned-${props.username}`, () =
   { watch: [() => props.pinned] },
 )
 const quoting = ref<Post | null>(null)
+
+/** A click on a post's empty parts opens it (not while it is being edited) */
+function openPost(e: MouseEvent, p: Post) {
+  if (editing.value?.id === p.id) return
+  if ((e.target as HTMLElement).closest('a, button, input, textarea, select, label, audio, video, form, [role="dialog"]')) return
+  if (window.getSelection()?.toString()) return
+  navigateTo(`/posts/${p.slug}`)
+}
 
 const isAudio = (a: Attachment) => a.content_type?.startsWith('audio/')
 const images = (p: Post) => p.attachments.filter(isImage)

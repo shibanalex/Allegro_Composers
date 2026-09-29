@@ -7,7 +7,7 @@ dependency points one way — catalog and publications use discussion, never the
 
 The same registry serves «нравится» (reactions): works, performances and posts.
 
-Public API: `register_target`, `count_comments`, `reaction_summary`, `forget_target`.
+Public API: `register_target`, `count_comments`, `latest_comments`, `reaction_summary`, `forget_target`.
 """
 import uuid
 from dataclasses import dataclass
@@ -17,6 +17,8 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from allegro.core.cache import cached_many, forget
+from allegro.core.db import after_commit
 from allegro.core.errors import Forbidden, Invalid, NotFound
 from allegro.modules.accounts.roles import Capability, can
 from allegro.modules.accounts.service import visible_authors
@@ -58,6 +60,46 @@ def count_comments(db: Session, kind: str, ids: list[uuid.UUID]) -> dict[uuid.UU
     return dict(db.execute(select(column, func.count()).where(column.in_(ids)).group_by(column)).all())
 
 
+# ---------------------------------------------------------------- the last comments under a post in the feed
+
+LATEST = 2  # shown under each entry of the feed
+LATEST_TTL = 600  # seconds; a new or deleted comment clears its thread at once
+
+
+def _latest_key(kind: str, target_id: uuid.UUID) -> str:
+    return f"comments:last:{kind}:{target_id}"
+
+
+def _load_latest(db: Session, kind: str, ids: list[uuid.UUID]) -> dict[uuid.UUID, list[dict]]:
+    """The newest comments of several threads in one query (a window over each thread)"""
+    column = TARGET_COLUMNS[kind]
+    rank = func.row_number().over(partition_by=column, order_by=Comment.created_at.desc()).label("rank")
+    newest = (
+        select(Comment.id, rank).where(column.in_(ids), visible_authors(Comment.author_id)).subquery()
+    )
+    rows = db.scalars(
+        select(Comment).join(newest, newest.c.id == Comment.id).where(newest.c.rank <= LATEST)
+        .order_by(Comment.created_at)
+    ).unique()
+    found: dict[uuid.UUID, list[dict]] = {i: [] for i in ids}
+    for c in rows:
+        a = c.author
+        found[getattr(c, column.key)].append({
+            "id": str(c.id), "parent_id": str(c.parent_id) if c.parent_id else None,
+            "content_md": c.content_md[:400], "created_at": c.created_at.isoformat(),
+            "author": {"id": str(a.id), "username": a.username, "display_name": a.display_name,
+                       "avatar_url": a.avatar_url, "role": a.role},
+        })
+    return found
+
+
+def latest_comments(db: Session, kind: str, ids: list[uuid.UUID]) -> dict[uuid.UUID, list[dict]]:
+    """The last comments of each thread, from the cache (Redis) when it has them"""
+    if not ids:
+        return {}
+    return cached_many({i: _latest_key(kind, i) for i in ids}, lambda missing: _load_latest(db, kind, missing), LATEST_TTL)
+
+
 def list_comments(db: Session, kind: str, target_id: uuid.UUID, user) -> list[Comment]:
     """Flat list in chronological order; the client builds the tree from parent_id"""
     _target(db, kind, target_id, user)
@@ -80,6 +122,7 @@ def create_comment(db: Session, user, data: CommentIn) -> Comment:
         raise Invalid("У этой публикации нет записи для таймкода")
     comment = Comment(author_id=user.id, **data.model_dump())
     db.add(comment)
+    after_commit(db, lambda: forget([_latest_key(kind, target_id)]))
     db.commit()
     db.refresh(comment)
     return comment
@@ -95,6 +138,7 @@ def delete_comment(db: Session, user, comment_id: uuid.UUID) -> None:
     owner_id = resolver.owner_id if resolver else None
     if user.id not in (comment.author_id, owner_id) and not can(user, Capability.MODERATE):
         raise Forbidden("Нельзя удалить чужой комментарий")
+    after_commit(db, lambda: forget([_latest_key(kind, target_id)]))
     db.delete(comment)
     db.commit()
 

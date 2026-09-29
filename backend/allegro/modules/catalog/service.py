@@ -8,7 +8,7 @@ import uuid
 from collections import Counter
 from typing import Iterator, Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import String, cast, or_, select, update
 from sqlalchemy.orm import Session
 
 from allegro.core.errors import Forbidden, Invalid, NotFound
@@ -508,16 +508,17 @@ def recent_performances(db: Session, before, limit: int) -> list[Performance]:
 
 
 def search_opuses(db: Session, words: list[str], limit: int) -> list[Opus]:
-    from sqlalchemy import String, cast
-
+    """Every word must be found: in the title, subtitle, key, instruments, explication — or be the genre
+    («квартет» finds the quartets, «соната» the sonatas for an instrument and piano)"""
+    columns = [Opus.title, Opus.subtitle, Opus.key_signature, cast(Opus.instruments, String), Opus.description_md]
+    conditions = []
+    for word in words:
+        in_text = textsearch.matches_all(columns, [word])
+        genres = [k for k, label in enums.GENRE_LABELS.items() if word in label.lower().replace("ё", "е")]
+        conditions.append(or_(in_text, Opus.genre.in_(genres)) if genres else in_text)
     return list(db.scalars(
-        select(Opus).where(
-            Opus.status == "published", visible_authors(Opus.author_id),
-            textsearch.matches_all([
-                Opus.title, Opus.subtitle, Opus.key_signature,
-                cast(Opus.instruments, String), Opus.description_md,
-            ], words),
-        ).order_by(Opus.play_count.desc(), Opus.created_at.desc()).limit(limit)
+        select(Opus).where(Opus.status == "published", visible_authors(Opus.author_id), *conditions)
+        .order_by(Opus.play_count.desc(), Opus.created_at.desc()).limit(limit)
     ).unique())
 
 

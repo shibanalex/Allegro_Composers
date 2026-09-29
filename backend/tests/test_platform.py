@@ -110,6 +110,11 @@ def test_opus_lifecycle(alice, bob):
     assert opus["genre"] == "trio" and opus["instruments"] == ["скрипка", "виолончель", "фортепиано"]  # names normalised
     assert [m["page_number"] for m in opus["markers"]] == [1, 2]
     assert opus["audio_url"] == audio["url"] and opus["score_url"] == score["url"]
+    assert opus["score_file_key"] == score["key"]  # the edit form sends it back as it is
+
+    # Editing one field leaves the files alone (a form that sent back only what changed)
+    r = client.patch(f"/api/opuses/{opus['slug']}", headers=alice, json={"subtitle": "op. 1"})
+    assert r.json()["score_url"] == score["url"] and r.json()["audio_url"] == audio["url"]
     assert opus["author"]["username"] == "alice"
 
     # Markers are validated against the score
@@ -204,6 +209,10 @@ def test_collections(alice, bob):
 def test_search(alice):
     result = client.get("/api/search", params={"q": "фортеп"}).json()
     assert "фортепиано" in result["instruments"]
+    assert "Трио ре минор" in {o["title"] for o in client.get("/api/search", params={"q": "трио"}).json()["opuses"]}
+    quartet = create_opus(alice, title="Ноктюрн", genre="quartet")
+    assert "Ноктюрн" in {o["title"] for o in client.get("/api/search", params={"q": "квартеты"}).json()["opuses"]}  # by genre
+    client.delete(f"/api/opuses/{quartet['slug']}", headers=alice)
     assert {o["title"] for o in result["opuses"]} >= {"Трио ре минор"}
     composers = client.get("/api/search", params={"q": "алиса"}).json()["composers"]
     assert composers[0]["username"] == "alice"

@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     media_dir: str = "media"
     media_url_prefix: str = "/media"
     max_upload_mb: int = 200
+    # Redis for the cache of recent comments (Render Key Value, Upstash…): redis://… or rediss://…
+    # Empty: the cache lives in the server's memory (fine for one process)
+    redis_url: str = ""
     s3_endpoint_url: str = ""  # Yandex: https://storage.yandexcloud.net; R2: https://<account id>.r2.cloudflarestorage.com
     s3_bucket: str = ""
     s3_access_key_id: str = ""

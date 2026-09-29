@@ -29,6 +29,9 @@ GitHub (main) ──push──► Render: сборка Dockerfile ──► ко
 | `NUXT_PUBLIC_SITE_URL` | свой домен, когда появится (`https://…`): канонические ссылки и переадресация |
 | `NUXT_PUBLIC_YANDEX_VERIFICATION`, `NUXT_PUBLIC_GOOGLE_VERIFICATION` | коды подтверждения (если не файлом) |
 
+`REDIS_URL` — адрес Redis для кеша последних комментариев (Render → New → Key Value → Free, взять
+«Internal Key Value URL» вида `redis://red-…:6379`). Без него кеш живёт в памяти сервера.
+
 Необязательные: `WRITE_REQUESTS_PER_MINUTE`, `SEARCH_REQUESTS_PER_MINUTE`, `MAX_UPLOAD_MB`,
 `INVITE_TTL_DAYS`, `RESET_LINK_TTL_HOURS`, `EMAIL_ENCRYPTION_KEY`.
 

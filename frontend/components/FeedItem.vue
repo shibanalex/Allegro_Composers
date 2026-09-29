@@ -1,6 +1,7 @@
 <template>
-  <!-- One entry of the main feed: who published it, when, from which hall — then the thing itself -->
-  <article class="card !p-0">
+  <!-- One entry of the main feed: who published it, when, from which hall — then the thing itself.
+       The whole card opens the post or work; links, buttons and players inside keep their own clicks. -->
+  <article class="card feed-entry !p-0" @click="openEntry">
     <header class="flex items-center gap-4 px-5 pt-5 sm:px-8 sm:pt-7">
       <NuxtLink :to="`/@${author.username}`" class="shrink-0"><UserAvatar :user="author" :size="48" /></NuxtLink>
       <div class="min-w-0 flex-1 leading-tight">
@@ -10,6 +11,14 @@
         </p>
       </div>
       <span class="hidden font-caps text-xs font-semibold tracking-[0.15em] text-gold/70 sm:block">{{ ROLES[author.role || 'listener']?.label }}</span>
+      <!-- The author's own entry: edit, delete (a moderator may delete a post) -->
+      <div v-if="editLink || canDelete" ref="menuRoot" class="relative">
+        <button type="button" class="px-2 text-2xl leading-none text-parchment-faint transition hover:text-gold-light" aria-label="Действия" :aria-expanded="menu" @click="menu = !menu">⋯</button>
+        <div v-if="menu" class="absolute right-0 top-full z-30 mt-1 w-44 border border-gold/25 bg-ink-900/95 py-1 shadow-2xl shadow-black backdrop-blur">
+          <NuxtLink v-if="editLink" :to="editLink" class="block px-4 py-2 font-elegant text-lg text-parchment transition hover:bg-gold/10 hover:text-gold-light">Изменить</NuxtLink>
+          <button v-if="canDelete" type="button" class="block w-full px-4 py-2 text-left font-elegant text-lg text-parchment transition hover:bg-gold/10 hover:text-red-300" @click="remove">Удалить</button>
+        </div>
+      </div>
     </header>
 
     <div class="px-5 pb-6 pt-5 sm:px-8 sm:pb-8">
@@ -63,7 +72,14 @@
 
       <!-- A blog post, like a message in a channel -->
       <template v-else-if="item.post">
-        <MarkdownContent v-if="item.post.content_md" :text="item.post.content_md" variant="compact" />
+        <!-- A long post is folded: «Развернуть» shows it all -->
+        <div v-if="item.post.content_md" ref="textBox" class="relative" :class="{ 'max-h-[20rem] overflow-hidden': long && !expanded }">
+          <MarkdownContent :text="item.post.content_md" variant="compact" />
+          <div v-if="long && !expanded" class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink-850 to-transparent" />
+        </div>
+        <button v-if="long" type="button" class="mt-2 font-caps text-sm font-semibold tracking-[0.15em] text-gold transition hover:text-gold-light" @click="expanded = !expanded">
+          {{ expanded ? 'Свернуть ↑' : 'Развернуть ↓' }}
+        </button>
         <ImageGallery v-if="images.length" :images="images" class="mt-4" />
         <div v-for="a in audios" :key="a.url" class="mt-4 border border-gold/20 bg-ink-950/50 p-3">
           <p class="mb-2 truncate text-sm text-parchment-muted">♪ {{ a.name }}</p>
@@ -73,6 +89,17 @@
         <OpusMiniCard v-if="item.post.opus" :opus="item.post.opus" class="mt-4" />
         <QuoteCard v-if="item.post.quote" :post="item.post.quote" class="mt-4" />
       </template>
+    </div>
+
+    <!-- The last comments (from the cache) until the whole discussion is opened -->
+    <div v-if="item.comments?.length && !open" class="space-y-3 border-t border-gold/10 px-5 py-4 sm:px-8">
+      <div v-for="c in item.comments" :key="c.id" class="flex gap-3">
+        <NuxtLink :to="`/@${c.author.username}`" class="shrink-0"><UserAvatar :user="c.author" :size="30" /></NuxtLink>
+        <p class="line-clamp-2 min-w-0 flex-1 text-parchment-muted [overflow-wrap:anywhere]">
+          <NuxtLink :to="`/@${c.author.username}`" class="font-display italic text-parchment transition hover:text-gold-light">{{ c.author.display_name }}</NuxtLink>
+          {{ stripMarkdown(c.content_md, 220) }}
+        </p>
+      </div>
     </div>
 
     <!-- Actions: like, discuss right here, quote or share, copy the link -->
@@ -104,21 +131,68 @@
 import type { Attachment, FeedEntry } from '~/utils/types'
 
 const props = defineProps<{ item: FeedEntry }>()
-const { can } = useAuth()
+const emit = defineEmits<{ removed: [] }>()
+const { user, can } = useAuth()
+const api = useApi()
+
+// ---- the card as a whole: a click on its empty parts opens the post or work
+function openEntry(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  if (target.closest('a, button, input, textarea, select, label, audio, video, [role="dialog"], .no-open')) return
+  if (window.getSelection()?.toString()) return // selecting text is not a click
+  navigateTo(link.value)
+}
+
+// ---- a long blog post is folded
+const textBox = ref<HTMLElement>()
+const long = ref(false)
+const expanded = ref(false)
+onMounted(() => {
+  if (textBox.value && textBox.value.scrollHeight > 380) long.value = true
+})
+
+// ---- the author's menu
+const menu = ref(false)
+const menuRoot = ref<HTMLElement>()
+const mine = computed(() => !!user.value && user.value.id === author.value.id)
+const editLink = computed(() => {
+  if (!mine.value) return null
+  const { post, opus, performance } = props.item
+  if (post) return `/create/post?edit=${post.slug}`
+  if (opus) return `/create/opus?edit=${opus.slug}`
+  if (performance) return `/@${user.value!.username}?tab=performances`
+  return null
+})
+const canDelete = computed(() => mine.value || (!!props.item.post && can('moderate')))
+async function remove() {
+  menu.value = false
+  const { post, opus, performance } = props.item
+  const what = post ? (post.title ? `«${post.title}»` : 'эту запись') : opus ? `«${opus.title}» вместе с файлами` : 'это исполнение'
+  if (!confirm(`Удалить ${what}?`)) return
+  try {
+    if (post) await api(`/api/posts/${post.slug}`, { method: 'DELETE' })
+    else if (opus) await api(`/api/opuses/${opus.slug}`, { method: 'DELETE' })
+    else if (performance) await api(`/api/performances/${performance.id}`, { method: 'DELETE' })
+    emit('removed')
+  } catch (e) {
+    alert(apiError(e))
+  }
+}
+const onDocClick = (e: MouseEvent) => {
+  if (menuRoot.value && !menuRoot.value.contains(e.target as Node)) menu.value = false
+}
+onMounted(() => document.addEventListener('click', onDocClick))
+onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 const targetId = computed(() => (props.item.opus || props.item.performance || props.item.post)!.id)
 
-// Comments open right under the entry; works have «рецензии», posts — comments; performances aren't discussed
+// Comments open right under the entry (works and posts; performances aren't discussed)
 const discussion = computed(() => {
   const { post, opus } = props.item
-  if (post) {
-    const n = post.comment_count
-    return { target: { post_id: post.id }, title: 'Обсуждение', label: n ? `${n} ${plural(n, 'комментарий', 'комментария', 'комментариев')}` : 'Обсудить' }
-  }
-  if (opus) {
-    const n = opus.critique_count
-    return { target: { opus_id: opus.id }, title: 'Рецензии', label: n ? `${n} ${plural(n, 'рецензия', 'рецензии', 'рецензий')}` : 'Рецензия' }
-  }
+  const n = post ? post.comment_count : opus ? opus.critique_count : 0
+  const label = n ? `${n} ${plural(n, 'комментарий', 'комментария', 'комментариев')}` : 'Обсудить'
+  if (post) return { target: { post_id: post.id }, title: 'Комментарии', label }
+  if (opus) return { target: { opus_id: opus.id }, title: 'Комментарии', label }
   return null
 })
 const open = ref(false)
