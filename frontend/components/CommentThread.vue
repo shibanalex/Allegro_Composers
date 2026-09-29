@@ -1,5 +1,5 @@
 <template>
-  <section v-if="canJoin || comments.length">
+  <section v-if="canJoin || comments.length || loading">
     <h2 class="flex items-baseline gap-3 font-caps text-lg font-semibold tracking-[0.2em] text-gold">
       {{ title }} <span class="font-display text-base font-normal italic tracking-normal text-parchment-faint">({{ comments.length }})</span>
     </h2>
@@ -39,6 +39,7 @@
         @remove="remove"
       />
     </ul>
+    <p v-else-if="loading" class="mt-8 font-elegant text-lg italic text-parchment-faint">Загружаю комментарии…</p>
     <p v-else-if="canJoin" class="mt-8 font-elegant text-lg italic text-parchment-faint">Пока тихо. Будьте первым, кто выскажется.</p>
   </section>
 </template>
@@ -64,10 +65,12 @@ const { user, registrationOpen, can } = useAuth()
 // A visitor can take part only by logging in or signing up; while sign-ups are closed they just read
 const canJoin = computed(() => !!user.value || registrationOpen.value)
 
-const { data } = await useAsyncData(`comments-${props.target.opus_id || props.target.post_id}`, () =>
+// Comments load alongside the page and never hold it up: it shows first, the discussion fills in
+const { data, pending: loading } = useLazyAsyncData(`comments-${props.target.opus_id || props.target.post_id}`, () =>
   api<Comment[]>('/api/comments', { params: props.target }),
 )
 const comments = ref<Comment[]>(data.value || [])
+watch(data, (value) => (comments.value = value || []))
 
 const roots = computed(() => comments.value.filter((c) => !c.parent_id))
 const children = computed(() => {

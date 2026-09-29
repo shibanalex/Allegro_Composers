@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 from allegro.core.schemas import Attachment, ORMModel, UTCDateTime
 from allegro.modules.accounts.schemas import UserBrief
 from allegro.modules.catalog.schemas import OpusBrief
+from allegro.modules.discussion.schemas import ReactionsOut
 
 # note: a blog post (everyone) · sketch: a quick recording with a short title (composers) · article: an article
 # or review (composers, theorists) · news: the site's news (administrators) · workshop: an old review request
@@ -79,6 +80,7 @@ class PostOut(ORMModel):
     quote: Optional[PostBrief] = None
     seeking_feedback: bool = False
     comment_count: int = 0
+    likes: Optional[ReactionsOut] = None  # on the post's own page: with it, so the page needs one request
 
 
 class PostPage(BaseModel):

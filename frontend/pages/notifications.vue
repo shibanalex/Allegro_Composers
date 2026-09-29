@@ -11,7 +11,7 @@
     </div>
 
     <EmptyState v-if="!items.length">Пока ничего — здесь появятся новые публикации участников</EmptyState>
-    <ul class="divide-y divide-gold/10 border-y border-gold/10">
+    <ul v-if="items.length" class="divide-y divide-gold/10 border-y border-gold/10">
       <li v-for="n in items" :key="n.id">
         <NuxtLink :to="n.url" class="flex items-start gap-4 px-2 py-4 transition hover:bg-gold/5" :class="{ 'bg-gold/[0.04]': !n.read_at }" @click="readOne(n)">
           <UserAvatar v-if="n.actor" :user="n.actor" :size="42" />

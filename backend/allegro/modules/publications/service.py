@@ -22,7 +22,8 @@ from allegro.core.slugs import unique_slug
 from allegro.modules.accounts.roles import CAPABILITY_REFUSALS, Capability, can
 from allegro.modules.accounts.service import author_named, get_visible_user, visible_authors
 from allegro.modules.catalog.service import opus_brief, opus_id_by_slug, published_opus_ids, visible_published_opus
-from allegro.modules.discussion.service import Target, count_comments, forget_target
+from allegro.modules.discussion.schemas import ReactionsOut
+from allegro.modules.discussion.service import Target, count_comments, forget_target, reaction_summary
 from allegro.modules.publications.models import Material, Post, PostLink
 from allegro.modules.publications.schemas import (
     MaterialFields, MaterialIn, PostBrief, PostCreate, PostFields, PostOut,
@@ -185,6 +186,12 @@ def list_posts(db: Session, user, *, kinds: Optional[list[str]] = None, author: 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     posts = list(db.scalars(stmt.order_by(Post.created_at.desc()).offset(offset).limit(limit)).unique())
     return posts, total
+
+
+def post_page(db: Session, slug: str, user) -> PostOut:
+    post = read_post(db, slug, user)
+    likes = reaction_summary(db, "post", [post.id], user)[post.id]
+    return posts_out(db, [post])[0].model_copy(update={"likes": ReactionsOut(count=likes.count, mine=likes.mine)})
 
 
 def read_post(db: Session, slug: str, user) -> Post:

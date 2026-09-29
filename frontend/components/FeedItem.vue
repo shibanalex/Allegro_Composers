@@ -1,13 +1,13 @@
 <template>
   <!-- One entry of the main feed: who published it, when, from which hall — then the thing itself.
        The whole card opens the post or work; links, buttons and players inside keep their own clicks. -->
-  <article class="card feed-entry !p-0" @click="openEntry">
+  <article ref="root" class="card !p-0" :class="{ 'feed-entry': !detail }" @click="openEntry">
     <header class="flex items-center gap-4 px-5 pt-5 sm:px-8 sm:pt-7">
       <NuxtLink :to="`/@${author.username}`" class="shrink-0"><UserAvatar :user="author" :size="48" /></NuxtLink>
       <div class="min-w-0 flex-1 leading-tight">
         <NuxtLink :to="`/@${author.username}`" class="font-display text-xl italic text-parchment transition hover:text-gold-light">{{ author.display_name }}</NuxtLink>
         <p class="flex flex-wrap items-center gap-x-2 text-sm text-parchment-faint">
-          <span>{{ action }} · <time :datetime="item.created_at">{{ when }}</time></span>
+          <span>{{ action }} · <time :datetime="item.created_at">{{ when }}</time><template v-if="detail && item.post"> · {{ item.post.view_count }} {{ plural(item.post.view_count, 'просмотр', 'просмотра', 'просмотров') }}</template></span>
           <span v-if="item.post?.seeking_feedback" class="border border-gold/50 bg-gold/10 px-2 font-caps text-xs font-semibold tracking-[0.12em] text-gold-light">Ищет отзыв</span>
         </p>
       </div>
@@ -68,6 +68,25 @@
         <p v-if="item.post.content_md" class="mt-3 font-elegant text-lg italic text-parchment-muted [overflow-wrap:anywhere]">{{ item.post.content_md }}</p>
       </template>
 
+      <!-- On its own page: an article, a review or news in full -->
+      <template v-else-if="detail && item.post && item.post.kind !== 'note'">
+        <p class="eyebrow text-xs">{{ POST_KINDS[item.post.kind] }}<template v-if="item.post.opus"> · об опусе «{{ item.post.opus.title }}»</template></p>
+        <h1 class="mt-2 text-4xl leading-tight sm:text-5xl">{{ item.post.title }}</h1>
+        <p v-if="item.post.excerpt" class="mt-3 font-elegant text-xl italic text-parchment-muted">{{ item.post.excerpt }}</p>
+        <div v-if="item.post.cover_url" class="mt-6 border border-gold/20 bg-ink-950 p-2">
+          <MediaImg :src="item.post.cover_url" alt="" full class="mx-auto max-h-[28rem] w-auto max-w-full object-contain" />
+        </div>
+        <OpusMiniCard v-if="item.post.opus" :opus="item.post.opus" class="mt-6" />
+        <MarkdownContent :text="item.post.content_md" :timecodes="!!item.post.opus" class="mt-6" :class="{ dropcap: item.post.kind === 'article' }" @seek="seek" />
+        <ImageGallery v-if="images.length" :images="images" class="mt-6" />
+        <div v-for="a in audios" :key="a.url" class="mt-4 border border-gold/20 bg-ink-950/50 p-3">
+          <p class="mb-2 truncate text-sm text-parchment-muted">♪ {{ a.name }}</p>
+          <audio :src="a.url" controls preload="none" class="w-full" />
+        </div>
+        <AttachmentList v-if="files.length" :files="files" class="mt-6" />
+        <QuoteCard v-if="item.post.quote" :post="item.post.quote" class="mt-6" />
+      </template>
+
       <!-- An article, a review, the site's news -->
       <NuxtLink v-else-if="item.post && item.post.kind !== 'note'" :to="`/posts/${item.post.slug}`" class="group flex gap-5">
         <div class="min-w-0 flex-1">
@@ -85,10 +104,10 @@
       <template v-else-if="item.post">
         <!-- A long post is folded: «Развернуть» shows it all -->
         <div v-if="item.post.content_md" ref="textBox" class="relative" :class="{ 'max-h-[20rem] overflow-hidden': long && !expanded }">
-          <MarkdownContent :text="item.post.content_md" variant="compact" />
+          <MarkdownContent :text="item.post.content_md" :variant="detail ? undefined : 'compact'" :timecodes="!!item.post.opus" @seek="seek" />
           <div v-if="long && !expanded" class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink-850 to-transparent" />
         </div>
-        <button v-if="long" type="button" class="mt-2 font-caps text-sm font-semibold tracking-[0.15em] text-gold transition hover:text-gold-light" @click="expanded = !expanded">
+        <button v-if="long && !detail" type="button" class="mt-2 font-caps text-sm font-semibold tracking-[0.15em] text-gold transition hover:text-gold-light" @click="expanded = !expanded">
           {{ expanded ? 'Свернуть ↑' : 'Развернуть ↓' }}
         </button>
         <ImageGallery v-if="images.length" :images="images" class="mt-4" />
@@ -103,7 +122,7 @@
     </div>
 
     <!-- The last comments (from the cache) until the whole discussion is opened -->
-    <div v-if="item.comments?.length && !open" class="space-y-3 border-t border-gold/10 px-5 py-4 sm:px-8">
+    <div v-if="item.comments?.length && !open && !detail" class="space-y-3 border-t border-gold/10 px-5 py-4 sm:px-8">
       <div v-for="c in item.comments" :key="c.id" class="flex gap-3">
         <NuxtLink :to="`/@${c.author.username}`" class="shrink-0"><UserAvatar :user="c.author" :size="30" /></NuxtLink>
         <p class="line-clamp-2 min-w-0 flex-1 text-parchment-muted [overflow-wrap:anywhere]">
@@ -117,7 +136,7 @@
     <footer class="border-t border-gold/10 px-5 py-2.5 text-parchment-faint sm:px-8">
       <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
         <LikeButton :kind="item.type" :id="targetId" :value="item.likes" />
-        <button v-if="discussion" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" :aria-expanded="open" @click="open = !open">
+        <button v-if="discussion" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" :aria-expanded="open" @click="discuss">
           <span class="text-lg leading-none" aria-hidden="true">✎</span>{{ discussion.label }}
         </button>
         <button v-if="shareable && can('publish_note')" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" @click="sharing = true">
@@ -139,15 +158,18 @@
 </template>
 
 <script setup lang="ts">
+import { usePlayer } from '~/stores/player'
 import type { Attachment, FeedEntry } from '~/utils/types'
 
-const props = defineProps<{ item: FeedEntry }>()
+/** detail: the post on its own page — nothing folded, the discussion open, the card doesn't lead anywhere */
+const props = defineProps<{ item: FeedEntry; detail?: boolean }>()
 const emit = defineEmits<{ removed: [] }>()
 const { user, can } = useAuth()
 const api = useApi()
 
 // ---- the card as a whole: a click on its empty parts opens the post or work
 function openEntry(e: MouseEvent) {
+  if (props.detail) return
   const target = e.target as HTMLElement
   if (target.closest('a, button, input, textarea, select, label, audio, video, [role="dialog"], .no-open')) return
   if (window.getSelection()?.toString()) return // selecting text is not a click
@@ -159,8 +181,14 @@ const textBox = ref<HTMLElement>()
 const long = ref(false)
 const expanded = ref(false)
 onMounted(() => {
-  if (textBox.value && textBox.value.scrollHeight > 380) long.value = true
+  if (!props.detail && textBox.value && textBox.value.scrollHeight > 380) long.value = true
 })
+
+// A timecode in the text plays the work the post is about
+const player = usePlayer()
+function seek(seconds: number) {
+  if (props.item.post?.opus && props.item.post.opus.audio_type !== 'none') player.play(props.item.post.opus, seconds)
+}
 
 // ---- the author's menu
 const menu = ref(false)
@@ -212,7 +240,15 @@ const discussion = computed(() => {
   if (opus) return { target: { opus_id: opus.id }, title: 'Комментарии', label }
   return null
 })
-const open = ref(false)
+const open = ref(!!props.detail)
+const root = ref<HTMLElement>()
+// In the feed the button opens the discussion under the entry; on the post's page it leads to the field
+function discuss() {
+  if (!props.detail) return (open.value = !open.value)
+  const field = root.value?.querySelector('textarea')
+  field?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  field?.focus({ preventScroll: true })
+}
 
 // A post can be quoted, a work shared — both become a blog post of one's own
 const shareable = computed(() => !!(props.item.opus || (props.item.post && props.item.post.status === 'published')))

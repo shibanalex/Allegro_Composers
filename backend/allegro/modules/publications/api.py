@@ -33,7 +33,8 @@ def list_posts(
 
 @router.get("/api/posts/{slug}", response_model=PostOut)
 def get_post(slug: str, user=Depends(get_optional_user), db: Session = Depends(get_db)):
-    return service.posts_out(db, [service.read_post(db, slug, user)])[0]
+    """The post with its likes (and whether the reader liked it): everything its page shows first"""
+    return service.post_page(db, slug, user)
 
 
 @router.get("/api/mentions/{kind}/{slug}", response_model=list[PostBrief])

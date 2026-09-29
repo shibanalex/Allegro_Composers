@@ -3,7 +3,8 @@
     <div class="canvas-bg" aria-hidden="true" />
     <SiteHeader />
     <!-- Pages with side columns (the main feed) ask for more room: definePageMeta({ wide: true }) -->
-    <main class="container-page flex-1" :class="{ 'xl:max-w-[90rem]': route.meta.wide }">
+    <!-- At least a screen high: a page with little on it doesn't shrink with the footer riding up under it -->
+    <main class="container-page min-h-[calc(100vh-5rem)] flex-1" :class="{ 'xl:max-w-[90rem]': route.meta.wide }">
       <slot />
     </main>
     <SiteFooter />

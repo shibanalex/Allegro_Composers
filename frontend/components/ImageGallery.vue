@@ -1,12 +1,22 @@
 <template>
   <div>
-    <div class="grid grid-cols-2 gap-5 sm:grid-cols-3">
+    <!-- One picture: whole, in its own proportions (a score must not be cropped), on a dark mat, a little
+         muted so white paper doesn't glare on the dark page -->
+    <button v-if="images.length === 1" type="button" class="group block w-full border border-gold/20 bg-ink-950 p-2" @click="current = 0">
+      <MediaImg
+        :src="images[0].url"
+        :alt="images[0].name"
+        loading="lazy"
+        class="mx-auto max-h-[32rem] w-auto max-w-full object-contain brightness-[.9] transition duration-500 group-hover:brightness-100"
+      />
+    </button>
+    <div v-else class="grid grid-cols-2 gap-5 sm:grid-cols-3">
       <button
         v-for="(img, i) in images"
         :key="img.url"
         type="button"
         class="frame frame-thin group aspect-[4/3]"
-        :class="images.length === 1 || (images.length === 3 && i === 0) ? 'col-span-2 sm:col-span-3 aspect-[16/9]' : ''"
+        :class="images.length === 3 && i === 0 ? 'col-span-2 sm:col-span-3 aspect-[16/9]' : ''"
         @click="current = i"
       >
         <div class="frame-inner">
