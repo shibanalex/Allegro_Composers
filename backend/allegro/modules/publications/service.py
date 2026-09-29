@@ -191,15 +191,23 @@ def list_posts(db: Session, user, *, kinds: Optional[list[str]] = None, author: 
 def post_page(db: Session, slug: str, user) -> PostOut:
     post = read_post(db, slug, user)
     likes = reaction_summary(db, "post", [post.id], user)[post.id]
-    return posts_out(db, [post])[0].model_copy(update={"likes": ReactionsOut(count=likes.count, mine=likes.mine)})
+    # this view is counted after the answer (count_view): the number shown already includes it
+    return posts_out(db, [post])[0].model_copy(update={
+        "likes": ReactionsOut(count=likes.count, mine=likes.mine), "view_count": post.view_count + 1,
+    })
 
 
 def read_post(db: Session, slug: str, user) -> Post:
-    post = _get_post(db, slug, user)
-    db.execute(update(Post).where(Post.id == post.id).values(view_count=Post.view_count + 1))
-    db.commit()
-    db.refresh(post)
-    return post
+    return _get_post(db, slug, user)
+
+
+def count_view(post_id: uuid.UUID) -> None:
+    """One more view — after the answer has gone (a background task): the reader never waits for it"""
+    from allegro.core.db import SessionLocal
+
+    with SessionLocal() as db:
+        db.execute(update(Post).where(Post.id == post_id).values(view_count=Post.view_count + 1))
+        db.commit()
 
 
 def create_post(db: Session, user, data: PostCreate) -> Post:

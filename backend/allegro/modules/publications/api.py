@@ -2,7 +2,7 @@
 import uuid
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from allegro.core.db import get_db
@@ -32,9 +32,11 @@ def list_posts(
 
 
 @router.get("/api/posts/{slug}", response_model=PostOut)
-def get_post(slug: str, user=Depends(get_optional_user), db: Session = Depends(get_db)):
+def get_post(slug: str, background: BackgroundTasks, user=Depends(get_optional_user), db: Session = Depends(get_db)):
     """The post with its likes (and whether the reader liked it): everything its page shows first"""
-    return service.post_page(db, slug, user)
+    page = service.post_page(db, slug, user)
+    background.add_task(service.count_view, page.id)
+    return page
 
 
 @router.get("/api/mentions/{kind}/{slug}", response_model=list[PostBrief])

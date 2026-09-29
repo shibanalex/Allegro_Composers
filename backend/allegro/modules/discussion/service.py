@@ -13,7 +13,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -155,19 +155,18 @@ class Reactions:
 
 
 def reaction_summary(db: Session, kind: str, ids: list[uuid.UUID], user=None) -> dict[uuid.UUID, Reactions]:
-    """Likes of a page of things in two small queries (a count per thing, and which ones the reader liked).
+    """Likes of a page of things in one query: how many each has, and whether the reader is among them.
     Likes of accounts in the shadow don't count."""
     if not ids:
         return {}
-    counts = dict(db.execute(
-        select(Reaction.target_id, func.count()).where(
+    reader = user.id if user else None
+    rows = db.execute(
+        select(Reaction.target_id, func.count(), func.sum(case((Reaction.user_id == reader, 1), else_=0))).where(
             Reaction.target_kind == kind, Reaction.target_id.in_(ids), visible_authors(Reaction.user_id),
         ).group_by(Reaction.target_id)
-    ).all())
-    mine = set(db.scalars(select(Reaction.target_id).where(
-        Reaction.target_kind == kind, Reaction.target_id.in_(ids), Reaction.user_id == user.id,
-    ))) if user else set()
-    return {i: Reactions(counts.get(i, 0), i in mine) for i in ids}
+    ).all()
+    found = {target: Reactions(count, bool(mine)) for target, count, mine in rows}
+    return {i: found.get(i, Reactions()) for i in ids}
 
 
 def set_reaction(db: Session, user, kind: str, target_id: uuid.UUID, on: bool) -> Reactions:
