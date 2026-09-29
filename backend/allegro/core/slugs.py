@@ -12,6 +12,11 @@ _TRANSLIT = str.maketrans({
 })
 
 
+def transliterate(text: str) -> str:
+    """Russian letters in Latin ones (lowercase): «Шуберт» → shubert"""
+    return text.lower().translate(_TRANSLIT)
+
+
 def slugify(text: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower().translate(_TRANSLIT)).strip("-")
     return slug[:80] or "untitled"

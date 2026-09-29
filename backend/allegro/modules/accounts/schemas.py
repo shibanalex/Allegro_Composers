@@ -6,9 +6,11 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from allegro.core.schemas import ORMModel, UTCDateTime
+from allegro.core.slugs import transliterate
 from allegro.modules.accounts.roles import HALL_THEMES, Role
 
-USERNAME_RE = re.compile(r"^[a-z0-9_]{3,32}$")
+# The hall's address (/@ivan.petrov): Latin letters, digits and _ . - inside; starts and ends with a letter or digit
+USERNAME_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{1,30})[a-z0-9]$")
 # Addresses the site itself uses: nobody may take them as a username
 RESERVED = {
     "admin", "api", "media", "library", "search", "create", "settings", "login", "register", "opus", "posts",
@@ -41,13 +43,56 @@ class Link(BaseModel):
         return v
 
 
+def normalize_username(value: str) -> str:
+    """A ready address to offer instead of what was typed: «Иван Петров» → ivan_petrov"""
+    v = transliterate(value.strip())
+    v = re.sub(r"\s+", "_", v)
+    v = re.sub(r"[^a-z0-9._-]", "", v)
+    v = re.sub(r"([._-])[._-]+", r"\1", v)  # no «..», «_-» and the like
+    return v.strip("._-")[:32].strip("._-")
+
+
+def _count(n: int, one: str, few: str, many: str) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return f"{n} {one}"
+    return f"{n} {few}" if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14 else f"{n} {many}"
+
+
+def username_problems(value: str) -> list[str]:
+    """Everything that is wrong with an address, in words a person understands (empty: it is fine)"""
+    v = value.strip().lower()
+    problems = []
+    if re.search(r"[а-яё]", v):
+        problems.append("Русские буквы нельзя — только латиница")
+    if re.search(r"\s", v):
+        problems.append("Пробелы нельзя — вместо них _ или точка")
+    odd = sorted({c for c in v if not re.match(r"[a-z0-9._\-а-яё\s]", c)})
+    if odd:
+        problems.append("Нельзя использовать: " + " ".join(odd))
+    if len(v) < 3:
+        problems.append(f"Слишком коротко: нужно ещё {_count(3 - len(v), 'символ', 'символа', 'символов')}")
+    if len(v) > 32:
+        problems.append(f"Слишком длинно: уберите {_count(len(v) - 32, 'символ', 'символа', 'символов')}")
+    if v and (v[0] in "._-" or v[-1] in "._-"):
+        problems.append("Начало и конец — буква или цифра, не . _ -")
+    if re.search(r"[._-]{2}", v):
+        problems.append("Два знака подряд (.. __ -_) нельзя")
+    if not problems and v in RESERVED:
+        problems.append("Этот адрес занят самим сайтом")
+    return problems
+
+
 def _username(v: str) -> str:
-    v = v.strip().lower()
-    if not USERNAME_RE.match(v):
-        raise ValueError("3–32 символа: латиница, цифры и _")
-    if v in RESERVED:
-        raise ValueError("Это имя зарезервировано")
-    return v
+    problems = username_problems(v)
+    if problems:
+        raise ValueError(". ".join(problems))
+    return v.strip().lower()
+
+
+class UsernameCheck(BaseModel):
+    ok: bool
+    problems: list[str] = []  # what is wrong, for a person to read
+    suggestions: list[str] = []  # free addresses close to what was typed
 
 
 def _optional_email(v: Optional[str]) -> Optional[str]:

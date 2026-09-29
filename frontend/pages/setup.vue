@@ -14,17 +14,10 @@
         <p class="mt-1 text-xs text-parchment-faint">Тот, что вы вписали в SETUP_TOKEN в настройках хостинга</p>
       </div>
       <div>
-        <label class="field-label" for="username">Имя пользователя</label>
-        <div class="flex items-center border border-ink-600 bg-ink-950/70 focus-within:border-gold/70">
-          <span class="pl-4 text-parchment-faint">allegro/@</span>
-          <input id="username" v-model="form.username" class="w-full bg-transparent py-2.5 pr-4 text-parchment outline-none" pattern="[a-z0-9_]{3,32}" autocomplete="username" required>
-        </div>
-        <p class="mt-1 text-xs text-parchment-faint">То же, что в LOGIN_ALLOWLIST</p>
-      </div>
-      <div>
         <label class="field-label" for="display_name">Имя на сайте</label>
         <input id="display_name" v-model="form.display_name" class="field" required>
       </div>
+      <HallAddressField v-model="form.username" :name="form.display_name" />
       <div>
         <label class="field-label" for="email">Email</label>
         <input id="email" v-model="form.email" type="email" class="field" autocomplete="email" required>

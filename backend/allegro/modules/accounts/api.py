@@ -2,7 +2,7 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from allegro.core.db import get_db
@@ -14,7 +14,7 @@ from allegro.modules.accounts.models import AccessLink, User
 from allegro.modules.accounts.roles import Capability, matrix, user_capabilities
 from allegro.modules.accounts.schemas import (
     AccessLinkOut, AdminUserOut, AdminUserUpdate, InviteIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
-    ProfileOut, ProfileUpdate, RegisterIn, ResetIn, SetupIn, SiteConfig, TokenOut,
+    ProfileOut, ProfileUpdate, RegisterIn, ResetIn, SetupIn, SiteConfig, TokenOut, UsernameCheck,
 )
 
 router = APIRouter(tags=["accounts"])
@@ -41,6 +41,12 @@ def _link_out(link: AccessLink, token: Optional[str] = None) -> AccessLinkOut:
 
 
 # ---------------------------------------------------------------- joining and signing in
+
+@router.get("/api/auth/username", response_model=UsernameCheck)
+def check_username(value: str = Query("", max_length=64), db: Session = Depends(get_db)):
+    """Is this hall address usable and free? (the sign-up form asks as it is typed)"""
+    return service.check_username(db, value)
+
 
 @router.get("/api/auth/config", response_model=SiteConfig)
 def site_config(db: Session = Depends(get_db)):

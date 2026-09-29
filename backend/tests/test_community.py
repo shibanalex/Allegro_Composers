@@ -287,3 +287,21 @@ def test_feed_brings_every_hall_together(admin, theorist):
     assert works and all(i["type"] == "opus" for i in works)
     blogs = client.get("/api/feed", params={"kind": "blogs"}).json()["items"]
     assert all(i["type"] == "post" and i["post"]["kind"] == "note" for i in blogs)
+
+
+def test_hall_address_explains_what_is_wrong(admin):
+    def check(value):
+        return client.get("/api/auth/username", params={"value": value}).json()
+
+    ok = check("Anna.Viola")
+    assert ok["ok"] and ok["problems"] == []
+    russian = check("Иван Петров")
+    assert not russian["ok"] and any("латиница" in p for p in russian["problems"]) and any("Пробелы" in p for p in russian["problems"])
+    assert russian["suggestions"][0] == "ivan_petrov"
+    assert "ещё 1 символ" in check("ab")["problems"][0]
+    assert "!" in check("ivan!")["problems"][0]
+    taken = check("mira")
+    assert taken["problems"] == ["Этот адрес уже занят"] and taken["suggestions"][0] == "mira1"
+    # the same words come back when signing up with a wrong address
+    r = client.post("/api/auth/register", json={"username": "Мира", "password": "secret-pass", "display_name": "М", "role": "listener"})
+    assert r.status_code == 422 and "латиница" in r.text

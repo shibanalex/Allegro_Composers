@@ -23,7 +23,9 @@ from allegro.core.security import (
 from allegro.modules.accounts import repository as repo
 from allegro.modules.accounts.models import AccessLink, User, aware, utcnow
 from allegro.modules.accounts.roles import DEFAULT_HALL_THEME, HALL_THEMES, ROLE_LABELS, Role
-from allegro.modules.accounts.schemas import ProfileUpdate, RegisterIn, SetupIn, SiteConfig
+from allegro.modules.accounts.schemas import (
+    ProfileUpdate, RegisterIn, SetupIn, SiteConfig, UsernameCheck, normalize_username, username_problems,
+)
 
 login_limiter = AttemptLimiter(10, 15 * 60, "Слишком много попыток входа.")
 link_limiter = AttemptLimiter(10, 15 * 60, "Слишком много неверных ссылок.")
@@ -149,6 +151,25 @@ def _commit_new_user(db: Session) -> None:
     except IntegrityError:  # the same name or e-mail taken by a simultaneous sign-up
         db.rollback()
         raise Conflict("Имя пользователя или email уже заняты")
+
+
+def check_username(db: Session, value: str) -> UsernameCheck:
+    """For the sign-up form, as the address is typed: what is wrong with it, and free addresses to take instead"""
+    problems = username_problems(value)
+    taken = not problems and repo.username_taken(db, value.strip().lower())
+    if taken:
+        problems = ["Этот адрес уже занят"]
+    suggestions: list[str] = []
+    if problems:
+        base = normalize_username(value)
+        # the address itself when it only needed tidying, then with a number: ivan_petrov1, ab1…
+        candidates = [base] + [f"{base}{n}" for n in range(1, 30)] if base else []
+        for candidate in candidates:
+            if not username_problems(candidate) and not repo.username_taken(db, candidate):
+                suggestions.append(candidate)
+            if len(suggestions) == 3:
+                break
+    return UsernameCheck(ok=not problems, problems=problems, suggestions=suggestions)
 
 
 def _new_user(db: Session, *, username: str, display_name: str, password: str, role: str, email: Optional[str], **extra) -> User:

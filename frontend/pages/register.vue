@@ -19,14 +19,7 @@
           <label class="field-label" for="display_name">Имя</label>
           <input id="display_name" v-model="form.display_name" class="field" placeholder="Имя и фамилия" required maxlength="120">
         </div>
-        <div>
-          <label class="field-label" for="username">Адрес зала</label>
-          <div class="flex items-center border border-ink-600 bg-ink-950/70 focus-within:border-gold/70">
-            <span class="pl-4 text-parchment-faint">allegro/@</span>
-            <input id="username" v-model="form.username" class="w-full bg-transparent py-2.5 pr-4 text-parchment outline-none" pattern="[a-z0-9_]{3,32}" placeholder="imya_familiya" autocomplete="username" required>
-          </div>
-          <p class="mt-1 text-xs text-parchment-faint">3–32 символа: латиница, цифры и _</p>
-        </div>
+        <HallAddressField v-model="form.username" :name="form.display_name" />
         <div>
           <label class="field-label" for="password">Пароль</label>
           <input id="password" v-model="form.password" type="password" class="field" autocomplete="new-password" minlength="8" required>
