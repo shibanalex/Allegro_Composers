@@ -14,3 +14,4 @@ boto3==1.43.103
 cryptography==50.0.1
 Pillow==12.3.0
 redis==8.1.0
+pywebpush==2.5.0

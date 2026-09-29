@@ -15,6 +15,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from allegro.core import textsearch
+from allegro.core.events import emit
 from allegro.core.errors import Forbidden, Invalid, NotFound, Unauthorized
 from allegro.core.files import check_url, delete_own_url_after_commit
 from allegro.core.slugs import unique_slug
@@ -155,6 +156,13 @@ def mentions(db: Session, kind: str, slug: str, limit: int = 20) -> list[PostBri
     return [b for b in (post_brief(p) for p in posts) if b]
 
 
+def _announce(db: Session, post: Post) -> None:
+    """A post just became public: the notifications will tell the members (core.events)"""
+    text = post.title or " ".join(re.sub(r"[#*_>`\[\]()!]", " ", post.content_md or "").split())[:80]
+    emit(db, "published", target_type="post", kind=post.kind, id=post.id, author_id=post.author_id,
+         title=text or "запись", url=f"/posts/{post.slug}")
+
+
 def _slug_source(title: str, content: str) -> str:
     return title.strip() or " ".join(content.split()[:6]) or "zapis"
 
@@ -204,12 +212,15 @@ def create_post(db: Session, user, data: PostCreate) -> Post:
     db.add(post)
     db.flush()
     _save_links(db, post)
+    if post.status == "published":
+        _announce(db, post)
     db.commit()
     return post
 
 
 def update_post(db: Session, user, slug: str, data: PostFields) -> Post:
     post = _own_post(db, slug, user)
+    was_public = post.status == "published"
     values = data.model_dump(exclude_unset=True, mode="json")
     if "kind" in values and values["kind"] != post.kind:
         _check_kind(user, values["kind"])
@@ -230,6 +241,8 @@ def update_post(db: Session, user, slug: str, data: PostFields) -> Post:
         post.seeking_feedback = False
     if "content_md" in values:
         _save_links(db, post)
+    if post.status == "published" and not was_public:  # a draft published at last
+        _announce(db, post)
     db.commit()
     return post
 
@@ -243,6 +256,7 @@ def delete_post(db: Session, user, slug: str) -> None:
     for attachment in post.attachments or []:
         delete_own_url_after_commit(db, user.username, attachment.get("url"))
     forget_target(db, "post", post.id)
+    emit(db, "removed", target_type="post", id=post.id)
     db.delete(post)
     db.commit()
 

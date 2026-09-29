@@ -5,6 +5,9 @@
 Modules never register themselves; everything that connects one module to another happens here,
 in one readable place (see docs/ARCHITECTURE.md).
 """
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -23,6 +26,8 @@ from allegro.modules.discussion import api as discussion_api
 from allegro.modules.discussion import service as discussion
 from allegro.modules.feed import api as feed_api
 from allegro.modules.media import api as media_api
+from allegro.modules.notifications import api as notifications_api
+from allegro.modules.notifications import worker as notifications_worker
 from allegro.modules.publications import api as publications_api
 from allegro.modules.publications import service as publications
 from allegro.modules.search import api as search_api
@@ -55,8 +60,17 @@ def wire_modules() -> None:
     accounts.register_stat("articles", publications.count_articles)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """The notifications worker lives as long as the API (one process, no separate service)"""
+    task = asyncio.create_task(notifications_worker.run()) if settings.notifications_worker else None
+    yield
+    if task:
+        task.cancel()
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="Allegro", version="2.0.0")
+    app = FastAPI(title="Allegro", version="2.0.0", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
@@ -79,7 +93,8 @@ def create_app() -> FastAPI:
             )
         return await call_next(request)
 
-    for module_api in (accounts_api, catalog_api, publications_api, discussion_api, media_api, site_api, feed_api, search_api):
+    for module_api in (accounts_api, catalog_api, publications_api, discussion_api, media_api, site_api, feed_api,
+                       notifications_api, search_api):
         app.include_router(module_api.router)
 
     if storage.is_local:  # in production files are served by the object storage itself

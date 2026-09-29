@@ -6,6 +6,7 @@ import tempfile
 # Isolated database and media dir - must be set before allegro is imported
 _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
+os.environ["NOTIFICATIONS_WORKER"] = "false"  # tests run the worker by hand
 os.environ["MEDIA_DIR"] = f"{_tmp}/media"
 # Open community regardless of a local .env (the invitation tests switch it themselves)
 os.environ["REGISTRATION_MODE"] = "open"

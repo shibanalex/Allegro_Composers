@@ -38,6 +38,14 @@ services:
       - key: REDIS_URL
         sync: false
 
+      # Optional: e-mail digests of notifications (Yandex: smtp.yandex.ru, 465, the mailbox, an application password)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+
       # Joining by invitation links from an administrator (invite | open | closed)
       - key: REGISTRATION_MODE
         value: invite

@@ -45,6 +45,8 @@
             </Transition>
           </div>
 
+          <NotificationBell />
+
           <!-- Profile -->
           <div ref="profileRoot" class="relative">
             <button type="button" class="block rounded-full transition hover:ring-2 hover:ring-gold/60" :aria-expanded="profileOpen" aria-label="Профиль" @click="profileOpen = !profileOpen">

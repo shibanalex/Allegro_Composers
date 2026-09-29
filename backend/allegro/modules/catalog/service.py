@@ -12,6 +12,7 @@ from sqlalchemy import String, cast, or_, select, update
 from sqlalchemy.orm import Session
 
 from allegro.core.errors import Forbidden, Invalid, NotFound
+from allegro.core.events import emit
 from allegro.core.files import check_key, check_url, delete_own_after_commit, delete_own_url_after_commit
 from allegro.core.slugs import unique_slug
 from allegro.core.storage import storage
@@ -207,6 +208,20 @@ def list_opuses(db: Session, user, *, author=None, mine=False, **filters) -> tup
     return repo.opus_page(db, author_username=author, owner_id=user.id if mine else None, **filters)
 
 
+def _announce_opus(db: Session, opus: Opus) -> None:
+    """A work just became public: the notifications will tell the members (core.events)"""
+    db.flush()
+    emit(db, "published", target_type="opus", kind="opus", id=opus.id, author_id=opus.author_id,
+         title=opus.title, url=f"/opus/{opus.slug}")
+
+
+def _announce_performance(db: Session, performance: Performance) -> None:
+    db.flush()
+    where = f"/opus/{performance.opus.slug}" if performance.opus else f"/@{performance.performer.username}?tab=performances"
+    emit(db, "published", target_type="performance", kind="performance", id=performance.id,
+         author_id=performance.performer_id, title=performance.title, url=where)
+
+
 def create_opus(db: Session, user, data: OpusCreate) -> Opus:
     values = data.model_dump(exclude={"markers", "measure_markers"}, exclude_none=True)
     values.setdefault("audio_type", "none")
@@ -221,12 +236,16 @@ def create_opus(db: Session, user, data: OpusCreate) -> Opus:
     _set_measure_markers(db, opus, data.measure_markers)
     _sync_page_markers(db, opus)
     db.add(opus)
+    db.flush()  # the defaults (status «published») are filled in on the first write
+    if opus.status == "published":
+        _announce_opus(db, opus)
     db.commit()
     return opus
 
 
 def update_opus(db: Session, user, slug: str, data: OpusUpdate) -> Opus:
     opus = _own_opus(db, slug, user)
+    was_public = opus.status == "published"
     values = data.model_dump(exclude={"markers", "measure_markers"}, exclude_unset=True)
     if "audio_type" in values or "audio_source" in values:
         values.setdefault("audio_type", opus.audio_type)
@@ -251,6 +270,8 @@ def update_opus(db: Session, user, slug: str, data: OpusUpdate) -> Opus:
         _check_measure_markers(data.measure_markers)
         _set_measure_markers(db, opus, data.measure_markers)
     _sync_page_markers(db, opus)
+    if opus.status == "published" and not was_public:  # a draft published at last
+        _announce_opus(db, opus)
     db.commit()
     return opus
 
@@ -263,6 +284,7 @@ def delete_opus(db: Session, user, slug: str) -> None:
     delete_own_after_commit(db, user.username, opus.musicxml_file_key)
     delete_own_url_after_commit(db, user.username, opus.cover_url)
     forget_target(db, "opus", opus.id)
+    emit(db, "removed", target_type="opus", id=opus.id)
     db.delete(opus)
     db.commit()
 
@@ -445,6 +467,10 @@ def create_performance(db: Session, user, data: PerformanceIn) -> Performance:
         raise Invalid("Укажите, что исполняется")
     performance = Performance(performer_id=user.id, **values)
     db.add(performance)
+    db.flush()  # the defaults (status «published») are filled in on the first write
+    if performance.status == "published":
+        db.refresh(performance)  # the performer and the work, for the notification's link
+        _announce_performance(db, performance)
     db.commit()
     db.refresh(performance)
     return performance
@@ -473,6 +499,7 @@ def delete_performance(db: Session, user, performance_id: uuid.UUID) -> None:
     if performance.audio_type == "hosted_file":
         delete_own_after_commit(db, user.username, performance.audio_source)
     forget_target(db, "performance", performance.id)
+    emit(db, "removed", target_type="performance", id=performance.id)
     db.delete(performance)
     db.commit()
 

@@ -32,6 +32,11 @@ GitHub (main) ──push──► Render: сборка Dockerfile ──► ко
 `REDIS_URL` — адрес Redis для кеша последних комментариев (Render → New → Key Value → Free, взять
 «Internal Key Value URL» вида `redis://red-…:6379`). Без него кеш живёт в памяти сервера.
 
+**Письма-сводки уведомлений** (без них сайт просто не предлагает письма; колокольчик и push работают):
+`SMTP_HOST=smtp.yandex.ru`, `SMTP_PORT=465`, `SMTP_USER` — ящик на Яндексе, `SMTP_PASSWORD` — **пароль
+приложения** (Яндекс ID → Безопасность → Пароли приложений → «Почта»; обычный пароль ящика не подойдёт),
+`MAIL_FROM_NAME=Allegro`. Push настраивать не нужно: ключи выводятся из `SECRET_KEY`.
+
 Необязательные: `UPLOAD_DAILY_MB` (сколько участник может загрузить за сутки, 1024), `WRITE_REQUESTS_PER_MINUTE`, `SEARCH_REQUESTS_PER_MINUTE`, `MAX_UPLOAD_MB`,
 `INVITE_TTL_DAYS`, `RESET_LINK_TTL_HOURS`, `EMAIL_ENCRYPTION_KEY`.
 

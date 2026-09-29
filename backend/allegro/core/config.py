@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     max_upload_mb: int = 200
     # How much one member may upload in 24 hours (administrators: no limit) — the storage is paid for
     upload_daily_mb: int = 1024
+
+    # Notifications: the worker that handles the outbox runs inside the API process (off in tests)
+    notifications_worker: bool = True
+    # E-mail digests (Yandex: smtp.yandex.ru, 465, the mailbox and an application password)
+    smtp_host: str = ""
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_password: str = ""
+    mail_from: str = ""  # empty: the SMTP user
+    mail_from_name: str = "Allegro"
+    public_url: str = ""  # the site's address for links in letters and push; empty: SITE_URL / RENDER_EXTERNAL_URL
     # Redis for the cache of recent comments (Render Key Value, Upstash…): redis://… or rediss://…
     # Empty: the cache lives in the server's memory (fine for one process)
     redis_url: str = ""

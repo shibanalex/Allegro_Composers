@@ -1,7 +1,7 @@
 """Use cases of the accounts module: joining, signing in, profiles, one-time links, administration.
 
 Public API for other modules: `visible_authors`, `author_named`, `authors_matching`, `search_members`, `get_visible_user`,
-`get_active_user`, `register_stat`, `stats_for` (and `roles.can`). Everything else here is used by this module's own HTTP layer.
+`get_active_user`, `member_ids_except`, `user_by_id`, `email_of`, `register_stat`, `stats_for` (and `roles.can`). Everything else here is used by this module's own HTTP layer.
 """
 import hmac
 import secrets
@@ -64,6 +64,15 @@ def search_members(db: Session, words: list[str], limit: int) -> list[User]:
 
 def get_visible_user(db: Session, username: str) -> Optional[User]:
     return repo.by_username(db, username, visible_only=True)
+
+
+def member_ids_except(user_id: uuid.UUID):
+    """A query of the ids of every member not in the shadow, but one (whom to tell about their publication)"""
+    return select(User.id).where(User.is_hidden.is_(False), User.id != user_id)
+
+
+def user_by_id(db: Session, user_id: uuid.UUID) -> Optional[User]:
+    return repo.by_id(db, user_id)
 
 
 def get_active_user(db: Session, user_id: uuid.UUID, session_version: int = 0) -> Optional[User]:
