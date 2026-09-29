@@ -105,8 +105,15 @@ def stats_for(db: Session, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, dict[st
 
 # ---------------------------------------------------------------- site configuration
 
+_has_members = False  # once someone has joined it stays so: no need to ask the database on every page
+
+
 def setup_available(db: Session) -> bool:
-    return settings.setup_enabled and repo.count_users(db) == 0
+    global _has_members
+    if not settings.setup_enabled or _has_members:
+        return False
+    _has_members = repo.count_users(db) > 0
+    return not _has_members
 
 
 def site_config(db: Session) -> SiteConfig:
