@@ -21,11 +21,8 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 14
 
-    # Who may join. "invite": only with an invitation link from an administrator (default);
-    # "open": anyone; "closed": nobody (the first account is created at /setup).
-    registration_mode: Literal["closed", "invite", "open"] = "invite"
-    registration_open: Optional[bool] = None  # legacy switch: REGISTRATION_OPEN=true means "open"
-    invite_ttl_days: int = 14
+    # Anyone may join; how many new accounts one address may open per hour (bots signing up in bulk)
+    signups_per_hour: int = 5
     reset_link_ttl_hours: int = 48
 
     # E-mail addresses are optional and stored encrypted. Without a separate key one is derived from SECRET_KEY.
@@ -98,12 +95,6 @@ class Settings(BaseSettings):
             if missing:
                 raise ValueError(f"Для STORAGE_BACKEND=s3 не заданы: {', '.join(missing)}")
         return self
-
-    @property
-    def effective_registration_mode(self) -> str:
-        if self.registration_open is True:
-            return "open"
-        return self.registration_mode
 
     @property
     def setup_enabled(self) -> bool:

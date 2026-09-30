@@ -1,5 +1,5 @@
 <template>
-  <section v-if="canJoin || comments.length || loading">
+  <section>
     <h2 class="flex items-baseline gap-3 font-caps text-lg font-semibold tracking-[0.2em] text-gold">
       {{ title }} <span class="font-display text-base font-normal italic tracking-normal text-parchment-faint">({{ comments.length }})</span>
     </h2>
@@ -22,8 +22,9 @@
       </div>
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
-    <p v-else-if="canJoin" class="mt-4 font-elegant text-lg italic text-parchment-muted">
-      <NuxtLink :to="`/login?next=${encodeURIComponent(route.fullPath)}`" class="link">Войдите</NuxtLink>, чтобы оставить комментарий.
+    <p v-else class="mt-4 font-elegant text-lg italic text-parchment-muted">
+      <NuxtLink :to="`/login?next=${encodeURIComponent(route.fullPath)}`" class="link">Войдите</NuxtLink>
+      или <NuxtLink :to="`/register?next=${encodeURIComponent(route.fullPath)}`" class="link">откройте свой зал</NuxtLink>, чтобы оставить комментарий.
     </p>
 
     <ul v-if="roots.length" class="mt-8 space-y-7">
@@ -40,7 +41,7 @@
       />
     </ul>
     <p v-else-if="loading" class="mt-8 font-elegant text-lg italic text-parchment-faint">Загружаю комментарии…</p>
-    <p v-else-if="canJoin" class="mt-8 font-elegant text-lg italic text-parchment-faint">Пока тихо. Будьте первым, кто выскажется.</p>
+    <p v-else class="mt-8 font-elegant text-lg italic text-parchment-faint">Пока тихо. Будьте первым, кто выскажется.</p>
   </section>
 </template>
 
@@ -61,9 +62,7 @@ defineEmits<{ seek: [seconds: number] }>()
 const api = useApi()
 const route = useRoute()
 const player = usePlayer()
-const { user, registrationOpen, can } = useAuth()
-// A visitor can take part only by logging in or signing up; while sign-ups are closed they just read
-const canJoin = computed(() => !!user.value || registrationOpen.value)
+const { user, can } = useAuth()
 
 // Comments load alongside the page and never hold it up: it shows first, the discussion fills in
 const { data, pending: loading } = useLazyAsyncData(`comments-${props.target.opus_id || props.target.post_id}`, () =>

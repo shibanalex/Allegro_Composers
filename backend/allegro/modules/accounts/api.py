@@ -10,12 +10,12 @@ from allegro.core.errors import NotFound
 from allegro.core.security import create_access_token
 from allegro.modules.accounts import service
 from allegro.modules.accounts.deps import (
-    clear_login_cookie, client_address, get_admin, get_current_user, require, set_login_cookie,
+    clear_login_cookie, client_address, get_admin, get_current_user, set_login_cookie,
 )
 from allegro.modules.accounts.models import AccessLink, User
-from allegro.modules.accounts.roles import Capability, matrix, user_capabilities
+from allegro.modules.accounts.roles import matrix, user_capabilities
 from allegro.modules.accounts.schemas import (
-    AccessLinkOut, AdminUserOut, AdminUserUpdate, HintsIn, InviteIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
+    AccessLinkOut, AdminUserOut, AdminUserUpdate, HintsIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
     ProfileOut, ProfileUpdate, RegisterIn, ResetIn, SetupIn, SiteConfig, TokenOut, UsernameCheck,
 )
 
@@ -54,7 +54,7 @@ def check_username(value: str = Query("", max_length=64), db: Session = Depends(
 
 @router.get("/api/auth/config", response_model=SiteConfig)
 def site_config(db: Session = Depends(get_db)):
-    """What the site offers: sign-up mode, first-start setup, roles and hall styles"""
+    """What the site offers: first-start setup, roles and hall styles"""
     return service.site_config(db)
 
 
@@ -151,22 +151,6 @@ def get_profile(username: str, db: Session = Depends(get_db)):
 def roles_matrix():
     """Who may do what: every capability and the roles and staff levels that have it"""
     return matrix()
-
-
-@router.get("/api/admin/links", response_model=list[AccessLinkOut])
-def list_links(_: User = Depends(require(Capability.INVITE)), db: Session = Depends(get_db)):
-    return [_link_out(link) for link in service.list_links(db)]
-
-
-@router.post("/api/admin/invites", response_model=AccessLinkOut, status_code=status.HTTP_201_CREATED)
-def create_invite(data: InviteIn, admin: User = Depends(require(Capability.INVITE)), db: Session = Depends(get_db)):
-    link, token = service.create_invite(db, admin, data.note, data.role)
-    return _link_out(link, token)
-
-
-@router.delete("/api/admin/links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
-def revoke_link(link_id: uuid.UUID, _: User = Depends(require(Capability.INVITE)), db: Session = Depends(get_db)):
-    service.revoke_link(db, link_id)
 
 
 @router.get("/api/admin/users", response_model=list[AdminUserOut])

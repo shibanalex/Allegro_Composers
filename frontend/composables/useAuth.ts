@@ -8,13 +8,12 @@ export interface JoinBody {
   password: string
   role: string
   email?: string | null
-  invite?: string | null
 }
 
 /** Who is signed in, what they may publish, and how the site lets people join */
 export function useAuth() {
   const user = useState<Me | null>('auth-user', () => null)
-  // How people join (by invitation for now) and whether a fresh site still needs its first account
+  // Whether a fresh site still needs its first account, the roles and hall styles
   const config = useState<SiteConfig | null>('auth-config', () => null)
   // The login itself is an HttpOnly cookie set by the API; this readable marker only says «someone is signed in»
   const session = useCookie<string | null>('allegro_session')
@@ -29,8 +28,6 @@ export function useAuth() {
     config,
     loggedIn: computed(() => !!user.value),
     isAdmin: computed(() => !!user.value?.is_admin),
-    registrationOpen: computed(() => config.value?.registration === 'open'),
-    inviteOnly: computed(() => config.value?.registration === 'invite'),
     setupAvailable: computed(() => !!config.value?.setup_available),
     /** publish_opus · publish_article · publish_performance · publish_news · manage_site */
     can: (capability: string) => !!user.value?.capabilities?.includes(capability),

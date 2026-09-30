@@ -122,7 +122,7 @@
             </li>
           </ul>
           <p v-if="!user" class="mt-4 border-t border-gold/10 pt-4 text-sm text-parchment-faint">
-            Вступить можно по приглашению участника. <NuxtLink to="/about" class="link">О сообществе</NuxtLink>
+            <NuxtLink to="/register" class="link">Открыть свой зал</NuxtLink> — это бесплатно. <NuxtLink to="/about" class="link">О сообществе</NuxtLink>
           </p>
         </section>
 

@@ -24,7 +24,6 @@ GitHub (main) ──push──► Render: сборка Dockerfile ──► ко
 | `S3_BUCKET` | имя бакета |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | статический ключ сервисного аккаунта (роль `storage.editor`) |
 | `MEDIA_URL_PREFIX` | `https://storage.yandexcloud.net/<бакет>` |
-| `REGISTRATION_MODE` | `invite` (по приглашениям), `open` или `closed` |
 | `SETUP_TOKEN` | код для `/setup` (нужен только для первого аккаунта свежей базы) |
 | `NUXT_PUBLIC_SITE_URL` | свой домен, когда появится (`https://…`): канонические ссылки и переадресация |
 | `NUXT_PUBLIC_YANDEX_VERIFICATION`, `NUXT_PUBLIC_GOOGLE_VERIFICATION` | коды подтверждения (если не файлом) |
@@ -38,7 +37,7 @@ GitHub (main) ──push──► Render: сборка Dockerfile ──► ко
 `MAIL_FROM_NAME=Allegro`. Push настраивать не нужно: ключи выводятся из `SECRET_KEY`.
 
 Необязательные: `UPLOAD_DAILY_MB` (сколько участник может загрузить за сутки, 1024), `WRITE_REQUESTS_PER_MINUTE`, `SEARCH_REQUESTS_PER_MINUTE`, `MAX_UPLOAD_MB`,
-`INVITE_TTL_DAYS`, `RESET_LINK_TTL_HOURS`, `EMAIL_ENCRYPTION_KEY`.
+`SIGNUPS_PER_HOUR` (новых аккаунтов с одного адреса в час, 5), `RESET_LINK_TTL_HOURS`, `EMAIL_ENCRYPTION_KEY`.
 
 ## Бакет Yandex Object Storage
 

@@ -2,18 +2,7 @@
   <div class="mx-auto max-w-2xl py-10">
     <PageHeader eyebrow="Allegro" title="Открыть свой зал" subtitle="Сообщество композиторов, теоретиков, исполнителей и слушателей." />
 
-    <!-- Invitations only, and there is no (valid) invitation in the link -->
-    <div v-if="needsInvite" class="card text-center">
-      <p class="font-elegant text-xl italic text-parchment-muted">
-        {{ invite ? 'Это приглашение уже использовали, отозвали или срок его истёк.' : 'Сейчас в Allegro можно войти только по приглашению.' }}
-      </p>
-      <p class="mt-3 text-parchment-faint">Приглашение — это ссылка, которую присылает администратор сообщества.</p>
-      <p class="mt-6"><NuxtLink to="/login" class="link">Войти</NuxtLink> · <NuxtLink to="/about?tab=feedback" class="link">Написать нам</NuxtLink></p>
-    </div>
-
-    <form v-else class="card space-y-6" @submit.prevent="submit">
-      <p v-if="check?.inviter" class="font-elegant text-lg italic text-parchment-muted">Вас пригласил(а) {{ check.inviter }}.</p>
-
+    <form class="card space-y-6" @submit.prevent="submit">
       <div class="grid gap-5 sm:grid-cols-2">
         <div>
           <label class="field-label" for="display_name">Имя</label>
@@ -56,18 +45,9 @@
 useSeoMeta({ title: 'Регистрация — Allegro', robots: 'noindex, nofollow' })
 
 const route = useRoute()
-const api = useApi()
-const { register, config, registrationOpen } = useAuth()
-const invite = typeof route.query.invite === 'string' ? route.query.invite : ''
+const { register } = useAuth()
 
-// Is the invitation in the link still valid (and which role does it suggest)
-const { data: check } = await useAsyncData(`invite-${invite}`, () =>
-  invite ? api<{ valid: boolean; purpose?: string; role?: string | null; inviter?: string | null }>(`/api/auth/links/${invite}`) : Promise.resolve(null),
-)
-const validInvite = computed(() => !!check.value?.valid && check.value.purpose === 'invite')
-const needsInvite = computed(() => config.value?.registration === 'closed' || (!registrationOpen.value && !validInvite.value))
-
-const form = reactive({ display_name: '', username: '', password: '', role: check.value?.role || 'composer', email: '' })
+const form = reactive({ display_name: '', username: '', password: '', role: 'composer', email: '' })
 const password2 = ref('')
 const busy = ref(false)
 const error = ref('')
@@ -84,7 +64,6 @@ async function submit() {
       ...form,
       username: form.username.trim().toLowerCase(),
       email: form.email.trim() || null,
-      invite: validInvite.value ? invite : null,
     })
     await navigateTo(safeNext(route.query.next, `/@${form.username.trim().toLowerCase()}`))
   } catch (e) {

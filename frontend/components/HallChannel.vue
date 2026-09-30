@@ -141,7 +141,7 @@ const props = defineProps<{ username: string; isOwner: boolean; initial: Page<Po
 defineEmits<{ pin: [slug: string | null] }>()
 
 const api = useApi()
-const { user, registrationOpen, can } = useAuth()
+const { user, can } = useAuth()
 const posts = ref<Post[]>([...props.initial.items])
 const total = ref(props.initial.total)
 const loading = ref(false)
@@ -179,10 +179,9 @@ const files = (p: Post) => p.attachments.filter((a) => !isImage(a) && !isAudio(a
 const dayOf = (p: Post) => formatDate(p.created_at)
 const timeOf = (p: Post) => formatClock(p.created_at)
 
-/** Members are invited to discuss; while sign-ups are closed a visitor is simply offered the post page */
 function discussLabel(p: Post) {
   if (p.comment_count) return `✎ ${p.comment_count} ${plural(p.comment_count, 'комментарий', 'комментария', 'комментариев')}`
-  return user.value || registrationOpen.value ? '✎ Обсудить' : 'Открыть →'
+  return '✎ Обсудить'
 }
 
 async function more() {

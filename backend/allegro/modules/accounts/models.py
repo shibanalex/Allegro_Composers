@@ -41,31 +41,27 @@ class User(Base):
     session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # "In the shadow": the account and everything it made are hidden from the site, but kept in the database
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", index=True)
-    invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class AccessLink(Base):
-    """A one-time link: an invitation to join, or a password reset for an existing member.
+    """A one-time link to set a new password, made by an administrator for a member who forgot theirs.
 
     Only a hash of the link's secret is stored; the link itself is shown once, to the administrator who made it.
     """
     __tablename__ = "access_links"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    purpose: Mapped[str] = mapped_column(String(20), index=True)  # invite | reset
+    purpose: Mapped[str] = mapped_column(String(20), index=True)  # reset
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     note: Mapped[Optional[str]] = mapped_column(String(200))  # whom it is for, as a reminder
-    role: Mapped[Optional[str]] = mapped_column(String(20))  # invite: role suggested on the sign-up form
-    target_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))  # reset
-    used_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))  # invite
+    target_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     created_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    used_by: Mapped[Optional[User]] = relationship(foreign_keys=[used_by_id], lazy="joined")
     target_user: Mapped[Optional[User]] = relationship(foreign_keys=[target_user_id], lazy="joined")
     created_by: Mapped[Optional[User]] = relationship(foreign_keys=[created_by_id], lazy="joined")
 

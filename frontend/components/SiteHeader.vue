@@ -62,7 +62,7 @@
                 <p class="truncate px-4 pb-2 pt-1 font-display italic text-parchment">{{ user.display_name }}</p>
                 <NuxtLink :to="`/@${user.username}`" class="menu-item">Мой зал</NuxtLink>
                 <NuxtLink to="/settings" class="menu-item">Оформить зал</NuxtLink>
-                <NuxtLink v-if="can('manage_site') || can('invite')" to="/admin" class="menu-item">Управление</NuxtLink>
+                <NuxtLink v-if="can('manage_site')" to="/admin" class="menu-item">Управление</NuxtLink>
                 <button type="button" class="menu-item w-full text-left" @click="logout">Выйти</button>
               </div>
             </Transition>

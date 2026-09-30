@@ -46,10 +46,6 @@ services:
       - key: SMTP_PASSWORD
         sync: false
 
-      # Joining by invitation links from an administrator (invite | open | closed)
-      - key: REGISTRATION_MODE
-        value: invite
-
       # Code for the one-time /setup page that creates the owner's account (16+ characters)
       - key: SETUP_TOKEN
         sync: false

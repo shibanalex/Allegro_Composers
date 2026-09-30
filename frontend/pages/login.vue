@@ -14,9 +14,11 @@
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
     <p class="mt-6 text-center font-elegant text-lg italic text-parchment-muted">
-      <template v-if="registrationOpen">Ещё нет своего зала? <NuxtLink :to="`/register?next=${encodeURIComponent(next)}`" class="link">Открыть</NuxtLink></template>
-      <template v-else-if="setupAvailable">Сайт только что запущен? <NuxtLink to="/setup" class="link">Первая настройка</NuxtLink></template>
-      <template v-else>Сообщество пока открыто по приглашениям.<br>Забыли пароль? Попросите у администратора ссылку для сброса.</template>
+      <template v-if="setupAvailable">Сайт только что запущен? <NuxtLink to="/setup" class="link">Первая настройка</NuxtLink></template>
+      <template v-else>
+        Ещё нет своего зала? <NuxtLink :to="`/register?next=${encodeURIComponent(next)}`" class="link">Открыть</NuxtLink>
+        <span class="mt-2 block text-base text-parchment-faint">Забыли пароль? Попросите у администратора ссылку для сброса.</span>
+      </template>
     </p>
   </div>
 </template>
@@ -25,7 +27,7 @@
 useSeoMeta({ title: 'Вход — Allegro', robots: 'noindex, nofollow' })
 
 const route = useRoute()
-const { login, registrationOpen, setupAvailable } = useAuth()
+const { login, setupAvailable } = useAuth()
 const next = computed(() => safeNext(route.query.next))
 const form = reactive({ login: '', password: '' })
 const busy = ref(false)

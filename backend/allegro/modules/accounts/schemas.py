@@ -105,7 +105,6 @@ def _optional_email(v: Optional[str]) -> Optional[str]:
 
 
 class RegisterIn(BaseModel):
-    invite: Optional[str] = Field(None, max_length=128)
     username: str
     display_name: Name = Field(min_length=1, max_length=120)
     password: str = Field(min_length=8, max_length=128)
@@ -243,8 +242,6 @@ class PasswordChangeIn(BaseModel):
 
 
 class SiteConfig(BaseModel):
-    registration: Literal["closed", "invite", "open"]
-    registration_open: bool  # kept for older clients: anyone may sign up
     setup_available: bool
     roles: dict[str, str]
     hall_themes: dict[str, str]
@@ -255,9 +252,7 @@ class SiteConfig(BaseModel):
 class LinkCheckOut(BaseModel):
     valid: bool
     purpose: Optional[str] = None
-    role: Optional[str] = None  # invitation: the suggested role
-    inviter: Optional[str] = None
-    username: Optional[str] = None  # reset: whose password it resets
+    username: Optional[str] = None  # whose password it resets
 
 
 class ResetIn(BaseModel):
@@ -265,21 +260,14 @@ class ResetIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
-class InviteIn(BaseModel):
-    note: Optional[str] = Field(None, max_length=200)
-    role: Optional[RoleName] = None
-
-
 class AccessLinkOut(ORMModel):
     id: uuid.UUID
     purpose: str
     note: Optional[str] = None
-    role: Optional[str] = None
     created_at: UTCDateTime
     expires_at: UTCDateTime
     used_at: Optional[UTCDateTime] = None
     revoked_at: Optional[UTCDateTime] = None
-    used_by: Optional[UserBrief] = None
     target_user: Optional[UserBrief] = None
     token: Optional[str] = None  # only right after creation: the link is shown once
     status: str = "active"  # active | used | expired | revoked

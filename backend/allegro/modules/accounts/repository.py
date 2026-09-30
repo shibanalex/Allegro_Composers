@@ -61,5 +61,3 @@ def link_by_token(db: Session, token: str) -> Optional[AccessLink]:
     return db.scalar(select(AccessLink).where(AccessLink.token_hash == link_token_hash(token)))
 
 
-def all_links(db: Session) -> list[AccessLink]:
-    return list(db.scalars(select(AccessLink).order_by(AccessLink.created_at.desc()).limit(200)))

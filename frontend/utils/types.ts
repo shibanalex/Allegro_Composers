@@ -44,8 +44,6 @@ export interface Me extends Profile {
 }
 
 export interface SiteConfig {
-  registration: 'closed' | 'invite' | 'open'
-  registration_open: boolean
   setup_available: boolean
   roles: Record<string, string>
   hall_themes: Record<string, string>
@@ -210,14 +208,12 @@ export interface Feedback {
 
 export interface AccessLink {
   id: string
-  purpose: 'invite' | 'reset'
+  purpose: 'reset'
   note?: string | null
-  role?: Role | null
   created_at: string
   expires_at: string
   used_at?: string | null
   revoked_at?: string | null
-  used_by?: UserBrief | null
   target_user?: UserBrief | null
   token?: string | null
   status: 'active' | 'used' | 'expired' | 'revoked'

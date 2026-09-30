@@ -29,6 +29,7 @@ from allegro.modules.accounts.schemas import (
 
 login_limiter = AttemptLimiter(10, 15 * 60, "Слишком много попыток входа.")
 link_limiter = AttemptLimiter(10, 15 * 60, "Слишком много неверных ссылок.")
+signup_limiter = AttemptLimiter(settings.signups_per_hour, 60 * 60, "С этого адреса уже открыли несколько залов.")
 # Unknown logins still pay for one hash, so the response time doesn't tell which accounts exist
 _DUMMY_HASH = hash_password(secrets.token_hex(16))
 
@@ -117,9 +118,8 @@ def setup_available(db: Session) -> bool:
 
 
 def site_config(db: Session) -> SiteConfig:
-    mode = settings.effective_registration_mode
     return SiteConfig(
-        registration=mode, registration_open=mode == "open", setup_available=setup_available(db),
+        setup_available=setup_available(db),
         roles={r.value: label for r, label in ROLE_LABELS.items()}, hall_themes=HALL_THEMES,
     )
 
@@ -204,22 +204,14 @@ def _new_user(db: Session, *, username: str, display_name: str, password: str, r
 
 
 def register(db: Session, data: RegisterIn, client: str) -> User:
-    mode = settings.effective_registration_mode
-    if mode == "closed":
-        raise Forbidden("Регистрация закрыта")
-    link = None
-    if mode == "invite" or data.invite:
-        if not data.invite:
-            raise Forbidden("Регистрация пока только по приглашениям")
-        link = _valid_link(db, data.invite, "invite", client)
+    """Anyone may join; one address may open only a few accounts an hour"""
+    signup_limiter.check((client,))
     user = _new_user(
         db, username=data.username, display_name=data.display_name, password=data.password, role=data.role,
-        email=data.email, invited_by_id=link.created_by_id if link else None,
+        email=data.email,
     )
-    db.flush()
-    if link:
-        _claim(db, link, used_by_id=user.id)
     _commit_new_user(db)
+    signup_limiter.hit((client,))
     return user
 
 
@@ -246,8 +238,7 @@ def check_link(db: Session, token: str) -> dict:
     if not link or link.status != "active":
         return {"valid": False}
     return {
-        "valid": True, "purpose": link.purpose, "role": link.role,
-        "inviter": link.created_by.display_name if link.created_by else None,
+        "valid": True, "purpose": link.purpose,
         "username": link.target_user.username if link.target_user else None,
     }
 
@@ -273,30 +264,21 @@ def _create_link(db: Session, *, purpose: str, created_by: User, ttl: timedelta,
     return link, token
 
 
-def create_invite(db: Session, admin: User, note: Optional[str], role: Optional[str]) -> tuple[AccessLink, str]:
-    return _create_link(db, purpose="invite", created_by=admin, ttl=timedelta(days=settings.invite_ttl_days),
-                        note=(note or "").strip() or None, role=role)
-
-
 def create_reset_link(db: Session, admin: User, user_id: uuid.UUID) -> tuple[AccessLink, str]:
     user = repo.by_id(db, user_id)
     if not user:
         raise NotFound("Аккаунт не найден")
+    # A new link replaces the ones made before: only the latest one sent to the member works
+    db.execute(
+        update(AccessLink)
+        .where(AccessLink.target_user_id == user.id, AccessLink.used_at.is_(None), AccessLink.revoked_at.is_(None))
+        .values(revoked_at=utcnow())
+    )
     return _create_link(db, purpose="reset", created_by=admin, ttl=timedelta(hours=settings.reset_link_ttl_hours),
                         target_user_id=user.id, note=f"Сброс пароля для @{user.username}")
 
 
-def list_links(db: Session) -> list[AccessLink]:
-    return repo.all_links(db)
 
-
-def revoke_link(db: Session, link_id: uuid.UUID) -> None:
-    link = db.get(AccessLink, link_id)
-    if not link:
-        raise NotFound("Ссылка не найдена")
-    if not link.used_at and not link.revoked_at:
-        link.revoked_at = utcnow()
-        db.commit()
 
 
 # ---------------------------------------------------------------- profiles

@@ -50,7 +50,6 @@ class Capability(StrEnum):
     PUBLISH_SKETCH = "publish_sketch"  # a quick voice note or improvisation
     # staff
     MODERATE = "moderate"
-    INVITE = "invite"
     PUBLISH_NEWS = "publish_news"
     MANAGE_SITE = "manage_site"
 
@@ -66,7 +65,7 @@ CAPABILITIES: dict[Role, frozenset[Capability]] = {
 
 MODERATOR_CAPABILITIES = frozenset({Capability.MODERATE})
 ADMIN_CAPABILITIES = MODERATOR_CAPABILITIES | {
-    Capability.INVITE, Capability.PUBLISH_NEWS, Capability.MANAGE_SITE,
+    Capability.PUBLISH_NEWS, Capability.MANAGE_SITE,
 }
 
 CAPABILITY_LABELS = {
@@ -79,7 +78,6 @@ CAPABILITY_LABELS = {
     Capability.PUBLISH_PERFORMANCE: "Публиковать исполнения",
     Capability.PUBLISH_SKETCH: "Выкладывать эскизы",
     Capability.MODERATE: "Модерировать",
-    Capability.INVITE: "Приглашать участников",
     Capability.PUBLISH_NEWS: "Публиковать новости",
     Capability.MANAGE_SITE: "Управлять сайтом",
 }
@@ -94,7 +92,6 @@ CAPABILITY_REFUSALS = {
     Capability.PUBLISH_PERFORMANCE: "Исполнения публикуют исполнители — роль меняется в «Оформить зал»",
     Capability.PUBLISH_SKETCH: "Эскизы выкладывают композиторы — роль меняется в «Оформить зал»",
     Capability.MODERATE: "Только для модераторов",
-    Capability.INVITE: "Приглашать могут администраторы",
     Capability.PUBLISH_NEWS: "Новости публикуют администраторы",
     Capability.MANAGE_SITE: "Только для администраторов",
 }

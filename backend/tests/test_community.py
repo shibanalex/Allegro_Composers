@@ -67,42 +67,29 @@ def test_role_and_hall_style_are_chosen_by_the_member(listener):
     client.patch("/api/users/me", headers=listener, json={"role": "listener"})
 
 
-# ---------------------------------------------------------------- invitations
+# ---------------------------------------------------------------- joining
 
-def test_joining_by_invitation(admin, listener, monkeypatch):
-    from allegro.core.config import settings
-    monkeypatch.setattr(settings, "registration_mode", "invite")
-    assert client.get("/api/auth/config").json()["registration"] == "invite"
+def test_anyone_can_join(admin, monkeypatch):
+    from allegro.core.ratelimit import AttemptLimiter
+    from allegro.modules.accounts import service
+    assert "registration" not in client.get("/api/auth/config").json()
 
     body = {"username": "new_one", "display_name": "Новичок", "password": "secret-pass", "role": "performer"}
-    assert client.post("/api/auth/register", json=body).status_code == 403  # no invitation
-    assert client.post("/api/admin/invites", headers=listener, json={}).status_code == 403  # not an administrator
-
-    invite = client.post("/api/admin/invites", headers=admin, json={"note": "для Нины", "role": "performer"}).json()
-    token = invite["token"]
-    assert invite["status"] == "active" and len(token) > 20
-    assert client.get(f"/api/auth/links/{token}").json() == {
-        "valid": True, "purpose": "invite", "role": "performer", "inviter": "Мира Основательница", "username": None,
-    }
-    assert client.post("/api/auth/register", json={**body, "invite": "wrong-token"}).status_code == 403
-    r = client.post("/api/auth/register", json={**body, "invite": token})  # e-mail is optional
+    r = client.post("/api/auth/register", json=body)  # no invitation, and e-mail is optional
     assert r.status_code == 201, r.text
     assert r.json()["user"]["email"] is None and r.json()["user"]["role"] == "performer"
-    # one use only
-    assert client.post("/api/auth/register", json={**body, "username": "second_one", "invite": token}).status_code == 403
-    assert client.get(f"/api/auth/links/{token}").json()["valid"] is False
-    links = client.get("/api/admin/links", headers=admin).json()
-    used = next(link for link in links if link["id"] == invite["id"])
-    assert used["status"] == "used" and used["used_by"]["username"] == "new_one" and used["token"] is None
+    set_user("new_one", is_hidden=True)
+    # there are no invitations any more
+    assert client.post("/api/admin/invites", headers=admin, json={}).status_code in (404, 405)
+    assert client.get("/api/admin/links", headers=admin).status_code in (404, 405)
 
-    # a revoked invitation doesn't open the door
-    other = client.post("/api/admin/invites", headers=admin, json={}).json()
-    assert client.delete(f"/api/admin/links/{other['id']}", headers=admin).status_code == 204
-    assert client.post("/api/auth/register", json={**body, "username": "third_one", "invite": other["token"]}).status_code == 403
-
-    monkeypatch.setattr(settings, "registration_mode", "closed")
-    fresh = client.post("/api/admin/invites", headers=admin, json={}).json()
-    assert client.post("/api/auth/register", json={**body, "username": "fourth_one", "invite": fresh["token"]}).status_code == 403
+    # one address opens only a few accounts an hour: bots don't fill the site with members
+    monkeypatch.setattr(service, "signup_limiter", AttemptLimiter(2, 3600, "Много залов."))
+    codes = [client.post("/api/auth/register", json={**body, "username": f"bulk_{i}"}).status_code for i in range(3)]
+    assert codes == [201, 201, 429]
+    assert client.get("/api/users/bulk_2").status_code == 404
+    for i in range(2):
+        set_user(f"bulk_{i}", is_hidden=True)
 
 
 def test_password_reset_link(admin, performer):
@@ -116,6 +103,11 @@ def test_password_reset_link(admin, performer):
     assert client.post("/api/auth/login", json={"login": "vera_violin", "password": "secret-pass"}).status_code == 401
     login("vera_violin", "brand-new-pass")
     assert client.post("/api/auth/reset", json={"token": link["token"], "password": "another-pass"}).status_code == 403
+    # a new link replaces the one made before it
+    first = client.post(f"/api/admin/users/{vera['id']}/reset-link", headers=admin).json()
+    second = client.post(f"/api/admin/users/{vera['id']}/reset-link", headers=admin).json()
+    assert client.get(f"/api/auth/links/{first['token']}").json()["valid"] is False
+    assert client.get(f"/api/auth/links/{second['token']}").json()["valid"] is True
     # the reset signed her out everywhere (the fixture's token too): back to the start for the next tests
     set_user("vera_violin", password_hash=_hash("secret-pass"), session_version=0)
 
@@ -251,23 +243,6 @@ def test_new_password_signs_out_other_devices():
     assert client.get("/api/auth/me", headers=fresh).status_code == 401
     assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {token_of(r)}"}).status_code == 200
     set_user("olga_harp", is_hidden=True)
-
-
-def test_one_invitation_one_member(admin):
-    """Two sign-ups racing with one invitation: only one account is created"""
-    from allegro.core.config import settings
-    token = client.post("/api/admin/invites", headers=admin, json={}).json()["token"]
-    old = settings.registration_mode
-    settings.registration_mode = "invite"
-    try:
-        body = {"display_name": "Гонщик", "password": "secret-pass", "role": "listener", "invite": token}
-        first = client.post("/api/auth/register", json={**body, "username": "racer_one"})
-        second = client.post("/api/auth/register", json={**body, "username": "racer_two"})
-        assert (first.status_code, second.status_code) == (201, 403)
-        assert client.get("/api/users/racer_two").status_code == 404
-    finally:
-        settings.registration_mode = old
-        set_user("racer_one", is_hidden=True)
 
 
 def test_feed_brings_every_hall_together(admin, theorist):

@@ -379,7 +379,7 @@ def test_materials(alice, bob):
     assert client.get(doc["url"]).status_code == 404  # file removed with the material
 
 
-# ---------------------------------------------------------------- invite-only mode & shadowed accounts
+# ---------------------------------------------------------------- shadowed accounts
 
 def _set_hidden(username, hidden):
     from allegro.core.db import SessionLocal

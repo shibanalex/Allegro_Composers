@@ -8,9 +8,8 @@ _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["NOTIFICATIONS_WORKER"] = "false"  # tests run the worker by hand
 os.environ["MEDIA_DIR"] = f"{_tmp}/media"
-# Open community regardless of a local .env (the invitation tests switch it themselves)
-os.environ["REGISTRATION_MODE"] = "open"
-os.environ.pop("REGISTRATION_OPEN", None)
+# Every test account signs up from one address: the sign-up limit is tested on its own (test_anyone_can_join)
+os.environ["SIGNUPS_PER_HOUR"] = "100000"
 os.environ["SECRET_KEY"] = "test-secret-key-long-enough-for-hs256-signing"
 # Every test request comes from one address: the flood limits are tested on their own (test_flood_protection)
 os.environ["WRITE_REQUESTS_PER_MINUTE"] = "100000"

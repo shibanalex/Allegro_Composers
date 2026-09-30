@@ -113,7 +113,7 @@ def test_capability_matrix_and_moderators(author, reader):
     rita = login("rita_mod")
     assert "moderate" in client.get("/api/auth/me", headers=rita).json()["capabilities"]
     assert "invite" not in client.get("/api/auth/me", headers=rita).json()["capabilities"]
-    assert client.get("/api/admin/links", headers=rita).status_code == 403
+    assert client.get("/api/admin/users", headers=rita).status_code == 403
     assert client.delete(f"/api/comments/{comment['id']}", headers=rita).status_code == 204
     assert client.delete(f"/api/posts/{post['slug']}", headers=rita).status_code == 204
 
