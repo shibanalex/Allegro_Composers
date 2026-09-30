@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from allegro.core.schemas import ORMModel, UTCDateTime
+from allegro.core.schemas import Line, ORMModel, UTCDateTime
 from allegro.modules.accounts.schemas import UserBrief
 
 PageSlug = Literal["about", "links"]
@@ -27,7 +27,7 @@ class PageIn(BaseModel):
 
 class FeedbackIn(BaseModel):
     kind: FeedbackKind = "idea"
-    title: str = Field(min_length=3, max_length=200)
+    title: Line = Field(min_length=3, max_length=200)
     body: str = Field(min_length=1, max_length=5000)
 
 

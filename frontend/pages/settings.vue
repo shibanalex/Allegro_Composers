@@ -102,6 +102,16 @@
         <p v-if="sessions.message" class="text-sm" :class="sessions.ok ? 'text-gold-light' : 'text-red-300'">{{ sessions.message }}</p>
       </div>
     </section>
+
+    <!-- First-visit hints -->
+    <section class="mt-16 space-y-4 border-t border-gold/15 pt-10">
+      <h2 class="text-3xl italic">Подсказки</h2>
+      <p class="text-parchment-muted">Короткие пояснения к кнопкам и разделам, которые показываются новичкам по одной.</p>
+      <div class="flex items-center gap-4">
+        <button type="button" class="btn-secondary" @click="showHintsAgain">Показать подсказки снова</button>
+        <p v-if="hintsReset" class="text-sm text-gold-light">Подсказки появятся на страницах сайта</p>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -127,6 +137,12 @@ const form = reactive({
   hall: { ...(u.hall || {}) } as HallSettings,
   email: u.email || '',
 })
+const hints = useHints()
+const hintsReset = ref(false)
+async function showHintsAgain() {
+  await hints.again()
+  hintsReset.value = true
+}
 const busy = ref(false)
 const message = ref('')
 const ok = ref(false)

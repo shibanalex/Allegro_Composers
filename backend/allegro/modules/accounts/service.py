@@ -338,6 +338,22 @@ def update_profile(db: Session, user: User, data: ProfileUpdate) -> User:
     return user
 
 
+MAX_HINTS = 100
+
+
+def hints_seen(db: Session, user: User, hints: list[str]) -> None:
+    seen = list(user.seen_hints or [])
+    new = [h for h in dict.fromkeys(hints) if h not in seen]
+    if new:
+        user.seen_hints = (seen + new)[:MAX_HINTS]  # a new list, so the JSON column is saved
+        db.commit()
+
+
+def hints_again(db: Session, user: User) -> None:
+    user.seen_hints = []
+    db.commit()
+
+
 def change_password(db: Session, user: User, current: str, new: str) -> User:
     if not verify_password(current, user.password_hash):
         raise Forbidden("Текущий пароль указан неверно")

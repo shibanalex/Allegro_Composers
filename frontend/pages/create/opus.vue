@@ -85,6 +85,9 @@
           На странице опуса слушатель переключается между ними.
         </p>
 
+        <HintBubble id="opus-files" side="top" text="Достаточно чего-то одного: записи, PDF или MusicXML. MusicXML из нотного редактора даёт живые ноты — бегунок идёт за записью, клик по ноте перематывает.">
+          <span class="block" />
+        </HintBubble>
         <div class="grid gap-5 md:grid-cols-2">
           <!-- MusicXML -->
           <div class="card space-y-3">
@@ -162,9 +165,11 @@
       </fieldset>
 
       <div class="flex flex-wrap items-center gap-4 border-t border-gold/15 pt-6">
-        <select v-model="form.status" class="field w-auto">
-          <option v-for="(label, v) in STATUSES" :key="v" :value="v">{{ label }}</option>
-        </select>
+        <HintBubble id="opus-status" side="top" text="Черновик видите только вы. «★ На выставке» — сочинение встанет на витрину вашего зала; убрать и вернуть можно в любой момент.">
+          <select v-model="form.status" class="field w-auto">
+            <option v-for="(label, v) in STATUSES" :key="v" :value="v">{{ label }}</option>
+          </select>
+        </HintBubble>
         <label class="flex cursor-pointer items-center gap-2 text-parchment-muted">
           <input v-model="form.featured" type="checkbox" class="accent-[rgb(var(--c-gold))]">
           ★ На выставке

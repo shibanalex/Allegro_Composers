@@ -51,6 +51,12 @@
       </div>
 
       <article class="card mb-5 !p-5 sm:!p-6" :class="{ 'feed-entry': editing?.id !== p.id }" @click="openPost($event, p)">
+        <!-- Who wrote it: a mini portrait and the name, both leading to the hall -->
+        <header class="mb-3 flex items-center gap-3">
+          <NuxtLink :to="`/@${p.author.username}`" class="shrink-0"><UserAvatar :user="p.author" :size="32" /></NuxtLink>
+          <NuxtLink :to="`/@${p.author.username}`" class="font-display italic text-parchment transition hover:text-gold-light">{{ p.author.display_name }}</NuxtLink>
+          <time :datetime="p.created_at" class="text-sm text-parchment-faint">{{ timeOf(p) }}</time>
+        </header>
         <!-- A long article: shown as a card leading to the full text -->
         <NuxtLink v-if="p.kind === 'article'" :to="`/posts/${p.slug}`" class="group flex gap-5">
           <div v-if="p.cover_url" class="frame frame-thin hidden h-24 w-32 shrink-0 sm:block">
@@ -107,10 +113,10 @@
         </template>
 
         <footer class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-parchment-faint">
-          <span>{{ timeOf(p) }}</span>
           <LikeButton kind="post" :id="p.id" :value="likes[p.id]" compact />
           <NuxtLink :to="`/posts/${p.slug}`" class="transition hover:text-gold-light">{{ discussLabel(p) }}</NuxtLink>
           <button v-if="!isOwner && p.status === 'published' && can('publish_note')" type="button" class="transition hover:text-gold-light" @click="quoting = p">↻ Процитировать</button>
+          <ShareButton v-if="p.status !== 'draft'" :path="`/posts/${p.slug}`" :title="p.title" />
           <template v-if="isOwner && editing?.id !== p.id">
             <button v-if="p.kind === 'note' && p.status === 'published' && p.slug !== pinned" type="button" class="ml-auto transition hover:text-gold-light" @click="$emit('pin', p.slug)">Закрепить</button>
             <NuxtLink v-if="p.kind === 'article'" :to="`/create/post?edit=${p.slug}`" class="transition hover:text-gold-light" :class="{ 'ml-auto': p.slug === pinned }">Изменить</NuxtLink>

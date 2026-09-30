@@ -6,7 +6,10 @@
       <p class="mt-4 font-elegant text-xl italic text-parchment-muted">
         {{ error?.statusCode === 404 ? 'Такой страницы нет — возможно, её ещё не сочинили.' : error?.statusMessage || 'Попробуйте обновить страницу.' }}
       </p>
-      <button class="btn-secondary mt-10" @click="clearError({ redirect: '/' })">На главную</button>
+      <div class="mt-10 flex flex-wrap justify-center gap-3">
+        <button v-if="error?.statusCode !== 404" class="btn-primary" @click="reload">Обновить страницу</button>
+        <button class="btn-secondary" @click="clearError({ redirect: '/' })">На главную</button>
+      </div>
     </div>
   </NuxtLayout>
 </template>
@@ -15,4 +18,5 @@
 import type { NuxtError } from '#app'
 
 defineProps<{ error: NuxtError }>()
+const reload = () => location.reload()
 </script>

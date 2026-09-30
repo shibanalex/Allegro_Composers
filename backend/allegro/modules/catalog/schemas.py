@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from allegro.core.schemas import ORMModel, UTCDateTime
+from allegro.core.schemas import Line, ORMModel, UTCDateTime
 from allegro.modules.accounts.schemas import UserBrief
 from allegro.modules.catalog import enums
 
@@ -24,8 +24,8 @@ class MeasureMarker(ORMModel):
 
 class OpusFields(BaseModel):
     """Editable fields; every one optional so the same model serves PATCH"""
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    subtitle: Optional[str] = Field(None, max_length=255)
+    title: Optional[Line] = Field(None, min_length=1, max_length=255)
+    subtitle: Optional[Line] = Field(None, max_length=255)
     genre: Optional[str] = None
     instruments: Optional[list[str]] = None
     key_signature: Optional[str] = Field(None, max_length=40)
@@ -60,7 +60,7 @@ class OpusFields(BaseModel):
 
 
 class OpusCreate(OpusFields):
-    title: str = Field(min_length=1, max_length=255)
+    title: Line = Field(min_length=1, max_length=255)
     genre: str = "other"
     # PDF page-turn markers; empty = derive them from the MusicXML page layout when possible
     markers: list[Marker] = Field([], max_length=2000)
@@ -113,14 +113,14 @@ class OpusPage(BaseModel):
 
 
 class CollectionIn(BaseModel):
-    title: str = Field(min_length=1, max_length=255)
+    title: Line = Field(min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=4000)
     year: Optional[int] = Field(None, ge=1000, le=2100)
     opus_ids: list[uuid.UUID] = []
 
 
 class CollectionUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    title: Optional[Line] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=4000)
     year: Optional[int] = Field(None, ge=1000, le=2100)
     opus_ids: Optional[list[uuid.UUID]] = None
@@ -166,7 +166,7 @@ class OpusBrief(ORMModel):
 # ---------------------------------------------------------------- performances
 
 class PerformanceFields(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    title: Optional[Line] = Field(None, min_length=1, max_length=255)
     composer_name: Optional[str] = Field(None, max_length=160)
     opus_id: Optional[uuid.UUID] = None
     description_md: Optional[str] = Field(None, max_length=20_000)
@@ -178,7 +178,7 @@ class PerformanceFields(BaseModel):
 
 
 class PerformanceIn(PerformanceFields):
-    title: Optional[str] = Field(None, max_length=255)  # a work from the site gives its own title
+    title: Optional[Line] = Field(None, max_length=255)  # a work from the site gives its own title
     audio_type: Literal["youtube", "hosted_file"]
     audio_source: str = Field(min_length=1, max_length=512)
 

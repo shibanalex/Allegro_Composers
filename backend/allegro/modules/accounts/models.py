@@ -35,6 +35,8 @@ class User(Base):
     hall: Mapped[dict] = mapped_column(JSON, default=dict)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     is_moderator: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # Onboarding hints the member has already read (shown once per person, whatever the device)
+    seen_hints: Mapped[list] = mapped_column(JSON, default=list)
     # Raised on a new password or «выйти на всех устройствах»: login tokens carry it, older ones stop working
     session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # "In the shadow": the account and everything it made are hidden from the site, but kept in the database

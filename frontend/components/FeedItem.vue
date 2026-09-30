@@ -140,11 +140,9 @@
           <span class="text-lg leading-none" aria-hidden="true">✎</span>{{ discussion.label }}
         </button>
         <button v-if="shareable && can('publish_note')" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" @click="sharing = true">
-          <span class="text-lg leading-none" aria-hidden="true">↻</span>{{ item.post ? 'Процитировать' : 'Поделиться' }}
+          <span class="text-lg leading-none" aria-hidden="true">↻</span>{{ item.post ? 'Процитировать' : 'В свой блог' }}
         </button>
-        <button type="button" class="ml-auto inline-flex items-center gap-1.5 transition hover:text-gold-light" :title="link" @click="copyLink">
-          <span aria-hidden="true">🔗</span>{{ copied ? 'Ссылка скопирована' : 'Ссылка' }}
-        </button>
+        <ShareButton class="ml-auto" :path="link" :title="item.post?.title || item.opus?.title || item.performance?.title" />
       </div>
       <div v-if="open && discussion" class="mt-4 border-t border-gold/10 pt-2">
         <Suspense>
@@ -258,14 +256,6 @@ const link = computed(() => {
   const { post, opus, performance } = props.item
   return post ? `/posts/${post.slug}` : opus ? `/opus/${opus.slug}` : performance?.opus ? `/opus/${performance.opus.slug}` : `/@${author.value.username}`
 })
-const copied = ref(false)
-async function copyLink() {
-  try {
-    await navigator.clipboard.writeText(new URL(link.value, location.origin).href)
-    copied.value = true
-    setTimeout(() => (copied.value = false), 2000)
-  } catch {}
-}
 
 const author = computed(() => props.item.opus?.author || props.item.performance?.performer || props.item.post!.author)
 

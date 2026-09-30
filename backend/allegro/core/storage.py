@@ -72,9 +72,9 @@ class _BaseStorage:
         spool.seek(0)
         return spool, size
 
-    async def save_upload(self, file: UploadFile, folder: str) -> dict:
+    async def save_upload(self, file: UploadFile, folder: str, limit_mb: Optional[int] = None) -> dict:
         key = self.new_key(folder, file.filename)
-        spool, size = await self.spool(file)
+        spool, size = await self.spool(file, limit_mb)
         with spool:
             # boto3 and disk writes block: in a worker thread, so other requests keep being served meanwhile
             await run_in_threadpool(self._put, key, spool)

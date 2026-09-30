@@ -10,6 +10,11 @@ export function useApi() {
   return $fetch.create({
     baseURL: import.meta.server ? config.apiInternal : '',
     onRequest({ options }) {
+      // A read that fails for a moment (the server waking up, a restart) is tried again; a write never is
+      if (!options.method || options.method.toUpperCase() === 'GET') {
+        options.retry = 2
+        options.retryDelay = 800
+      }
       if (!cookie) return
       const headers = new Headers(options.headers as HeadersInit | undefined)
       headers.set('cookie', cookie)

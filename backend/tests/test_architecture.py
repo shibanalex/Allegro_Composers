@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1] / "allegro"
 # A module may depend only on modules listed before it
 ORDER = ["accounts", "discussion", "catalog", "publications", "media", "site", "feed", "notifications", "search"]
 PUBLIC = {"service", "schemas", "deps", "roles"}
-COMPOSITION_ROOT = {"main.py", "models.py", "__init__.py"}
+COMPOSITION_ROOT = {"main.py", "models.py", "__init__.py", "__main__.py"}  # __main__: `python -m allegro` for development
 
 
 def _imports(path: Path) -> list[str]:

@@ -14,6 +14,12 @@ router = APIRouter(tags=["media"])
 Purpose = Literal["score", "musicxml", "audio", "image", "cover", "attachment"]
 
 
+@router.get("/api/media/limits")
+def limits():
+    """The largest file of each kind, in MB (the upload form checks it before sending)"""
+    return service.limits()
+
+
 @router.post("/api/media", response_model=list[Uploaded], status_code=status.HTTP_201_CREATED)
 async def upload(
     files: list[UploadFile] = File(...),

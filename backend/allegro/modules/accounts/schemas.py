@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from allegro.core.schemas import ORMModel, UTCDateTime
+from allegro.core.schemas import Line, Name, ORMModel, UTCDateTime
 from allegro.core.slugs import transliterate
 from allegro.modules.accounts.roles import HALL_THEMES, Role
 
@@ -107,7 +107,7 @@ def _optional_email(v: Optional[str]) -> Optional[str]:
 class RegisterIn(BaseModel):
     invite: Optional[str] = Field(None, max_length=128)
     username: str
-    display_name: str = Field(min_length=1, max_length=120)
+    display_name: Name = Field(min_length=1, max_length=120)
     password: str = Field(min_length=8, max_length=128)
     role: RoleName = "listener"
     email: Optional[str] = Field(None, max_length=255)  # optional: only for restoring access later
@@ -126,7 +126,7 @@ class RegisterIn(BaseModel):
 class SetupIn(BaseModel):
     code: str = Field(max_length=256)
     username: str
-    display_name: str = Field(min_length=1, max_length=120)
+    display_name: Name = Field(min_length=1, max_length=120)
     password: str = Field(min_length=12, max_length=128)  # the site's owner: a long password
     role: RoleName = "composer"
     email: Optional[str] = Field(None, max_length=255)
@@ -193,6 +193,12 @@ class MeOut(ProfileOut):
     email: Optional[str] = None
     is_admin: bool
     is_moderator: bool = False
+    seen_hints: list[str] = []
+
+    @field_validator("seen_hints", mode="before")
+    @classmethod
+    def _hints(cls, v):
+        return v or []
     capabilities: list[str]
 
 
@@ -203,8 +209,8 @@ class TokenOut(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    display_name: Optional[str] = Field(None, min_length=1, max_length=120)
-    pseudonym: Optional[str] = Field(None, max_length=120)
+    display_name: Optional[Name] = Field(None, min_length=1, max_length=120)
+    pseudonym: Optional[Line] = Field(None, max_length=120)
     bio: Optional[str] = Field(None, max_length=400)
     about_md: Optional[str] = Field(None, max_length=20_000)
     avatar_url: Optional[str] = Field(None, max_length=512)
@@ -218,6 +224,17 @@ class ProfileUpdate(BaseModel):
     @classmethod
     def _check_email(cls, v: Optional[str]) -> Optional[str]:
         return v if v == "" else _optional_email(v)
+
+
+class HintsIn(BaseModel):
+    hints: list[str] = Field(max_length=100)
+
+    @field_validator("hints")
+    @classmethod
+    def _names(cls, v: list[str]) -> list[str]:
+        if not all(re.fullmatch(r"[a-z0-9-]{1,40}", h) for h in v):
+            raise ValueError("неизвестная подсказка")
+        return v
 
 
 class PasswordChangeIn(BaseModel):

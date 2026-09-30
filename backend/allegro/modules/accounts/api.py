@@ -15,7 +15,7 @@ from allegro.modules.accounts.deps import (
 from allegro.modules.accounts.models import AccessLink, User
 from allegro.modules.accounts.roles import Capability, matrix, user_capabilities
 from allegro.modules.accounts.schemas import (
-    AccessLinkOut, AdminUserOut, AdminUserUpdate, InviteIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
+    AccessLinkOut, AdminUserOut, AdminUserUpdate, HintsIn, InviteIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
     ProfileOut, ProfileUpdate, RegisterIn, ResetIn, SetupIn, SiteConfig, TokenOut, UsernameCheck,
 )
 
@@ -30,6 +30,7 @@ def _me(db: Session, user: User) -> MeOut:
     profile = _profile(db, user)
     return MeOut(
         **profile.model_dump(), email=service.email_of(user), is_admin=user.is_admin, is_moderator=user.is_moderator,
+        seen_hints=user.seen_hints or [],
         capabilities=sorted(c.value for c in user_capabilities(user)),
     )
 
@@ -109,6 +110,18 @@ def list_members(role: Optional[str] = None, limit: int = 24, db: Session = Depe
 @router.patch("/api/users/me", response_model=MeOut)
 def update_me(data: ProfileUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return _me(db, service.update_profile(db, user, data))
+
+
+@router.post("/api/users/me/hints", status_code=status.HTTP_204_NO_CONTENT)
+def hints_seen(body: HintsIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Onboarding hints were read (one, or all at once by «Больше не показывать»): they won't be shown again"""
+    service.hints_seen(db, user, body.hints)
+
+
+@router.delete("/api/users/me/hints", status_code=status.HTTP_204_NO_CONTENT)
+def hints_again(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """«Показать подсказки снова»"""
+    service.hints_again(db, user)
 
 
 @router.post("/api/users/me/password", response_model=TokenOut)

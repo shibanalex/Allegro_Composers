@@ -30,6 +30,6 @@
 ```bash
 cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
 cp .env.example .env   # впишите SECRET_KEY
-.venv/Scripts/python -m alembic upgrade head && .venv/Scripts/python -m uvicorn allegro.main:app --port 8000
+.venv/Scripts/python -m alembic upgrade head && .venv/Scripts/python -m allegro
 cd ../frontend && npm ci && npx nuxi dev --port 3000
 ```

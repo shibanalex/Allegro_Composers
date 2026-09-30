@@ -1,22 +1,22 @@
 <template>
   <!-- A member's hall in the style of their era (data-hall-theme on <html>): portrait, name, manifesto, sections by role -->
   <div v-if="profile" class="hall">
-    <header class="hall-header relative isolate mt-8 grid items-center gap-10 px-2 py-12 sm:mt-12 md:grid-cols-[auto_minmax(0,1fr)] md:gap-14 md:px-10">
+    <header class="hall-header relative isolate mt-4 grid items-center gap-6 px-2 py-8 sm:mt-12 sm:gap-10 sm:py-12 md:grid-cols-[auto_minmax(0,1fr)] md:gap-14 md:px-10">
       <div v-if="hall.cover_url" class="hall-banner" aria-hidden="true"><MediaImg :src="hall.cover_url" full /></div>
       <CornerFlourish class="hall-flourish absolute left-0 top-0 w-14 sm:w-20" />
       <CornerFlourish class="hall-flourish absolute right-0 top-0 w-14 -scale-x-100 sm:w-20" />
       <CornerFlourish class="hall-flourish absolute bottom-0 left-0 w-14 -scale-y-100 sm:w-20" />
       <CornerFlourish class="hall-flourish absolute bottom-0 right-0 w-14 -scale-100 sm:w-20" />
 
-      <div class="portrait mx-auto h-64 w-52 sm:h-72 sm:w-56">
+      <div class="portrait mx-auto h-44 w-36 sm:h-72 sm:w-56">
         <MediaImg v-if="profile.avatar_url" :src="profile.avatar_url" :alt="profile.display_name" />
         <div v-else class="flex items-center justify-center bg-ink-700 font-display text-6xl italic text-gold/50">{{ initials(profile.display_name) }}</div>
       </div>
 
       <div class="text-center md:text-left">
         <p class="eyebrow">{{ role.label }} · @{{ profile.username }}</p>
-        <h1 class="hall-name mt-3 text-5xl italic sm:text-6xl">{{ profile.display_name }}</h1>
-        <p v-if="profile.pseudonym" class="title-script -ml-2 text-5xl sm:text-6xl">{{ profile.pseudonym }}</p>
+        <h1 class="hall-name mt-3 text-4xl italic sm:text-6xl">{{ profile.display_name }}</h1>
+        <p v-if="profile.pseudonym" class="title-script -ml-2 text-4xl sm:text-6xl">{{ profile.pseudonym }}</p>
         <p v-if="profile.bio" class="mt-4 max-w-2xl font-elegant text-2xl italic leading-snug text-parchment-muted">{{ profile.bio }}</p>
         <blockquote v-if="hall.epigraph" class="mx-auto mt-5 max-w-xl border-l-2 border-gold/50 pl-4 text-left md:mx-0">
           <p class="font-elegant text-xl italic text-parchment">«{{ hall.epigraph }}»</p>
@@ -25,12 +25,17 @@
 
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3 md:justify-start">
           <a v-for="l in profile.links" :key="l.url" :href="safeUrl(l.url)" target="_blank" rel="noopener nofollow" class="chip">{{ l.label }} ↗</a>
-          <NuxtLink v-if="isOwner" to="/settings" class="btn-secondary px-4 py-1.5 text-sm">Оформить зал</NuxtLink>
+          <HintBubble v-if="isOwner" id="hall-settings" text="Это ваш зал — страница, которую видят все. «Оформить зал»: портрет, роль, эпиграф, адрес и какие разделы показывать.">
+            <NuxtLink to="/settings" class="btn-secondary block px-4 py-1.5 text-sm">Оформить зал</NuxtLink>
+          </HintBubble>
         </div>
       </div>
     </header>
 
-    <PageTabs :tabs="tabs" class="mt-12">
+    <HintBubble v-if="isOwner" id="hall-tabs" side="top" class="mt-12" text="Разделы зала. На «Выставке» — сочинения, отмеченные ★; в «Блоге» — короткие записи, как в канале; пустые разделы гости не видят.">
+      <span class="block" />
+    </HintBubble>
+    <PageTabs :tabs="tabs" :class="isOwner ? 'mt-0' : 'mt-12'">
       <template #exhibition>
         <HallExhibition :opuses="showcase" :collections="collections" :is-owner="isOwner" />
         <p v-if="isOwner && opuses.length && !featuredCount" class="mt-8 text-center text-sm text-parchment-faint">
@@ -86,7 +91,7 @@ const { user, can } = useAuth()
 const username = String(route.params.username).toLowerCase()
 
 const { data: profile, error } = await useAsyncData(`profile-${username}`, () => api<Profile>(`/api/users/${username}`))
-if (error.value || !profile.value) throw createError({ statusCode: 404, statusMessage: 'Автор не найден', fatal: true })
+if (error.value || !profile.value) throw pageError(error.value, 'Автор не найден')
 
 const isOwner = computed(() => user.value?.username === username)
 const hall = computed<HallSettings>(() => profile.value?.hall || {})

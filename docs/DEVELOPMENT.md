@@ -10,7 +10,7 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt   # Linux/macOS: .venv/bin/python
 cp .env.example .env        # и впишите SECRET_KEY: python -c "import secrets; print(secrets.token_urlsafe(48))"
 .venv/Scripts/python -m alembic upgrade head
-.venv/Scripts/python -m uvicorn allegro.main:app --port 8000
+.venv/Scripts/python -m allegro          # the same as: python -m uvicorn allegro.main:app --port 8000 (add --reload to restart on saves)
 ```
 
 Локально база — `backend/allegro_platform.db` (SQLite), файлы — `backend/media/`.

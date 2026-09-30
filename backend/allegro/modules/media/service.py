@@ -18,7 +18,6 @@ from allegro.modules.media.models import Upload
 
 # "cover": a picture cropped to a square (covers of works, like album covers)
 Purpose = Literal["score", "musicxml", "audio", "image", "cover", "attachment"]
-PICTURE_LIMIT_MB = 30
 
 # Accepted file extensions per purpose. The extension decides how the file is served later, so it is
 # checked instead of the MIME type the browser claims (which the uploader controls).
@@ -39,6 +38,8 @@ ATTACHMENTS = {
     ".mp3", ".wav", ".ogg", ".oga", ".opus", ".flac", ".m4a", ".aac", ".webm",
 }
 MAX_FILES = 10  # in one request
+# The largest file of each kind, in MB (MAX_UPLOAD_MB caps them all); the site checks the same before uploading
+LIMIT_MB = {"score": 50, "musicxml": 20, "audio": 100, "image": 30, "cover": 30, "attachment": 50}
 MB = 1024 * 1024
 
 MUSICXML_EXTENSIONS = {".musicxml", ".xml", ".mxl"}
@@ -62,7 +63,7 @@ async def _check_musicxml(file: UploadFile) -> None:
 async def _save_picture(file: UploadFile, purpose: str, username: str) -> dict:
     """Decode the picture (a file that only pretends to be one is refused), crop a cover to a square,
     store it with its light preview"""
-    spool, _ = await storage.spool(file, PICTURE_LIMIT_MB)
+    spool, _ = await storage.spool(file, _limit(purpose))
     with spool:
         data = spool.read()
     try:
@@ -82,6 +83,14 @@ async def _save_picture(file: UploadFile, purpose: str, username: str) -> dict:
         "key": key, "url": storage.url(key), "name": file.filename or name,
         "content_type": content_type_for(key), "size": len(body), "preview_url": preview_url,
     }
+
+
+def _limit(purpose: str) -> int:
+    return min(LIMIT_MB.get(purpose, 50), settings.max_upload_mb)
+
+
+def limits() -> dict[str, int]:
+    return {purpose: _limit(purpose) for purpose in LIMIT_MB}
 
 
 def _uploaded_today(db: Session, user) -> int:
@@ -138,7 +147,7 @@ async def _save_one(file: UploadFile, purpose: str, username: str) -> dict:
         if purpose in ("image", "cover"):
             return await _save_picture(file, purpose, username)
         # Every upload goes to the uploader's own folder: that is what proves ownership later (core.files)
-        item = await storage.save_upload(file, f"{purpose}s/{username}")
+        item = await storage.save_upload(file, f"{purpose}s/{username}", _limit(purpose))
         # .webm/.mp4 are «video» by their extension; a voice note recorded in the browser is audio
         if purpose == "audio" and item["content_type"].startswith("video/"):
             item["content_type"] = "audio/" + item["content_type"].split("/", 1)[1]

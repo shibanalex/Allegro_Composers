@@ -81,3 +81,45 @@ def test_upload_limits(monkeypatch):
     assert second.status_code == 413 and "МБ в сутки" in second.json()["detail"]
     keys = list(storage.keys("attachments/upload_tester/"))
     assert not any(k.endswith("_b.txt") for k in keys)
+
+
+def test_each_kind_of_file_has_its_own_size_limit(monkeypatch):
+    from allegro.modules.media import service
+    headers = register("size_tester", "Размер")
+    MEMBERS.append("size_tester")
+    assert client.get("/api/media/limits").json()["score"] == 50
+    monkeypatch.setitem(service.LIMIT_MB, "score", 1)
+    big_pdf = b"%PDF-1.4 " + b"0" * (1024 * 1024 + 10)
+    r = client.post("/api/media", headers=headers, data={"purpose": "score"}, files={"files": ("big.pdf", big_pdf, "application/pdf")})
+    assert r.status_code == 413 and "1 МБ" in r.json()["detail"]
+
+
+def test_names_and_titles_are_cleaned():
+    headers = register("clean_names", "Чистое Имя")
+    MEMBERS.append("clean_names")
+
+    def name(value):
+        r = client.patch("/api/users/me", headers=headers, json={"display_name": value})
+        return r.json()["display_name"] if r.status_code == 200 else r.json()["detail"]
+
+    assert name("  Иван   Петров\n") == "Иван Петров"
+    assert name("Иван‮вонаП") == "ИванвонаП"  # a direction override would show someone else's name
+    assert name("​​") == "Имя: нужна хотя бы одна буква или цифра"
+    assert name("   ") == "Имя: нужна хотя бы одна буква или цифра"
+    assert name("A" * 121) == "Имя: не длиннее 120 знаков"
+    opus = client.post("/api/opuses", headers=headers, json={"title": " Соната​  №1 ", "genre": "solo"}).json()
+    assert opus["title"] == "Соната №1" and opus["slug"].startswith("sonata-1")
+
+
+
+def test_onboarding_hints_are_remembered_in_the_account():
+    headers = register("hint_reader", "Новичок")
+    MEMBERS.append("hint_reader")
+    assert client.get("/api/auth/me", headers=headers).json()["seen_hints"] == []
+    for hints in (["feed"], ["feed", "create", "bell"]):
+        assert client.post("/api/users/me/hints", json={"hints": hints}, headers=headers).status_code == 204
+    assert client.get("/api/auth/me", headers=headers).json()["seen_hints"] == ["feed", "create", "bell"]
+    assert client.post("/api/users/me/hints", json={"hints": ["<script>"]}, headers=headers).status_code == 422
+    assert client.post("/api/users/me/hints", json={"hints": ["x"] * 101}, headers=headers).status_code == 422
+    client.delete("/api/users/me/hints", headers=headers)
+    assert client.get("/api/auth/me", headers=headers).json()["seen_hints"] == []

@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, PlainSerializer
 
 
 def _iso_utc(value: datetime) -> str:
@@ -24,3 +24,23 @@ class Attachment(BaseModel):
     name: str = Field(max_length=255)
     content_type: str = Field("application/octet-stream", max_length=127)
     size: Optional[int] = None
+
+
+# ---------------------------------------------------------------- one-line text typed by people (core.text)
+
+def _clean(value):
+    from allegro.core.text import clean_line
+    return clean_line(value) if isinstance(value, str) else value
+
+
+def _meaningful(value: str) -> str:
+    from allegro.core.text import has_meaning
+    if not has_meaning(value):
+        raise ValueError("Нужна хотя бы одна буква или цифра")
+    return value
+
+
+# A title, a subtitle: without invisible and direction-changing characters, spaces tidied
+Line = Annotated[str, BeforeValidator(_clean)]
+# A person's name: the same, and it must say something
+Name = Annotated[str, BeforeValidator(_clean), AfterValidator(_meaningful)]

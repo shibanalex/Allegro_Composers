@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from allegro.core.schemas import Attachment, ORMModel, UTCDateTime
+from allegro.core.schemas import Attachment, Line, ORMModel, UTCDateTime
 from allegro.modules.accounts.schemas import UserBrief
 from allegro.modules.catalog.schemas import OpusBrief
 from allegro.modules.discussion.schemas import ReactionsOut
@@ -32,8 +32,8 @@ MATERIAL_KINDS = {
 
 class PostFields(BaseModel):
     kind: Optional[Kind] = None
-    title: Optional[str] = Field(None, max_length=255)  # may be empty for a blog post, like a channel message
-    excerpt: Optional[str] = Field(None, max_length=512)
+    title: Optional[Line] = Field(None, max_length=255)  # may be empty for a blog post, like a channel message
+    excerpt: Optional[Line] = Field(None, max_length=512)
     content_md: Optional[str] = Field(None, max_length=100_000)
     cover_url: Optional[str] = Field(None, max_length=512)
     attachments: Optional[list[Attachment]] = Field(None, max_length=50)
@@ -46,7 +46,7 @@ class PostFields(BaseModel):
 
 class PostCreate(PostFields):
     kind: Kind
-    title: str = Field("", max_length=255)
+    title: Line = Field("", max_length=255)
     content_md: str = ""
 
 
@@ -95,7 +95,7 @@ MaterialKind = Literal["book", "link", "file"]
 
 class MaterialFields(BaseModel):
     kind: Optional[MaterialKind] = None
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    title: Optional[Line] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=4000)
     url: Optional[str] = Field(None, max_length=1024)
     file: Optional[Attachment] = None
@@ -112,7 +112,7 @@ class MaterialFields(BaseModel):
 
 class MaterialIn(MaterialFields):
     kind: MaterialKind
-    title: str = Field(min_length=1, max_length=255)
+    title: Line = Field(min_length=1, max_length=255)
 
 
 class MaterialOut(ORMModel):

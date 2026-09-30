@@ -70,8 +70,9 @@
           <div class="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-parchment-faint">
             <LikeButton kind="opus" :id="opus.id" :value="likes" />
             <button v-if="opus.status === 'published' && can('publish_note')" type="button" class="inline-flex items-center gap-1.5 transition hover:text-gold-light" @click="sharing = true">
-              <span class="text-lg leading-none" aria-hidden="true">↻</span>Поделиться в блоге
+              <span class="text-lg leading-none" aria-hidden="true">↻</span>В свой блог
             </button>
+            <ShareButton :path="`/opus/${opus.slug}`" :title="opus.title" />
           </div>
           <ShareDialog v-if="sharing" :opus="opus" @close="sharing = false" @published="(p) => navigateTo(`/posts/${p.slug}`)" />
 
@@ -127,7 +128,7 @@ const { user } = useAuth()
 const slug = route.params.slug as string
 
 const { data: opus, error } = await useAsyncData(`opus-${slug}`, () => api<Opus>(`/api/opuses/${slug}`))
-if (error.value || !opus.value) throw createError({ statusCode: 404, statusMessage: 'Опус не найден', fatal: true })
+if (error.value || !opus.value) throw pageError(error.value, 'Опус не найден')
 
 const { data: threadPage } = await useAsyncData(`opus-threads-${slug}`, () =>
   api<Page<Post>>('/api/posts', { params: { kind: ['article', 'workshop'], opus: slug, limit: 10 } }),

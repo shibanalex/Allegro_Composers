@@ -40,6 +40,7 @@ export interface Me extends Profile {
   is_admin: boolean
   is_moderator?: boolean
   capabilities: string[]
+  seen_hints?: string[]
 }
 
 export interface SiteConfig {

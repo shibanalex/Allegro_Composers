@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Hero -->
-    <section class="relative flex flex-col items-center px-6 pb-8 pt-8 text-center">
+    <section class="relative flex flex-col items-center px-6 pb-5 pt-4 text-center sm:pb-8 sm:pt-8">
       <div class="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[20rem] w-[20rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--c-gold)/0.14),transparent_65%)] blur-2xl" />
       <p class="eyebrow animate-fade-up">Сообщество композиторов</p>
       <h1 class="title-script brand animate-fade-up leading-tight [--brand:3.2rem] sm:[--brand:4.4rem]" style="animation-delay: .1s">Allegro</h1>
@@ -50,13 +50,16 @@
 
       <!-- The feed: everything new in the members' halls -->
       <section class="min-w-0" aria-label="Лента">
-        <SearchBox class="mb-5" />
-        <nav class="mb-4 flex flex-wrap justify-center gap-2 xl:hidden" aria-label="Что показывать в ленте">
+        <HintBubble id="feed" class="mb-5" text="Лента — всё новое на сайте: сочинения, исполнения, статьи, записи участников. Кнопки рядом оставляют в ленте что-то одно, поиск находит по названию, имени и тексту.">
+          <SearchBox />
+        </HintBubble>
+        <!-- phones: one row that scrolls sideways, not three lines of buttons -->
+        <nav class="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0 xl:hidden" aria-label="Что показывать в ленте">
           <button
             v-for="f in FILTERS"
             :key="f.id"
             type="button"
-            class="chip"
+            class="chip shrink-0 whitespace-nowrap"
             :class="{ active: kind === f.id }"
             :aria-pressed="kind === f.id"
             @click="choose(f.id)"

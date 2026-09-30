@@ -30,7 +30,7 @@ const slug = route.params.slug as string
 
 // One request: the post comes with its likes; mentions and comments fill in after the page is shown
 const { data: post, error } = await useAsyncData(`post-${slug}`, () => api<Post & { likes?: FeedEntry['likes'] }>(`/api/posts/${slug}`))
-if (error.value || !post.value) throw createError({ statusCode: 404, statusMessage: 'Публикация не найдена', fatal: true })
+if (error.value || !post.value) throw pageError(error.value, 'Публикация не найдена')
 const { data: mentions } = useLazyAsyncData(`post-mentions-${slug}`, () => api<PostBrief[]>(`/api/mentions/post/${slug}`).catch(() => []), { server: false })
 
 const entry = computed<FeedEntry>(() => ({

@@ -31,7 +31,7 @@ const text = ref('')
 const busy = ref(false)
 const error = ref('')
 const field = ref<HTMLTextAreaElement>()
-const heading = computed(() => (props.quote ? 'Процитировать запись' : 'Поделиться сочинением'))
+const heading = computed(() => (props.quote ? 'Процитировать запись' : 'Сочинение — в свой блог'))
 onMounted(() => field.value?.focus())
 
 async function send() {

@@ -28,6 +28,7 @@
 
         <template v-if="user">
           <!-- + Создать -->
+          <HintBubble id="create" align="end" text="«Создать» — отсюда публикуется всё: сочинение с нотами и записью, исполнение, статья, короткая запись в блог, материал.">
           <div ref="createRoot" class="relative">
             <button type="button" class="btn-primary px-4 py-1.5 text-sm" :aria-expanded="createOpen" @click="createOpen = !createOpen">
               <span class="text-lg leading-none">+</span><span class="hidden sm:inline">Создать</span>
@@ -44,10 +45,14 @@
               </div>
             </Transition>
           </div>
+          </HintBubble>
 
-          <NotificationBell />
+          <HintBubble id="bell" align="end" text="Колокольчик — новые публикации участников и ответы вам. Здесь же можно включить уведомления в браузере и письма на почту.">
+            <NotificationBell />
+          </HintBubble>
 
           <!-- Profile -->
+          <HintBubble id="profile" align="end" text="Ваш портрет — меню: «Мой зал» (ваша страница, которую видят все), «Оформить зал» (портрет, роль, эпиграф, разделы) и выход.">
           <div ref="profileRoot" class="relative">
             <button type="button" class="block rounded-full transition hover:ring-2 hover:ring-gold/60" :aria-expanded="profileOpen" aria-label="Профиль" @click="profileOpen = !profileOpen">
               <UserAvatar :user="user" :size="38" />
@@ -62,6 +67,7 @@
               </div>
             </Transition>
           </div>
+          </HintBubble>
         </template>
         <NuxtLink v-else :to="`/login?next=${encodeURIComponent(route.fullPath)}`" class="btn-secondary px-3 py-1.5 text-sm sm:px-4">Войти</NuxtLink>
 
