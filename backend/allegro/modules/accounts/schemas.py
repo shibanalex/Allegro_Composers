@@ -188,6 +188,11 @@ class ProfileOut(ORMModel):
         return v or {}
 
 
+class MemberPage(BaseModel):
+    items: list[ProfileOut]
+    total: int
+
+
 class MeOut(ProfileOut):
     email: Optional[str] = None
     is_admin: bool

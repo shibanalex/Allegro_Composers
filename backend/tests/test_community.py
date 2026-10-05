@@ -280,3 +280,19 @@ def test_hall_address_explains_what_is_wrong(admin):
     # the same words come back when signing up with a wrong address
     r = client.post("/api/auth/register", json={"username": "Мира", "password": "secret-pass", "display_name": "М", "role": "listener"})
     assert r.status_code == 422 and "латиница" in r.text
+
+
+
+def test_members_page_newest_first_by_role_and_name(listener):
+    page = client.get("/api/users", params={"limit": 2}).json()
+    assert len(page["items"]) == 2 and page["total"] > 2
+    everyone = client.get("/api/users", params={"limit": 100}).json()
+    assert everyone["total"] == len(everyone["items"])
+    dates = [u["created_at"] for u in everyone["items"] if u.get("created_at")]
+    assert dates == sorted(dates, reverse=True)  # the newest first
+    second = client.get("/api/users", params={"limit": 2, "offset": 2}).json()["items"]
+    assert not {u["id"] for u in second} & {u["id"] for u in page["items"]}
+    performers = client.get("/api/users", params={"role": "performer", "limit": 100}).json()
+    assert performers["items"] and all(u["role"] == "performer" for u in performers["items"])
+    found = client.get("/api/users", params={"q": "vera"}).json()
+    assert [u["username"] for u in found["items"]] == ["vera_violin"] and found["total"] == 1

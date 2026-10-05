@@ -41,11 +41,16 @@ def count_users(db: Session) -> int:
     return db.scalar(select(func.count()).select_from(User)) or 0
 
 
-def visible_members(db: Session, *, role: Optional[str] = None, limit: int = 24) -> list[User]:
+def visible_members(db: Session, *, role: Optional[str] = None, where=None, limit: int = 24, offset: int = 0) -> tuple[list[User], int]:
+    """A page of members who are not in the shadow, the newest first, and how many there are in all"""
     stmt = select(User).where(User.is_hidden.is_(False))
     if role:
         stmt = stmt.where(User.role == role)
-    return list(db.scalars(stmt.order_by(User.created_at).limit(limit)))
+    if where is not None:
+        stmt = stmt.where(where)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    users = list(db.scalars(stmt.order_by(User.created_at.desc(), User.id).limit(limit).offset(offset)))
+    return users, total
 
 
 def all_users(db: Session) -> list[User]:

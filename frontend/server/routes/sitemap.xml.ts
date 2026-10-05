@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const [composers, opuses, posts] = await Promise.all([
-    $fetch<({ username: string } & Dated)[]>(`${api}/api/users`, { query: { limit: 100 } }),
+    all<{ username: string } & Dated>('/api/users'),
     all<{ slug: string } & Dated>('/api/opuses'),
     all<{ slug: string } & Dated>('/api/posts'),
   ])
@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
   const urls = [
     { loc: '/', priority: '1.0' },
     { loc: '/about', priority: '0.5' },
+    { loc: '/members', priority: '0.6' },
     ...composers.map((c) => ({ loc: `/@${c.username}`, priority: '0.9' })),
     ...opuses.map((o) => ({ loc: `/opus/${o.slug}`, lastmod: day(o.created_at), priority: '0.8' })),
     ...posts.map((p) => ({ loc: `/posts/${p.slug}`, lastmod: day(p.created_at), priority: '0.6' })),

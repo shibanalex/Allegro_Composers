@@ -145,7 +145,11 @@ def test_email_digests(author, reader, monkeypatch):
 
     client.post("/api/posts", headers=author, json={"kind": "article", "title": "О канонах", "content_md": "…"})
     work()
-    morning = datetime.now(timezone.utc).replace(hour=7) + timedelta(days=1)  # 10:00 in Moscow, tomorrow
+    # the next 10:00 in Moscow (07:00 UTC): within a day of the post, whatever time the tests run at
+    now = datetime.now(timezone.utc)
+    morning = now.replace(hour=7, minute=0, second=0, microsecond=0)
+    if morning <= now:
+        morning += timedelta(days=1)
     with SessionLocal() as db:
         service.send_digests(db, now=morning)
         service.send_digests(db, now=morning + timedelta(hours=1))  # the same day: nothing more

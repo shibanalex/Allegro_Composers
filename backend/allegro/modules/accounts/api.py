@@ -15,7 +15,7 @@ from allegro.modules.accounts.deps import (
 from allegro.modules.accounts.models import AccessLink, User
 from allegro.modules.accounts.roles import matrix, user_capabilities
 from allegro.modules.accounts.schemas import (
-    AccessLinkOut, AdminUserOut, AdminUserUpdate, HintsIn, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
+    AccessLinkOut, AdminUserOut, AdminUserUpdate, HintsIn, MemberPage, LinkCheckOut, LoginIn, MeOut, PasswordChangeIn,
     ProfileOut, ProfileUpdate, RegisterIn, ResetIn, SetupIn, SiteConfig, TokenOut, UsernameCheck,
 )
 
@@ -99,12 +99,13 @@ def reset_password(data: ResetIn, request: Request, response: Response, db: Sess
 
 # ---------------------------------------------------------------- profiles
 
-@router.get("/api/users", response_model=list[ProfileOut])
-def list_members(role: Optional[str] = None, limit: int = 24, db: Session = Depends(get_db)):
-    """Members' halls for the main page: the earliest members first"""
-    users = service.members(db, role, limit)
+@router.get("/api/users", response_model=MemberPage)
+def list_members(role: Optional[str] = None, q: str = Query("", max_length=100), limit: int = 24, offset: int = 0,
+                 db: Session = Depends(get_db)):
+    """The members: the newest first, by role and by name; with what each has published"""
+    users, total = service.members(db, role, q, limit, offset)
     stats = service.stats_for(db, [u.id for u in users])
-    return [ProfileOut.model_validate(u).model_copy(update={"stats": stats[u.id]}) for u in users]
+    return MemberPage(items=[ProfileOut.model_validate(u).model_copy(update={"stats": stats[u.id]}) for u in users], total=total)
 
 
 @router.patch("/api/users/me", response_model=MeOut)

@@ -1,17 +1,7 @@
 <template>
-  <div>
-    <!-- Hero -->
-    <section class="relative flex flex-col items-center px-6 pb-5 pt-4 text-center sm:pb-8 sm:pt-8">
-      <div class="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[20rem] w-[20rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--c-gold)/0.14),transparent_65%)] blur-2xl" />
-      <p class="eyebrow animate-fade-up">Сообщество композиторов</p>
-      <h1 class="title-script brand animate-fade-up leading-tight [--brand:3.2rem] sm:[--brand:4.4rem]" style="animation-delay: .1s">Allegro</h1>
-      <Ornament class="-mt-2 w-48 animate-fade-up" style="animation-delay: .2s" />
-      <p class="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-1 font-elegant text-lg italic text-parchment-muted animate-fade-up" style="animation-delay: .3s">
-        <span>{{ members.length }} {{ plural(members.length, 'участник', 'участника', 'участников') }}</span>
-        <span>{{ counts.opuses }} {{ plural(counts.opuses, 'сочинение', 'сочинения', 'сочинений') }}</span>
-        <span>{{ counts.posts }} {{ plural(counts.posts, 'запись', 'записи', 'записей') }}</span>
-      </p>
-    </section>
+  <!-- The site's name is in the header: the page starts straight with the feed -->
+  <div class="pt-4 sm:pt-8">
+    <h1 class="sr-only">Allegro — сообщество композиторов</h1>
 
     <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[13rem_minmax(0,1fr)_20rem]">
       <!-- Left: what the feed shows, what one can publish, the community -->
@@ -109,9 +99,9 @@
         </section>
 
         <section v-if="members.length" class="card !p-5">
-          <h2 class="eyebrow mb-4">Участники</h2>
+          <h2 class="eyebrow mb-4">Новые участники</h2>
           <ul class="space-y-3">
-            <li v-for="m in shownMembers" :key="m.id">
+            <li v-for="m in members" :key="m.id">
               <NuxtLink :to="`/@${m.username}`" class="group flex items-center gap-3">
                 <UserAvatar :user="m" :size="44" />
                 <span class="min-w-0 leading-tight">
@@ -121,6 +111,9 @@
               </NuxtLink>
             </li>
           </ul>
+          <NuxtLink to="/members" class="mt-4 inline-block font-caps text-sm font-semibold tracking-[0.15em] text-gold transition hover:text-gold-light">
+            Все участники · {{ memberCount }} →
+          </NuxtLink>
           <p v-if="!user" class="mt-4 border-t border-gold/10 pt-4 text-sm text-parchment-faint">
             <NuxtLink to="/register" class="link">Открыть свой зал</NuxtLink> — это бесплатно. <NuxtLink to="/about" class="link">О сообществе</NuxtLink>
           </p>
@@ -247,17 +240,16 @@ async function more() {
 
 // The side columns: loaded together, none of them may break the page
 const { data: side } = await useAsyncData('home-side', async () => {
-  const [users, opuses, posts] = await Promise.all([
-    api<Profile[]>('/api/users').catch(() => [] as Profile[]),
+  const [users, opuses] = await Promise.all([
+    api<Page<Profile>>('/api/users', { params: { limit: 6 } }).catch(() => null),
     api<Page<Opus>>('/api/opuses', { params: { limit: 5 } }).catch(() => null),
-    api<Page<unknown>>('/api/posts', { params: { limit: 1 } }).catch(() => null),
   ])
-  return { users, opuses, posts }
+  return { users, opuses }
 })
-const members = computed(() => side.value?.users || [])
-const shownMembers = computed(() => members.value.slice(0, 8))
+// The newest members; everyone is on /members
+const members = computed(() => side.value?.users?.items || [])
+const memberCount = computed(() => side.value?.users?.total || 0)
 const newOpuses = computed(() => side.value?.opuses?.items || [])
-const counts = computed(() => ({ opuses: side.value?.opuses?.total ?? 0, posts: side.value?.posts?.total ?? 0 }))
 
 function activity(m: Profile) {
   const s = m.stats || {}

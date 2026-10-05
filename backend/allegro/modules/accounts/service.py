@@ -287,8 +287,13 @@ def email_of(user: User) -> Optional[str]:
     return decrypt_email(user.email_encrypted)
 
 
-def members(db: Session, role: Optional[str] = None, limit: int = 24) -> list[User]:
-    return repo.visible_members(db, role=role, limit=min(max(limit, 1), 100))
+def members(db: Session, role: Optional[str] = None, q: str = "", limit: int = 24, offset: int = 0) -> tuple[list[User], int]:
+    """The members' page: the newest first, by role and by words in the name, pseudonym or manifesto"""
+    from allegro.core import textsearch
+
+    words = textsearch.stems(q)
+    where = textsearch.matches_all([User.username, User.display_name, User.pseudonym, User.bio], words) if words else None
+    return repo.visible_members(db, role=role, where=where, limit=min(max(limit, 1), 100), offset=max(offset, 0))
 
 
 def update_profile(db: Session, user: User, data: ProfileUpdate) -> User:

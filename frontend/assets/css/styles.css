@@ -629,11 +629,12 @@
 /* The «Allegro» logo: its own face in every era. Where it stands says how big it is (--brand);
    each era scales it (--brand-scale), since a narrow script and wide Roman capitals differ a lot. */
 .brand {
-  font-family: "Libre Bodoni", "Old Standard TT", Georgia, serif; /* romanticism: Bodoni's type of the time, calmer contrast */
+  font-family: "IM Fell English", "Old Standard TT", Georgia, serif; /* romanticism: an old printing house italic, the impression a little uneven */
   font-style: italic;
-  font-weight: 700;
+  font-weight: 400; /* the face has one weight: no bolding made up by the browser */
+  font-synthesis: none;
   font-size: calc(var(--brand, 2.5rem) * var(--brand-scale, 1));
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.25;
   /* a lighter gilding than headings get: the type's hairlines must not sink into a dark band */
   background-image: linear-gradient(172deg, rgb(var(--c-gold-pale)) 0%, rgb(var(--c-gold-light)) 30%, rgb(var(--c-gold)) 58%, rgb(var(--c-gold-light)) 82%, rgb(var(--c-gold)) 100%);

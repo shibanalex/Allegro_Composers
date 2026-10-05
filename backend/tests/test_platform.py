@@ -396,7 +396,7 @@ def test_shadowed_account_vanishes_but_is_kept(alice, bob):
     _set_hidden("bob", True)
     try:
         assert client.get("/api/users/bob").status_code == 404
-        assert "bob" not in [u["username"] for u in client.get("/api/users").json()]
+        assert "bob" not in [u["username"] for u in client.get("/api/users", params={"limit": 100}).json()["items"]]
         assert client.get(f"/api/opuses/{bob_opus['slug']}").status_code == 404
         assert all(o["author"]["username"] != "bob" for o in client.get("/api/opuses", params={"limit": 100}).json()["items"])
         assert client.get("/api/posts", params={"author": "bob"}).json()["total"] == 0
@@ -407,7 +407,7 @@ def test_shadowed_account_vanishes_but_is_kept(alice, bob):
     finally:
         _set_hidden("bob", False)
     assert client.get("/api/users/bob").status_code == 200  # back from the shadow, nothing lost
-    assert "bob" in [u["username"] for u in client.get("/api/users").json()]
+    assert "bob" in [u["username"] for u in client.get("/api/users", params={"limit": 100}).json()["items"]]
 
 
 def test_ownership_of_uploaded_files(alice, bob):

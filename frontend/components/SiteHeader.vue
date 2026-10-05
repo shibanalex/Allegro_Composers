@@ -96,6 +96,7 @@ const search = useSearchPalette()
 // The main page (works, performances, articles, blogs) and your own hall
 const links = computed(() => [
   { to: '/', label: 'Главная' },
+  { to: '/members', label: 'Участники' },
   ...(user.value ? [{ to: `/@${user.value.username}`, label: 'Мой зал' }] : []),
 ])
 const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
