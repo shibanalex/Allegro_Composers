@@ -20,7 +20,7 @@
     </header>
 
     <div class="mt-4">
-      <audio v-if="performance.audio_type === 'hosted_file' && performance.audio_url" :src="performance.audio_url" controls preload="none" class="w-full" @play="countPlay" />
+      <AudioClip v-if="performance.audio_type === 'hosted_file' && performance.audio_url" :src="performance.audio_url" @play="countPlay" />
       <!-- YouTube: a still picture until the listener presses play, then the player (no tracking before that) -->
       <div v-else-if="performance.audio_type === 'youtube'" class="frame frame-thin">
         <div class="frame-inner relative aspect-video bg-ink-950">

@@ -1,8 +1,8 @@
 <template>
-  <!-- A sketch or an audio file in a post: ▶ and its waveform (wavesurfer.js), in the site's gold.
+  <!-- A recording in a post or a performance: ▶ and its waveform (wavesurfer.js), in the site's gold.
        Plays on its own (not through the site player); one at a time. -->
   <div v-if="failed" class="w-full">
-    <audio :src="src" controls preload="none" class="w-full" />
+    <audio :src="src" controls preload="none" class="w-full" @play="emit('play')" />
   </div>
   <div v-else class="flex w-full items-center gap-3 border border-gold/15 bg-ink-950/50 px-3 py-2" @click.stop>
     <button type="button" class="play-btn h-10 w-10 shrink-0" :aria-label="playing ? 'Пауза' : 'Слушать'" :disabled="!ready" @click="toggle">
@@ -18,6 +18,7 @@ import type WaveSurfer from 'wavesurfer.js'
 import { usePlayer } from '~/stores/player'
 
 const props = withDefaults(defineProps<{ src: string; height?: number }>(), { height: 40 })
+const emit = defineEmits<{ play: [] }>() // started playing (a performance counts its listens by it)
 
 const host = ref<HTMLElement>()
 const ready = ref(false)
@@ -59,6 +60,7 @@ onMounted(async () => {
   ws.on('timeupdate', (t) => (time.value = t))
   ws.on('play', () => {
     playing.value = true
+    emit('play')
     sounding.value = id
     if (player.playing) player.pause()
   })
