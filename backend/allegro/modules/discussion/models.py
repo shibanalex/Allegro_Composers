@@ -29,6 +29,7 @@ class Comment(Base):
     post_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
     parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("comments.id", ondelete="CASCADE"))
     timestamp_marker: Mapped[Optional[float]] = mapped_column(Float)  # second of the recording
+    timestamp_end: Mapped[Optional[float]] = mapped_column(Float)  # with it: the stretch from timestamp_marker to here
     content_md: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 

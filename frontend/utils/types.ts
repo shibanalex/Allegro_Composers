@@ -142,6 +142,7 @@ export interface Comment {
   post_id?: string | null
   parent_id?: string | null
   timestamp_marker?: number | null
+  timestamp_end?: number | null
   content_md: string
   created_at: string
   author: UserBrief

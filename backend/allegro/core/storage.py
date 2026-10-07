@@ -99,6 +99,7 @@ class _BaseStorage:
     def exists(self, key: str) -> bool: ...
     def keys(self, prefix: str) -> Iterator[str]: ...
     def delete(self, key: Optional[str]) -> None: ...
+    def ffmpeg_source(self, key: str) -> str: ...  # where ffmpeg can read the file: a path or an address
 
 
 class LocalStorage(_BaseStorage):
@@ -150,6 +151,9 @@ class LocalStorage(_BaseStorage):
         if key:
             self.path(key).unlink(missing_ok=True)
 
+    def ffmpeg_source(self, key: str) -> str:
+        return str(self.path(key))
+
 
 class S3Storage(_BaseStorage):
     """Any S3-compatible bucket. Files are served straight from the bucket's public address
@@ -178,6 +182,10 @@ class S3Storage(_BaseStorage):
         if key.startswith("attachments/") and not content_type.startswith(("image/", "audio/", "application/pdf")):
             extra["ContentDisposition"] = "attachment"
         self.client.upload_fileobj(stream, self.bucket, key, ExtraArgs=extra)
+
+    def ffmpeg_source(self, key: str) -> str:
+        """A signed link for a few minutes: ffmpeg streams the file without it being downloaded whole"""
+        return self.client.generate_presigned_url("get_object", Params={"Bucket": self.bucket, "Key": self._check_key(key)}, ExpiresIn=900)
 
     def read_bytes(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.bucket, Key=self._check_key(key))["Body"].read()

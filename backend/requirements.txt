@@ -13,5 +13,6 @@ httpx==0.28.1
 boto3==1.43.103
 cryptography==50.0.1
 Pillow==12.3.0
+imageio-ffmpeg==0.6.0  # ffmpeg for the waveforms of recordings (core.peaks)
 redis==8.1.0
 pywebpush==2.5.0

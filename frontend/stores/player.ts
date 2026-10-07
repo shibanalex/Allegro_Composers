@@ -47,6 +47,7 @@ export const usePlayer = defineStore('player', {
     time: 0,
     duration: 0,
     volume: 0.85,
+    stopAt: null as number | null, // playing a stretch: pause when the recording reaches this second
   }),
   getters: {
     isCurrent: (state) => (slug?: string) => !!slug && state.track?.slug === slug,
@@ -73,6 +74,19 @@ export const usePlayer = defineStore('player', {
         controller?.play()
       }
     },
+    /** Play a stretch of a piece: from `start`, pausing at `end` */
+    playRange(opus: Opus | OpusBrief | Track, start: number, end: number) {
+      this.play(opus, start)
+      this.stopAt = end
+    },
+    /** Called as the recording plays (by <PlayerBar>): ends a stretch on time */
+    tick(time: number) {
+      this.time = time
+      if (this.stopAt != null && time >= this.stopAt) {
+        this.stopAt = null
+        controller?.pause()
+      }
+    },
     pause() {
       controller?.pause()
     },
@@ -81,6 +95,7 @@ export const usePlayer = defineStore('player', {
       this.playing ? this.pause() : controller?.play()
     },
     seek(seconds: number) {
+      this.stopAt = null // moving elsewhere ends a stretch
       this.time = Math.max(0, seconds)
       controller?.seek(this.time)
     },

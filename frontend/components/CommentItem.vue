@@ -7,8 +7,14 @@
           <NuxtLink :to="`/@${comment.author.username}`" class="font-display italic text-gold-light transition hover:text-gold">
             {{ comment.author.pseudonym || comment.author.display_name }}
           </NuxtLink>
-          <button v-if="comment.timestamp_marker != null" type="button" class="timecode" @click="$emit('seek', comment.timestamp_marker)">
-            {{ formatTime(comment.timestamp_marker) }}
+          <button
+            v-if="comment.timestamp_marker != null"
+            type="button"
+            class="timecode"
+            :title="comment.timestamp_end != null ? 'Прослушать отрезок' : 'Перейти к этому месту'"
+            @click="$emit('seek', comment.timestamp_marker, comment.timestamp_end ?? undefined)"
+          >
+            {{ comment.timestamp_end != null ? formatStretch(comment.timestamp_marker, comment.timestamp_end) : formatTime(comment.timestamp_marker) }}
           </button>
           <span class="text-xs text-parchment-faint">{{ formatDate(comment.created_at) }}</span>
         </p>
@@ -32,7 +38,7 @@
             :children="children"
             :can-moderate="canModerate"
             :depth="depth + 1"
-            @seek="(t) => $emit('seek', t)"
+            @seek="(t, end) => $emit('seek', t, end)"
             @reply="(...args) => $emit('reply', ...args)"
             @remove="(x) => $emit('remove', x)"
           />
@@ -52,7 +58,7 @@ const props = defineProps<{
   depth: number
 }>()
 const emit = defineEmits<{
-  seek: [seconds: number]
+  seek: [seconds: number, end?: number]
   reply: [parentId: string, text: string, done: () => void]
   remove: [comment: Comment]
 }>()

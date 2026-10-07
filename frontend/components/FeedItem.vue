@@ -64,7 +64,7 @@
       <!-- A sketch: a short title, one recording, a line of text -->
       <template v-else-if="item.post && item.post.kind === 'sketch'">
         <NuxtLink :to="`/posts/${item.post.slug}`" class="font-display text-2xl leading-tight text-parchment transition hover:text-gold-light">{{ item.post.title }}</NuxtLink>
-        <audio v-for="a in audios" :key="a.url" :src="a.url" controls preload="metadata" class="mt-3 w-full" />
+        <AudioClip v-for="a in audios" :key="a.url" :src="a.url" class="mt-3" />
         <p v-if="item.post.content_md" class="mt-3 font-elegant text-lg italic text-parchment-muted [overflow-wrap:anywhere]">{{ item.post.content_md }}</p>
       </template>
 
@@ -81,7 +81,7 @@
         <ImageGallery v-if="images.length" :images="images" class="mt-6" />
         <div v-for="a in audios" :key="a.url" class="mt-4 border border-gold/20 bg-ink-950/50 p-3">
           <p class="mb-2 truncate text-sm text-parchment-muted">♪ {{ a.name }}</p>
-          <audio :src="a.url" controls preload="none" class="w-full" />
+          <AudioClip :src="a.url" />
         </div>
         <AttachmentList v-if="files.length" :files="files" class="mt-6" />
         <QuoteCard v-if="item.post.quote" :post="item.post.quote" class="mt-6" />
@@ -113,7 +113,7 @@
         <ImageGallery v-if="images.length" :images="images" class="mt-4" />
         <div v-for="a in audios" :key="a.url" class="mt-4 border border-gold/20 bg-ink-950/50 p-3">
           <p class="mb-2 truncate text-sm text-parchment-muted">♪ {{ a.name }}</p>
-          <audio :src="a.url" controls preload="none" class="w-full" />
+          <AudioClip :src="a.url" />
         </div>
         <AttachmentList v-if="files.length" :files="files" class="mt-4" />
         <OpusMiniCard v-if="item.post.opus" :opus="item.post.opus" class="mt-4" />

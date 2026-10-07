@@ -3,7 +3,7 @@
  * One at a time, in this order (what the page is about first, the header after); a hint read once is
  * remembered in the account, so it doesn't come back on another device.
  */
-export const HINTS = ['opus-files', 'opus-status', 'hall-settings', 'hall-tabs', 'feed', 'create', 'bell', 'profile'] as const
+export const HINTS = ['wave-select', 'opus-files', 'opus-status', 'hall-settings', 'hall-tabs', 'feed', 'create', 'bell', 'profile'] as const
 export type HintId = (typeof HINTS)[number]
 
 export function useHints() {

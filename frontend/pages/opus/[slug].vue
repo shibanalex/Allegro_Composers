@@ -176,10 +176,11 @@ useHead({
 
 const view = ref<'musicxml' | 'pdf'>(opus.value.musicxml_url ? 'musicxml' : 'pdf')
 
-/** Timecode click: jump the recording there */
-function seek(seconds: number) {
+/** Timecode click: jump the recording there; a stretch («01:20–01:45») plays and stops at its end */
+function seek(seconds: number, end?: number) {
   if (!opus.value || opus.value.audio_type === 'none') return
-  player.play(opus.value, seconds)
+  if (end != null) player.playRange(opus.value, seconds, end)
+  else player.play(opus.value, seconds)
 }
 
 async function remove() {

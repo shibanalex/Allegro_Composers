@@ -13,12 +13,18 @@ class CommentIn(BaseModel):
     post_id: Optional[uuid.UUID] = None
     parent_id: Optional[uuid.UUID] = None
     timestamp_marker: Optional[float] = Field(None, ge=0)
+    timestamp_end: Optional[float] = Field(None, ge=0)  # a stretch: from timestamp_marker to timestamp_end
     content_md: str = Field(min_length=1, max_length=5000)
 
     @model_validator(mode="after")
     def _single_target(self):
         if (self.opus_id is None) == (self.post_id is None):
             raise ValueError("Укажите либо opus_id, либо post_id")
+        if self.timestamp_end is not None:
+            if self.timestamp_marker is None:
+                raise ValueError("У отрезка должно быть начало")
+            if self.timestamp_end - self.timestamp_marker < 0.5:
+                raise ValueError("Отрезок должен кончаться позже, чем начинается")
         return self
 
 
@@ -42,6 +48,7 @@ class CommentOut(ORMModel):
     post_id: Optional[uuid.UUID] = None
     parent_id: Optional[uuid.UUID] = None
     timestamp_marker: Optional[float] = None
+    timestamp_end: Optional[float] = None
     content_md: str
     created_at: UTCDateTime
     author: UserBrief

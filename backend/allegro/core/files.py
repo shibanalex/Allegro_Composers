@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from allegro.core.db import after_commit
 from allegro.core.errors import Invalid
 from allegro.core.images import is_picture, preview_key
+from allegro.core.peaks import is_audio, peaks_key
 from allegro.core.storage import storage
 
 
@@ -43,6 +44,8 @@ def delete_own_after_commit(db: Session, username: str, key: Optional[str]) -> N
         after_commit(db, lambda: storage.delete(key))
         if is_picture(key):
             after_commit(db, lambda: storage.delete(preview_key(key)))
+        if is_audio(key):
+            after_commit(db, lambda: storage.delete(peaks_key(key)))
 
 
 def delete_own_url_after_commit(db: Session, username: str, url: Optional[str]) -> None:

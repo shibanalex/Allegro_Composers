@@ -105,7 +105,7 @@
           <ImageGallery v-if="images(p).length" :images="images(p)" class="mt-4" />
           <div v-for="a in audios(p)" :key="a.url" class="mt-4 border border-gold/20 bg-ink-950/50 p-3">
             <p class="mb-2 truncate text-sm text-parchment-muted">♪ {{ a.name }}</p>
-            <audio :src="a.url" controls preload="none" class="w-full" />
+            <AudioClip :src="a.url" />
           </div>
           <AttachmentList v-if="files(p).length" :files="files(p)" class="mt-4" />
           <OpusMiniCard v-if="p.opus" :opus="p.opus" class="mt-4" />

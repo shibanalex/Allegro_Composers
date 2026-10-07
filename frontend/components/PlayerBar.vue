@@ -37,7 +37,19 @@
               <span class="hidden truncate text-sm text-parchment-faint sm:inline">{{ player.track?.author.display_name }}</span>
               <span class="ml-auto shrink-0 font-mono text-xs text-parchment-muted">{{ formatTime(player.time) }} / {{ formatTime(player.duration) }}</span>
             </div>
-            <SeekBar class="mt-1" />
+            <!-- an uploaded recording: its waveform; YouTube: the plain bar -->
+            <AudioWave
+              v-if="player.track?.audio_type === 'hosted_file' && player.track.audio_url"
+              :key="player.track.audio_url"
+              :url="player.track.audio_url"
+              :time="player.time"
+              :height="26"
+              class="mt-1"
+              @seek="player.seek"
+            >
+              <template #fallback><SeekBar class="pt-2" /></template>
+            </AudioWave>
+            <SeekBar v-else class="mt-1" />
           </div>
 
           <VolumeControl class="hidden md:flex" />
@@ -60,7 +72,7 @@ const ytHost = ref<HTMLElement>()
 const hidden = computed(() => !!player.track && route.path === `/opus/${player.track.slug}`)
 
 const onTime = () => {
-  if (player.track?.audio_type === 'hosted_file' && audio.value) player.time = audio.value.currentTime
+  if (player.track?.audio_type === 'hosted_file' && audio.value) player.tick(audio.value.currentTime)
 }
 const onMeta = () => {
   if (audio.value && isFinite(audio.value.duration)) player.duration = audio.value.duration
@@ -111,7 +123,7 @@ async function loadYouTube(track: Track, startAt: number, autoplay: boolean) {
   })
   clearInterval(ytTimer)
   ytTimer = setInterval(() => {
-    if (player.track?.audio_type === 'youtube' && yt?.getCurrentTime) player.time = yt.getCurrentTime()
+    if (player.track?.audio_type === 'youtube' && yt?.getCurrentTime) player.tick(yt.getCurrentTime())
   }, 250)
 }
 

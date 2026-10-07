@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from allegro.core import images
+from allegro.core import images, peaks
 from allegro.core.config import settings
 from allegro.core.errors import Invalid, PayloadTooLarge, UnsupportedMedia
 from allegro.core.storage import UploadTooLarge, content_type_for, storage
@@ -102,6 +102,8 @@ async def _forget_file(key: str) -> None:
     await run_in_threadpool(storage.delete, key)
     if images.is_picture(key):
         await run_in_threadpool(storage.delete, images.preview_key(key))
+    if peaks.is_audio(key):
+        await run_in_threadpool(storage.delete, peaks.peaks_key(key))
 
 
 async def save_uploads(db: Session, files: list[UploadFile], purpose: str, user) -> list[dict]:
