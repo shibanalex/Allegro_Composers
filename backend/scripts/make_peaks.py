@@ -1,7 +1,7 @@
 """Draw the waveforms (core.peaks) of recordings uploaded before waveforms existed.
 
-Idempotent: a recording that already has its waveform (or a mark that it can't be read) is skipped,
-so the container runs it on every start (start.sh) and it costs one listing of the storage folders.
+Idempotent: a recording that already has its waveform (or a mark that this version can't read it) is
+skipped, so the container runs it on every start (start.sh) and it costs one listing of the storage folders.
 
     python -m scripts.make_peaks
 """
@@ -14,7 +14,7 @@ def main() -> None:
     for folder in peaks.AUDIO_FOLDERS:
         keys = set(storage.keys(folder))
         for key in sorted(keys):
-            if not peaks.is_audio(key) or peaks.peaks_key(key) in keys:
+            if not peaks.is_audio(key) or (peaks.peaks_key(key) in keys and not peaks.stale(key)):
                 continue
             try:
                 ok = peaks.make(key)

@@ -8,6 +8,7 @@ import mimetypes
 import re
 import tempfile
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import BinaryIO, Iterator, Optional
 
@@ -99,7 +100,7 @@ class _BaseStorage:
     def exists(self, key: str) -> bool: ...
     def keys(self, prefix: str) -> Iterator[str]: ...
     def delete(self, key: Optional[str]) -> None: ...
-    def ffmpeg_source(self, key: str) -> str: ...  # where ffmpeg can read the file: a path or an address
+    def local_copy(self, key: str): ...  # a context manager giving a path on this server's disk
 
 
 class LocalStorage(_BaseStorage):
@@ -151,8 +152,9 @@ class LocalStorage(_BaseStorage):
         if key:
             self.path(key).unlink(missing_ok=True)
 
-    def ffmpeg_source(self, key: str) -> str:
-        return str(self.path(key))
+    @contextmanager
+    def local_copy(self, key: str):
+        yield self.path(key)
 
 
 class S3Storage(_BaseStorage):
@@ -183,9 +185,16 @@ class S3Storage(_BaseStorage):
             extra["ContentDisposition"] = "attachment"
         self.client.upload_fileobj(stream, self.bucket, key, ExtraArgs=extra)
 
-    def ffmpeg_source(self, key: str) -> str:
-        """A signed link for a few minutes: ffmpeg streams the file without it being downloaded whole"""
-        return self.client.generate_presigned_url("get_object", Params={"Bucket": self.bucket, "Key": self._check_key(key)}, ExpiresIn=900)
+    @contextmanager
+    def local_copy(self, key: str):
+        """The file in a temporary file on disk (written in chunks, never whole in memory), removed afterwards"""
+        suffix = Path(key).suffix
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            self.client.download_fileobj(self.bucket, self._check_key(key), tmp)
+        try:
+            yield Path(tmp.name)
+        finally:
+            Path(tmp.name).unlink(missing_ok=True)
 
     def read_bytes(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.bucket, Key=self._check_key(key))["Body"].read()

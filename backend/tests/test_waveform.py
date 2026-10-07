@@ -86,3 +86,18 @@ def test_a_comment_on_a_stretch(author, listener):
     assert client.post("/api/comments", headers=listener, json={**body, "timestamp_marker": 50, "timestamp_end": 40}).status_code == 422
     # a single moment still works
     assert client.post("/api/comments", headers=listener, json={**body, "timestamp_marker": 12}).json()["timestamp_end"] is None
+
+
+def test_a_recording_marked_unreadable_by_an_older_version_is_tried_again(author):
+    from allegro.core import peaks
+    from allegro.core.storage import storage
+    from scripts import make_peaks
+
+    item = upload(author, "retry.wav", recording(), "audio/wav", "audio")
+    storage.save_bytes(peaks.peaks_key(item["key"]), b'{"duration":null,"peaks":[],"error":true}')  # an old failure
+    assert client.get("/api/media/peaks", params={"url": item["url"]}).status_code == 404
+    make_peaks.main()
+    assert len(client.get("/api/media/peaks", params={"url": item["url"]}).json()["peaks"]) > 10
+    # a failure by this version stays put: the start of the server doesn't redo it every time
+    fake = upload(author, "still-broken.mp3", b"nope" * 100, "audio/mpeg", "audio")
+    assert not peaks.stale(fake["key"])

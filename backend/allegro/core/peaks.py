@@ -7,7 +7,7 @@ stored beside the original under `<key>.peaks.json`, the way pictures keep their
 so nothing is added to the database and the file lies in the same owner's folder (core.files).
 
 ffmpeg comes from the imageio-ffmpeg package: one static binary, the same on the server and on a
-developer's computer.
+developer's computer. It reads a copy on the server's own disk (storage.local_copy), never the network.
 """
 import json
 import logging
@@ -21,6 +21,7 @@ from allegro.core.storage import storage
 log = logging.getLogger("allegro.peaks")
 
 PEAKS_SUFFIX = ".peaks.json"
+VERSION = 2  # a recording marked unreadable by an older version is tried again
 POINTS = 1200  # enough for the widest waveform on a screen; ~5 KB of JSON
 RATE = 4000  # Hz: plenty to see the loudness, and decoding stays fast
 SLICE = RATE // 20  # the loudest sample of every 1/20 s first, then those are gathered into POINTS
@@ -85,10 +86,12 @@ def compute(source: str) -> dict:
 def make(key: str) -> bool:
     """Compute and store the waveform of one recording; False when it can't be read (a mark is stored, so it isn't retried)"""
     try:
-        result = compute(storage.ffmpeg_source(key))
-    except (ValueError, subprocess.TimeoutExpired) as e:
+        with storage.local_copy(key) as path:
+            result = compute(str(path))
+    except (ValueError, OSError, subprocess.TimeoutExpired) as e:
         log.warning("waveform of %s: %s", key, e)
-        result = {"duration": None, "peaks": [], "error": True}
+        result = {"duration": None, "peaks": [], "error": True, "reason": str(e)[-200:]}
+    result["v"] = VERSION
     storage.save_bytes(peaks_key(key), json.dumps(result, separators=(",", ":")).encode())
     return not result.get("error")
 
@@ -99,6 +102,14 @@ def make_quietly(key: str) -> None:
         make(key)
     except Exception:
         log.exception("waveform of %s", key)
+
+
+def stale(key: str) -> bool:
+    """No waveform yet, or only a mark of a failure by an older version"""
+    if not storage.exists(peaks_key(key)):
+        return True
+    data = json.loads(storage.read_bytes(peaks_key(key)))
+    return bool(data.get("error")) and data.get("v") != VERSION
 
 
 def read(key: str) -> Optional[dict]:
