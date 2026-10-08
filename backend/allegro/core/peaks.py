@@ -29,10 +29,12 @@ TIMEOUT = 300  # s: a recording that takes longer to decode is given up on
 # Folders whose files may be recordings: uploads with purpose "audio" and attachments to posts
 AUDIO_FOLDERS = ("audios/", "attachments/")
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".oga", ".opus", ".flac", ".m4a", ".aac", ".webm"}
+DEMUXERS = "mp3,wav,ogg,flac,mov,aac,matroska"  # ffmpeg readers for those (mov: m4a; matroska: webm)
 
 
 def is_audio(key: Optional[str]) -> bool:
     return (bool(key) and key.startswith(AUDIO_FOLDERS) and not key.endswith(PEAKS_SUFFIX)
+            and ".." not in key.split("/") and "\\" not in key  # never a way out of the folder
             and PurePosixPath(key).suffix.lower() in AUDIO_EXTENSIONS)
 
 
@@ -49,7 +51,11 @@ def _ffmpeg() -> str:
 def compute(source: str) -> dict:
     """{"duration": seconds, "peaks": [0..1, ...]} of a file path or URL; raises ValueError if it isn't audio"""
     process = subprocess.Popen(
-        [_ffmpeg(), "-nostdin", "-v", "error", "-i", source, "-vn", "-ac", "1", "-ar", str(RATE), "-f", "s16le", "pipe:1"],
+        [_ffmpeg(), "-nostdin", "-v", "error",
+         # an upload is only ever read as an audio file on this disk: no playlists, scripts or network
+         # (a file pretending to be audio must not make ffmpeg fetch addresses or read other files)
+         "-protocol_whitelist", "file", "-format_whitelist", DEMUXERS,
+         "-i", source, "-vn", "-ac", "1", "-ar", str(RATE), "-f", "s16le", "pipe:1"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     slices: list[int] = []

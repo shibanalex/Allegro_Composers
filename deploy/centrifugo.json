@@ -14,7 +14,8 @@
       {
         "name": "chat",
         "allow_subscribe_for_client": true,
-        "allow_subscribe_for_anonymous": true
+        "allow_subscribe_for_anonymous": true,
+        "channel_regex": "^general$"
       }
     ]
   }

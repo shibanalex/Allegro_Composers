@@ -4,6 +4,7 @@ Public API for other modules: `opus_brief`, `opuses_out`, `performance_out`, `re
 `opus_id_by_slug`, `published_opus_ids`, `resolve_opus_target`, `resolve_performance_target`, `visible_published_opus`,
 `search_opuses`, `popular_instruments`, `count_opuses`, `count_performances`.
 """
+import re
 import uuid
 from collections import Counter
 from typing import Iterator, Optional
@@ -126,7 +127,8 @@ def _normalize_audio(values: dict) -> None:
     if audio_type == "youtube":
         match = YOUTUBE_ID.search(source or "")
         video_id = match.group(1) if match else source
-        if not video_id or len(video_id) != 11:
+        # an id is 11 letters, digits, «-» or «_»: it goes into the player's address as it is
+        if not video_id or not re.fullmatch(r"[\w-]{11}", video_id, re.ASCII):
             raise Invalid("Укажите ссылку на YouTube или id видео")
         values["audio_source"] = video_id
     elif audio_type == "hosted_file":
