@@ -97,6 +97,7 @@ const search = useSearchPalette()
 const links = computed(() => [
   { to: '/', label: 'Главная' },
   { to: '/members', label: 'Участники' },
+  { to: '/chat', label: 'Чат' },
   ...(user.value ? [{ to: `/@${user.value.username}`, label: 'Мой зал' }] : []),
 ])
 const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.startsWith(to))

@@ -73,7 +73,7 @@ def test_a_mention_rings_the_bell_and_goes_with_the_message(anna, boris):
     work()
     assert client.get("/api/notifications/unread", headers=boris).json()["count"] == before + 1
     latest = client.get("/api/notifications", headers=boris).json()["items"][0]
-    assert latest["kind"] == "mention" and latest["url"] == f"/?feed=chat#m-{message['id']}"
+    assert latest["kind"] == "mention" and latest["url"] == f"/chat#m-{message['id']}"
     assert client.get("/api/notifications/unread", headers=anna).json()["count"] == 0  # not for mentioning oneself
     # an e-mail address is not a mention
     from allegro.modules.chat.service import mentioned_usernames

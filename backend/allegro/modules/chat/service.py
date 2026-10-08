@@ -58,7 +58,7 @@ def post(db: Session, user, text: str) -> MessageOut:
     mentioned = [i for i in ids_by_usernames(db, mentioned_usernames(text)).values() if i != user.id]
     if mentioned:
         emit(db, "mentioned", author_id=user.id, user_ids=",".join(str(i) for i in mentioned), id=message.id,
-             target_type="chat", title=text[:200], url=f"/?feed=chat#m-{message.id}")
+             target_type="chat", title=text[:200], url=f"/chat#m-{message.id}")
     db.commit()
     db.refresh(message)
     out = MessageOut.model_validate(message)

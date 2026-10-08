@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
     { loc: '/', priority: '1.0' },
     { loc: '/about', priority: '0.5' },
     { loc: '/members', priority: '0.6' },
+    { loc: '/chat', priority: '0.4' },
     ...composers.map((c) => ({ loc: `/@${c.username}`, priority: '0.9' })),
     ...opuses.map((o) => ({ loc: `/opus/${o.slug}`, lastmod: day(o.created_at), priority: '0.8' })),
     ...posts.map((p) => ({ loc: `/posts/${p.slug}`, lastmod: day(p.created_at), priority: '0.6' })),

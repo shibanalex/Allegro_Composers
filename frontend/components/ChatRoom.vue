@@ -361,7 +361,7 @@ function dayLabel(iso: string) {
 onMounted(async () => {
   await loadLatest().catch(() => (loaded.value = true))
   await nextTick()
-  // a notification «упомянул(а) вас» leads to /?feed=chat#m-<id>: that message, lit for a moment
+  // a notification «упомянул(а) вас» leads to /chat#m-<id>: that message, lit for a moment
   const target = route.hash.startsWith('#m-') ? document.getElementById(route.hash.slice(1)) : null
   if (target) {
     target.scrollIntoView({ block: 'center' })
