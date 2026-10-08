@@ -23,6 +23,17 @@ npm ci
 npx nuxi dev --port 3000     # http://localhost:3000, /api и /media проксируются на :8000
 ```
 
+Чат в реальном времени — Centrifugo ([релизы](https://github.com/centrifugal/centrifugo/releases),
+файл `centrifugo` под свою систему). Без него чат тоже работает, только новые сообщения
+подгружаются раз в 10 секунд. Запуск из `backend` (секреты те же, что у API, — из `SECRET_KEY`):
+
+```bash
+eval "$(.venv/Scripts/python -m allegro.core.realtime)"
+CENTRIFUGO_CLIENT_ALLOWED_ORIGINS=http://localhost:3000 centrifugo --config ../deploy/centrifugo.json   # :8001
+```
+
+В разработке браузер подключается к нему напрямую на `:8001`; на сайте — через шлюз (`deploy/Caddyfile`).
+
 Первый аккаунт: задайте `SETUP_TOKEN` в `backend/.env` и откройте `/setup` — или используйте
 существующую базу. Демо-наполнение (вымышленные авторы, по умолчанию «в тени»):
 `python -m scripts.seed` (нужны `requirements-tools.txt`).

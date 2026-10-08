@@ -41,7 +41,7 @@ def listener():
 
 def test_roles_decide_what_can_be_published(admin, theorist, performer, listener):
     me = client.get("/api/auth/me", headers=listener).json()
-    assert me["role"] == "listener" and me["capabilities"] == ["comment", "publish_note", "react", "share_material"]
+    assert me["role"] == "listener" and me["capabilities"] == ["chat", "comment", "publish_note", "react", "share_material"]
     # everyone keeps a blog
     for who in (theorist, performer, listener):
         assert client.post("/api/posts", headers=who, json={"kind": "note", "content_md": "Привет"}).status_code == 201

@@ -2,6 +2,7 @@
 from allegro.core.db import Base  # noqa: F401
 from allegro.core.events import OutboxEvent  # noqa: F401
 from allegro.modules.accounts.models import AccessLink, User  # noqa: F401
+from allegro.modules.chat.models import ChatMessage  # noqa: F401
 from allegro.modules.catalog.models import (  # noqa: F401
     Collection, CollectionItem, MeasureSyncMarker, Opus, Performance, ScoreSyncMarker,
 )

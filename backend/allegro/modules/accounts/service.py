@@ -72,6 +72,14 @@ def member_ids_except(user_id: uuid.UUID):
     return select(User.id).where(User.is_hidden.is_(False), User.id != user_id)
 
 
+def ids_by_usernames(db: Session, usernames: list[str]) -> dict[str, uuid.UUID]:
+    """Members (not in the shadow) by their hall addresses — for @mentions"""
+    if not usernames:
+        return {}
+    rows = db.execute(select(User.username, User.id).where(User.username.in_(usernames), User.is_hidden.is_(False)))
+    return {name: user_id for name, user_id in rows}
+
+
 def user_by_id(db: Session, user_id: uuid.UUID) -> Optional[User]:
     return repo.by_id(db, user_id)
 

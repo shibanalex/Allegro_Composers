@@ -90,6 +90,7 @@ interface Prefs { kinds: string[]; push: boolean; email: 'off' | 'daily' | 'week
 const KIND_WORDS: Record<string, string> = {
   opus: 'новое сочинение', sketch: 'новый эскиз', article: 'новая статья', performance: 'новое исполнение',
   note: 'новая запись в блоге', news: 'новости сообщества', workshop: 'новая запись',
+  mention: 'упомянул(а) вас в чате',
 }
 const KIND_LABELS: Record<string, string> = {
   opus: 'Сочинения', sketch: 'Эскизы', article: 'Статьи', performance: 'Исполнения', note: 'Блоги', news: 'Новости',

@@ -40,6 +40,7 @@ ROLE_LABELS = {
 class Capability(StrEnum):
     # every member
     COMMENT = "comment"
+    CHAT = "chat"
     REACT = "react"
     PUBLISH_NOTE = "publish_note"  # a blog post
     SHARE_MATERIAL = "share_material"
@@ -54,7 +55,7 @@ class Capability(StrEnum):
     MANAGE_SITE = "manage_site"
 
 
-EVERY_MEMBER = frozenset({Capability.COMMENT, Capability.REACT, Capability.PUBLISH_NOTE, Capability.SHARE_MATERIAL})
+EVERY_MEMBER = frozenset({Capability.COMMENT, Capability.CHAT, Capability.REACT, Capability.PUBLISH_NOTE, Capability.SHARE_MATERIAL})
 
 CAPABILITIES: dict[Role, frozenset[Capability]] = {
     Role.COMPOSER: EVERY_MEMBER | {Capability.PUBLISH_OPUS, Capability.PUBLISH_ARTICLE, Capability.PUBLISH_SKETCH},
@@ -70,6 +71,7 @@ ADMIN_CAPABILITIES = MODERATOR_CAPABILITIES | {
 
 CAPABILITY_LABELS = {
     Capability.COMMENT: "Комментировать",
+    Capability.CHAT: "Писать в чат",
     Capability.REACT: "Отмечать «нравится»",
     Capability.PUBLISH_NOTE: "Вести блог",
     Capability.SHARE_MATERIAL: "Делиться материалами",
@@ -84,6 +86,7 @@ CAPABILITY_LABELS = {
 
 CAPABILITY_REFUSALS = {
     Capability.COMMENT: "Комментирование для вас закрыто",
+    Capability.CHAT: "Чат для вас закрыт",
     Capability.REACT: "Отметки для вас закрыты",
     Capability.PUBLISH_NOTE: "Блог для вас закрыт",
     Capability.SHARE_MATERIAL: "Материалы для вас закрыты",

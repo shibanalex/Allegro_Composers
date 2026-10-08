@@ -19,7 +19,7 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
 def _allowed_origins() -> set[str]:
-    values = [settings.site_url, settings.render_external_url, *settings.cors_origins.split(",")]
+    values = [settings.public_url, settings.site_url, settings.render_external_url, *settings.cors_origins.split(",")]
     return {v.strip().rstrip("/") for v in values if v.strip()}
 
 

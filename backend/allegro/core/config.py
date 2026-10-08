@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     # Redis for the cache of recent comments (Render Key Value, Upstash…): redis://… or rediss://…
     # Empty: the cache lives in the server's memory (fine for one process)
     redis_url: str = ""
+    # Centrifugo's HTTP API inside the container (core.realtime); empty: nothing is published live
+    centrifugo_api_url: str = "http://127.0.0.1:8001"
     s3_endpoint_url: str = ""  # Yandex: https://storage.yandexcloud.net; R2: https://<account id>.r2.cloudflarestorage.com
     s3_bucket: str = ""
     s3_access_key_id: str = ""

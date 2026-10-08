@@ -5,6 +5,7 @@ sketch, article, performance, blog post, news) and «removed». The worker hands
 
 - «published» → one notification for every member but the author (one INSERT … SELECT, not a loop),
   then a push to the devices of those who want this kind of publication;
+- «mentioned» → the members named with @ in the chat are told (and pushed), whatever kinds they chose;
 - «removed» → the notifications about it disappear.
 
 E-mail goes as a digest (daily or weekly), never one letter per post: `send_digests`.
@@ -34,6 +35,7 @@ log = logging.getLogger("allegro.notifications")
 KIND_WORDS = {
     "opus": "новое сочинение", "sketch": "новый эскиз", "article": "новая статья", "performance": "новое исполнение",
     "note": "новая запись в блоге", "news": "новости сообщества", "workshop": "новая запись",
+    "mention": "упомянул(а) вас в чате",
 }
 MAX_PUSHES_PER_EVENT = 5000
 
@@ -87,8 +89,9 @@ def update_settings(db: Session, user, data: SettingsIn) -> SettingsOut:
 # ---------------------------------------------------------------- the bell
 
 def _visible(user_id: uuid.UUID, kinds: list[str]):
-    return (Notification.user_id == user_id, Notification.kind.in_(kinds + (["workshop"] if "note" in kinds else [])),
-            visible_authors(Notification.actor_id))
+    # a mention is addressed to the member personally: shown whatever kinds of publications they chose
+    shown = kinds + (["workshop"] if "note" in kinds else []) + ["mention"]
+    return (Notification.user_id == user_id, Notification.kind.in_(shown), visible_authors(Notification.actor_id))
 
 
 def unread_count(db: Session, user) -> int:
@@ -141,6 +144,8 @@ def unsubscribe(db: Session, user, endpoint: str) -> None:
 def handle(db: Session, kind: str, payload: dict) -> None:
     if kind == "published":
         _published(db, payload)
+    elif kind == "mentioned":
+        _mentioned(db, payload)
     elif kind == "removed":
         db.execute(delete(Notification).where(
             Notification.target_type == payload["target_type"], Notification.target_id == uuid.UUID(payload["id"]),
@@ -170,19 +175,31 @@ def _published(db: Session, p: dict) -> None:
     _push_all(db, author, p["kind"], title, url)
 
 
-def _push_all(db: Session, author, kind: str, title: str, url: str) -> None:
-    """Every device of every member who wants this kind of publication by push"""
+def _mentioned(db: Session, p: dict) -> None:
+    author_id, target_id = uuid.UUID(p["author_id"]), uuid.UUID(p["id"])
+    author = user_by_id(db, author_id)
+    if not author or author.is_hidden:
+        return
+    if db.scalar(select(func.count()).where(Notification.target_type == p["target_type"], Notification.target_id == target_id)):
+        return  # a retried event
+    users = [uuid.UUID(u) for u in str(p.get("user_ids") or "").split(",") if u]
+    title, url = str(p.get("title") or "")[:255], str(p.get("url") or "/")[:512]
+    now = utcnow()
+    db.add_all(Notification(user_id=u, actor_id=author_id, kind="mention", target_type=p["target_type"],
+                            target_id=target_id, title=title, url=url, created_at=now) for u in users)
+    db.commit()
     rows = db.execute(
         select(PushSubscription, NotificationSettings)
         .join(NotificationSettings, NotificationSettings.user_id == PushSubscription.user_id, isouter=True)
-        .where(PushSubscription.user_id != author.id).limit(MAX_PUSHES_PER_EVENT)
+        .where(PushSubscription.user_id.in_(users))
     ).all()
-    message = {"title": f"{author.display_name} · {KIND_WORDS.get(kind, 'новая публикация')}", "body": title,
-               "url": url, "tag": url}
+    message = {"title": f"{author.display_name} {KIND_WORDS['mention']}", "body": title, "url": url, "tag": url}
+    _send_pushes(db, [(sub, prefs) for sub, prefs in rows if not prefs or prefs.push], message)
+
+
+def _send_pushes(db: Session, rows, message: dict) -> None:
     gone = []
-    for sub, prefs in rows:
-        if prefs and (not prefs.push or kind not in _kinds(prefs) and not (kind == "workshop" and "note" in _kinds(prefs))):
-            continue
+    for sub, _ in rows:
         try:
             push.send(sub.endpoint, sub.p256dh, sub.auth, message)
         except push.Gone:
@@ -192,6 +209,21 @@ def _push_all(db: Session, author, kind: str, title: str, url: str) -> None:
     if gone:
         db.execute(delete(PushSubscription).where(PushSubscription.id.in_(gone)))
         db.commit()
+
+
+def _push_all(db: Session, author, kind: str, title: str, url: str) -> None:
+    """Every device of every member who wants this kind of publication by push"""
+    rows = db.execute(
+        select(PushSubscription, NotificationSettings)
+        .join(NotificationSettings, NotificationSettings.user_id == PushSubscription.user_id, isouter=True)
+        .where(PushSubscription.user_id != author.id).limit(MAX_PUSHES_PER_EVENT)
+    ).all()
+    message = {"title": f"{author.display_name} · {KIND_WORDS.get(kind, 'новая публикация')}", "body": title,
+               "url": url, "tag": url}
+    def wanted(prefs) -> bool:
+        return not prefs or (prefs.push and (kind in _kinds(prefs) or (kind == "workshop" and "note" in _kinds(prefs))))
+
+    _send_pushes(db, [(sub, prefs) for sub, prefs in rows if wanted(prefs)], message)
 
 
 # ---------------------------------------------------------------- e-mail digests

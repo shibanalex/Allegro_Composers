@@ -40,7 +40,7 @@
 
       <!-- The feed: everything new in the members' halls -->
       <section class="min-w-0" aria-label="Лента">
-        <HintBubble id="feed" class="mb-5" text="Лента — всё новое на сайте: сочинения, исполнения, статьи, записи участников. Кнопки рядом оставляют в ленте что-то одно, поиск находит по названию, имени и тексту.">
+        <HintBubble v-if="kind !== 'chat'" id="feed" class="mb-5" text="Лента — всё новое на сайте: сочинения, исполнения, статьи, записи участников. Кнопки рядом оставляют в ленте что-то одно, поиск находит по названию, имени и тексту.">
           <SearchBox />
         </HintBubble>
         <!-- phones: one row that scrolls sideways, not three lines of buttons -->
@@ -50,30 +50,34 @@
             :key="f.id"
             type="button"
             class="chip shrink-0 whitespace-nowrap"
-            :class="{ active: kind === f.id }"
+            :class="{ active: kind === f.id, 'max-sm:hidden': f.id === 'chat' }"
             :aria-pressed="kind === f.id"
             @click="choose(f.id)"
           >
             {{ f.label }}
           </button>
         </nav>
-        <div v-if="user" class="mb-6 flex flex-wrap justify-center gap-2 xl:hidden">
-          <button v-if="can('publish_sketch')" type="button" class="btn-secondary px-4 py-1.5 text-sm" @click="startSketch">+ Эскиз</button>
-          <NuxtLink v-for="c in creates" :key="c.to" :to="c.to" class="btn-secondary px-4 py-1.5 text-sm">{{ c.label }}</NuxtLink>
-        </div>
+        <!-- The chat in place of the feed (computers; on a phone it opens from its own button) -->
+        <ChatRoom v-if="kind === 'chat'" class="h-[calc(100vh-12rem)] min-h-[26rem]" />
+        <template v-else>
+          <div v-if="user" class="mb-6 flex flex-wrap justify-center gap-2 xl:hidden">
+            <button v-if="can('publish_sketch')" type="button" class="btn-secondary px-4 py-1.5 text-sm" @click="startSketch">+ Эскиз</button>
+            <NuxtLink v-for="c in creates" :key="c.to" :to="c.to" class="btn-secondary px-4 py-1.5 text-sm">{{ c.label }}</NuxtLink>
+          </div>
 
-        <!-- A sketch in a minute, right above the feed -->
-        <SketchComposer v-if="sketching" ref="sketchPanel" class="mb-6" @close="sketching = false" @published="onSketch" />
+          <!-- A sketch in a minute, right above the feed -->
+          <SketchComposer v-if="sketching" ref="sketchPanel" class="mb-6" @close="sketching = false" @published="onSketch" />
 
-        <EmptyState v-if="!items.length && !loading">{{ EMPTY[kind] }}</EmptyState>
-        <div class="space-y-6" :class="{ 'opacity-60 transition': loading && !items.length }">
-          <FeedItem v-for="item in items" :key="keyOf(item)" :item="item" @removed="removed.add(keyOf(item))" />
-        </div>
-        <!-- Reaching this line loads the next page; the button is for keyboards and old browsers -->
-        <div v-if="nextBefore" ref="sentinel" class="py-10 text-center">
-          <button class="btn-secondary" :disabled="loading" @click="more">{{ loading ? 'Загрузка…' : 'Показать ещё' }}</button>
-        </div>
-        <p v-else-if="items.length" class="py-10 text-center font-elegant text-lg italic text-parchment-faint">Это всё — дальше тишина</p>
+          <EmptyState v-if="!items.length && !loading">{{ EMPTY[kind] }}</EmptyState>
+          <div class="space-y-6" :class="{ 'opacity-60 transition': loading && !items.length }">
+            <FeedItem v-for="item in items" :key="keyOf(item)" :item="item" @removed="removed.add(keyOf(item))" />
+          </div>
+          <!-- Reaching this line loads the next page; the button is for keyboards and old browsers -->
+          <div v-if="nextBefore" ref="sentinel" class="py-10 text-center">
+            <button class="btn-secondary" :disabled="loading" @click="more">{{ loading ? 'Загрузка…' : 'Показать ещё' }}</button>
+          </div>
+          <p v-else-if="items.length" class="py-10 text-center font-elegant text-lg italic text-parchment-faint">Это всё — дальше тишина</p>
+        </template>
       </section>
 
       <!-- Right: new works, members, themes -->
@@ -121,10 +125,32 @@
 
       </aside>
     </div>
+
+    <!-- Phones: the chat opens from a button, over the whole screen -->
+    <button
+      v-if="kind !== 'chat'"
+      type="button"
+      class="play-btn fixed right-4 z-30 h-14 w-14 bg-ink-950/90 text-xl shadow-2xl shadow-black backdrop-blur sm:hidden"
+      :class="player.track ? 'bottom-24' : 'bottom-5'"
+      aria-label="Открыть чат"
+      @click="chatOpen = true"
+    >
+      <span aria-hidden="true">❝</span>
+    </button>
+    <Transition name="drop">
+      <div v-if="chatOpen" class="fixed inset-0 z-50 flex flex-col bg-ink-950 sm:hidden">
+        <ChatRoom class="min-h-0 flex-1 border-0">
+          <template #close>
+            <button type="button" class="px-2 text-lg text-parchment-muted transition hover:text-gold" aria-label="Закрыть чат" @click="chatOpen = false">✕</button>
+          </template>
+        </ChatRoom>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
+import { usePlayer } from '~/stores/player'
 import type { FeedEntry, Opus, Page, Profile } from '~/utils/types'
 
 definePageMeta({ wide: true })
@@ -133,7 +159,7 @@ useSeoMeta({
   description: 'Сообщество композиторов, теоретиков и исполнителей: новые сочинения с партитурами и записями, исполнения, статьи и блоги.',
 })
 
-type Kind = 'all' | 'works' | 'sketches' | 'feedback' | 'performances' | 'articles' | 'blogs'
+type Kind = 'all' | 'works' | 'sketches' | 'feedback' | 'performances' | 'articles' | 'blogs' | 'chat'
 const FILTERS: { id: Kind; label: string; icon: string }[] = [
   { id: 'all', label: 'Всё', icon: '✦' },
   { id: 'works', label: 'Сочинения', icon: '♪' },
@@ -142,6 +168,7 @@ const FILTERS: { id: Kind; label: string; icon: string }[] = [
   { id: 'performances', label: 'Исполнения', icon: '♫' },
   { id: 'articles', label: 'Статьи и обзоры', icon: '§' },
   { id: 'blogs', label: 'Блоги', icon: '✎' },
+  { id: 'chat', label: 'Чат', icon: '❝' },
 ]
 const EMPTY: Record<Kind, string> = {
   all: 'В залах пока тихо',
@@ -151,11 +178,22 @@ const EMPTY: Record<Kind, string> = {
   performances: 'Исполнений пока нет',
   articles: 'Статей пока нет',
   blogs: 'Записей пока нет',
+  chat: '',
 }
 
 const api = useApi()
 const route = useRoute()
 const router = useRouter()
+const player = usePlayer()
+
+// Phones: the chat over the whole screen (the page behind it doesn't scroll meanwhile)
+const chatOpen = ref(false)
+watch(chatOpen, (open) => {
+  if (import.meta.client) document.documentElement.style.overflow = open ? 'hidden' : ''
+})
+onBeforeUnmount(() => {
+  if (import.meta.client) document.documentElement.style.overflow = ''
+})
 const { user, can } = useAuth()
 
 const creates = computed(() => {
@@ -176,7 +214,9 @@ const kind = ref<Kind>(valid(route.query.feed))
 interface FeedPage { items: FeedEntry[]; next_before: string | null }
 const { data, pending, refresh } = await useAsyncData(
   'feed',
-  () => api<FeedPage>('/api/feed', { params: { kind: kind.value, limit: 15 } }),
+  () => (kind.value === 'chat'
+    ? Promise.resolve<FeedPage>({ items: [], next_before: null }) // the chat loads its own messages
+    : api<FeedPage>('/api/feed', { params: { kind: kind.value, limit: 15 } })),
   { watch: [kind] },
 )
 

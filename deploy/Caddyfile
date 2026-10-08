@@ -1,0 +1,21 @@
+# The gateway in front of the container (see Dockerfile, start.sh): one public port, three programs behind it.
+#   /connection/…  → Centrifugo, the chat's WebSocket (127.0.0.1:8001)
+#   everything else → the site (Nuxt, 127.0.0.1:3001), which forwards /api to FastAPI itself
+# Caddy passes the visitor's headers on unchanged (CF-Connecting-IP, which the API's limits rely on, included).
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		# The container is reached only through the hosting's proxy: keep its X-Forwarded-* (https, the
+		# visitor's address) as they come, the way the site saw them before the gateway stood in front
+		trusted_proxies static 0.0.0.0/0 ::/0
+	}
+}
+
+:{$PORT:3000} {
+	@realtime path /connection/*
+	reverse_proxy @realtime 127.0.0.1:8001
+
+	reverse_proxy 127.0.0.1:3001
+}

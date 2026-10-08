@@ -1,0 +1,21 @@
+{
+  "http_server": {
+    "address": "127.0.0.1",
+    "port": 8001
+  },
+  "log": {
+    "level": "warn"
+  },
+  "client": {
+    "allowed_origins": []
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "chat",
+        "allow_subscribe_for_client": true,
+        "allow_subscribe_for_anonymous": true
+      }
+    ]
+  }
+}

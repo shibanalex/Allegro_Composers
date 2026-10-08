@@ -43,11 +43,13 @@ def things():
     performance = client.post("/api/performances", headers=player, json={
         "opus_id": opus["id"], "audio_type": "youtube", "audio_source": "https://youtu.be/dQw4w9WgXcQ",
     }).json()
+    message = client.post("/api/chat/messages", headers=owner, json={"text": "Моё сообщение в чате"}).json()
     owner_id = client.get("/api/auth/me", headers=owner).json()["id"]
     ids = {
         "slug": [opus["slug"], post["slug"], "about"], "collection_id": [collection["id"]], "material_id": [material["id"]],
         "comment_id": [comment["id"]], "feedback_id": [feedback["id"]], "performance_id": [performance["id"]],
         "user_id": [owner_id], "link_id": [owner_id], "kind": ["post"], "target_id": [post["id"]],
+        "message_id": [message["id"]],
     }
     return {"owner": owner, "opus": opus, "post": post, "collection": collection, "material": material,
             "comment": comment, "feedback": feedback, "performance": performance, "ids": ids}
@@ -107,6 +109,7 @@ def test_a_stranger_can_change_nothing_of_someone_elses(things):
     assert client.get("/api/materials", params={"author": "iso_owner"}).json()[0]["title"] == "Моя книга"
     assert client.get("/api/performances", params={"opus": things["opus"]["slug"]}).json()["total"] == 1
     assert client.get("/api/auth/me", headers=owner).json()["is_admin"] is False
+    assert "Моё сообщение в чате" in [m["text"] for m in client.get("/api/chat/messages", params={"limit": 100}).json()["items"]]
 
 
 def test_without_signing_in_nothing_changes(things):

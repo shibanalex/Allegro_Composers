@@ -1,5 +1,6 @@
 #!/bin/sh
-# Container entrypoint (see Dockerfile): update the database schema, start the API, then the site.
+# Container entrypoint (see Dockerfile): update the database schema, start the API, the chat's
+# WebSocket server and the site, then the gateway in front of them.
 set -e
 
 cd /app/backend
@@ -12,7 +13,19 @@ alembic upgrade head
 uvicorn allegro.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1 &
 API_PID=$!
 
-# If the API stops, stop the whole container so the hosting restarts it
-( while kill -0 "$API_PID" 2>/dev/null; do sleep 5; done; echo "API exited, stopping the container"; kill 1 ) &
+# The chat's WebSocket server (Centrifugo): its secrets are derived from SECRET_KEY by the API's own code,
+# so nothing new is configured. Only the API publishes; browsers listen. Restarted if it ever stops —
+# the site works without it, the chat is just not live meanwhile.
+eval "$(python -m allegro.core.realtime)"
+( while true; do centrifugo --config /app/deploy/centrifugo.json; echo "Centrifugo exited, restarting"; sleep 3; done ) &
 
-exec env HOST=0.0.0.0 NITRO_PORT="$PORT" NUXT_API_INTERNAL=http://127.0.0.1:8000 node /app/web/server/index.mjs
+# The site (Nuxt) behind the gateway
+env HOST=127.0.0.1 NITRO_PORT=3001 NUXT_API_INTERNAL=http://127.0.0.1:8000 node /app/web/server/index.mjs &
+WEB_PID=$!
+
+# If the API or the site stops, stop the whole container so the hosting restarts it
+( while kill -0 "$API_PID" 2>/dev/null && kill -0 "$WEB_PID" 2>/dev/null; do sleep 5; done
+  echo "API or site exited, stopping the container"; kill 1 ) &
+
+# The gateway on the public port: /connection → Centrifugo, everything else → the site
+exec caddy run --config /app/deploy/Caddyfile --adapter caddyfile

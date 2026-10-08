@@ -21,7 +21,7 @@ services:
       S3_ACCESS_KEY_ID: allegro-minio
       S3_SECRET_ACCESS_KEY: allegro-minio-secret
       MEDIA_URL_PREFIX: http://localhost:9000/allegro
-      REGISTRATION_MODE: ${REGISTRATION_MODE:-invite}
+      PUBLIC_URL: http://localhost:3000  # the chat's WebSocket accepts pages of this address
       SETUP_TOKEN: ${SETUP_TOKEN:-local-setup-code-please-change}
     depends_on:
       postgres:
