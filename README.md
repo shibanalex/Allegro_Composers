@@ -1,35 +1,22 @@
-# Allegro
+# Allegro — Classical Music Collaboration & Interactive Score Platform
 
-Сообщество композиторов, теоретиков, исполнителей и слушателей.
+**Allegro** is a full-stack community platform for classical composers, music theorists, performers, and listeners. Built as a modular monolith in **FastAPI** (`backend/allegro`) + **Nuxt 3 / Vue 3** (`frontend`), backed by **PostgreSQL**, **S3-compatible object storage**, and real-time **Centrifugo** WebSockets.
 
-- **Композиторы** выставляют сочинения: партитуры (PDF и интерактивный MusicXML с курсором),
-  записи, синхронизация страниц и тактов с записью; «Выставка» избранного и «Библиотека» с фильтрами.
-- **Теоретики** пишут статьи и обзоры, **исполнители** делятся исполнениями, **все** ведут блоги
-  (как канал в Telegram), комментируют с таймкодами и собирают материалы.
-- У каждого — свой **зал** (`/@имя`) в стиле одной из эпох: барокко и классицизм, романтизм,
-  модерн, авангард.
-- Регистрация открыта всем; почта необязательна и хранится зашифрованной.
+## Key Capabilities
 
-Сайт: https://allegro-9dz4.onrender.com
+- **Interactive Score & Audio Sync:** Upload PDF and interactive **MusicXML** scores with live playback cursor synchronization across measures and pages, waveform audio player (`ffmpeg` server-side generation), and timestamped measure/timecode discussions.
+- **Composer Halls (`/@handle`):** Personal customizable halls styled after classical eras (*Baroque & Classicism*, *Romanticism*, *Modernism*, *Avant-garde*), featuring curated exhibitions, full opus libraries, and composer blogs.
+- **Real-Time Community:** Live WebSocket community chat (`Centrifugo`), performer recordings linked to scores, and encrypted optional email storage.
 
-## Устройство
+## Architecture & Documentation
 
-Модульный монолит на FastAPI (`backend/allegro`) + Nuxt 3 (`frontend`), PostgreSQL, S3-хранилище;
-в продакшене — один контейнер на Render.
-
-| Документ | О чём |
+| Document | Scope |
 |---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | модули, границы, слои, роли, решения |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | запуск локально, тесты, скрипты |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Render, Neon, Yandex Object Storage, домен |
-| [docs/SECURITY.md](docs/SECURITY.md) | что защищено и как |
-| [docs/SCALING.md](docs/SCALING.md) | производительность; когда нужны Redis, очереди, WebSocket |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modular boundaries (`accounts`, `catalog`, `publications`, `discussion`, `feed`, `media`, `site`), layers & design decisions |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local setup, Alembic migrations, pytest suite, utility scripts |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Docker, PostgreSQL, S3 object storage, reverse-proxy setup |
+| [docs/SECURITY.md](docs/SECURITY.md) | JWT/HMAC derivation, encrypted PII, rate limiting, strict `ffmpeg` & upload validation |
 
-## Быстрый старт
+## Tech Stack
 
-```bash
-cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
-cp .env.example .env   # впишите SECRET_KEY
-.venv/Scripts/python -m alembic upgrade head && .venv/Scripts/python -m allegro
-cd ../frontend && npm ci && npx nuxi dev --port 3000
-```
+`Python` · `FastAPI` · `SQLAlchemy 2.0` · `Alembic` · `PostgreSQL` · `Nuxt 3` · `Vue 3` · `TypeScript` · `Tailwind CSS` · `Centrifugo WebSockets` · `S3` · `Docker` · `pytest`
