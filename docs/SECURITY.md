@@ -1,91 +1,41 @@
-# Безопасность
+# Security
 
-Что защищено, как это проверяется и что остаётся на будущее.
+## Authentication and Sessions
 
-## Вход и аккаунты
-- Пароли — scrypt с солью, сравнение за постоянное время.
-- Вход: не больше 10 неверных паролей за 15 минут на пару «логин + адрес»; время ответа одинаковое
-  для существующих и несуществующих логинов.
-- JWT подписан `SECRET_KEY`; приложение не стартует со стандартным или коротким (< 32 символов) ключом.
-- Регистрация открыта всем, но с одного адреса — не больше `SIGNUPS_PER_HOUR` аккаунтов в час.
-- Ссылки для сброса пароля одноразовые, с ограниченным сроком, новая отменяет прежние; в базе хранятся
-  только их хеши; подбор ссылок ограничен по частоте.
-- Почта необязательна и хранится зашифрованной; телефон не собирается.
-- Аккаунт в «тени» не может войти даже со старым токеном.
-- Смена или сброс пароля и кнопка «Выйти на всех устройствах» (в «Оформить зал») делают
-  недействительными все выданные раньше токены (`users.session_version`).
-- Приглашение погашается атомарно: одна ссылка — ровно один новый участник, даже при одновременных запросах.
-- **Токен входа — только в HttpOnly-cookie** (`allegro_token`, `SameSite=Lax`, на HTTPS — `Secure`,
-  живёт 14 дней). Её ставит сервер; скрипты страницы её не видят, в ответах API токена нет — даже
-  внедрённый код не может его украсть. Рядом — несекретная метка `allegro_session=1`, по которой
-  страница понимает, что вход есть. Выход — `POST /api/auth/logout`.
-- **CSRF:** запрос, который что-то меняет, с cookie входа принимается только со страниц самого сайта:
-  браузер сообщает это заголовком `Sec-Fetch-Site`, старые браузеры — `Origin` (сверяется с
-  `SITE_URL` / `RENDER_EXTERNAL_URL`). Чужой сайт получает `403`. Заголовок `Authorization`
-  (серверная отрисовка, API-клиенты) подделать со страницы нельзя, он проверки не требует.
-- Лимиты попыток считают адрес посетителя из `CF-Connecting-IP` (Cloudflare перед Render
-  перезаписывает его сам), а не адрес промежуточного прокси.
+- Passwords hash with salted `scrypt` and verify in constant time.
+- Login throttling caps failed attempts (`10` per `15m` per handle + IP) with
+  uniform response timing for valid and unknown accounts.
+- `SECRET_KEY` must be at least 32 non-default characters at startup.
+- Session tokens live exclusively in `HttpOnly`, `SameSite=Lax` cookies
+  (`allegro_token`, `Secure` on HTTPS) alongside a non-secret `allegro_session=1`
+  presence cookie.
+- Password changes and "sign out everywhere" bump `users.session_version`,
+  invalidating previously issued tokens.
+- State-changing cookie requests validate `Sec-Fetch-Site` (with `Origin`
+  comparison against `SITE_URL` / `RENDER_EXTERNAL_URL` for older browsers).
+- Optional email addresses are stored encrypted via derived keys; one-time
+  password reset tokens are stored only as hashes.
 
-## Данные и права
-- Все запросы к базе — через ORM с параметрами; «сырого» SQL в модулях нет.
-- Права проверяются на сервере: роль (`require(Capability)`), владелец объекта, администратор.
-- Прикрепить к сочинению, посту, материалу или аватару можно только **свои** загрузки
-  (нельзя скачать чужую платную партитуру через своё сочинение или удалить чужой файл).
-- Файлы удаляются только после успешного сохранения изменений.
+## Uploads and Parsing
 
-## Загрузки и «бомбы»
-- Тип файла — по расширению и содержимому (PDF начинается с `%PDF-`, MusicXML проверяется).
-  Вложения — по **списку разрешённого** (ноты, MIDI, тексты, таблицы, книги, архивы, картинки, аудио):
-  программы, страницы, скрипты, SVG не проходят. Вложения скачиваются, а не открываются в браузере
-  (`Content-Disposition: attachment`; картинки, аудио и PDF показываются как есть).
-- Размер — до `MAX_UPLOAD_MB` (200 МБ) на файл, не больше 10 файлов за раз; загрузка пишется во
-  временный файл, а не в память.
-- **Суточный лимит на участника** — `UPLOAD_DAILY_MB` (1 ГБ; у администраторов без лимита): каждая
-  загрузка учитывается в таблице `uploads`; файл, который не помещается, отклоняется и не остаётся в
-  хранилище. Так один аккаунт не может переполнить платное хранилище.
-- Сжатый MusicXML (.mxl, ZIP) распаковывается не больше чем на 64 МБ — защита от zip-бомб.
-- XML разбирается без внешних сущностей; «billion laughs» отсекает сам парсер (expat ≥ 2.4).
-- Картинки декодируются (для превью и квадратных обложек): файл, который только притворяется
-  картинкой, отклоняется; картинки больше 30 МБ или 40 мегапикселей («бомбы-картинки») отклоняются
-  до декодирования по заголовку; обработка идёт в пуле потоков и не останавливает сервер.
-- Длина всех текстовых полей и списков ограничена в схемах.
-- В продакшене файлы раздаются из хранилища (другой домен), поэтому даже вредный файл не может
-  выполнить скрипт на сайте; локально `/media` отдаётся с `Content-Security-Policy: sandbox`.
+- All database access uses parameterized SQLAlchemy ORM queries; authorization is
+  checked server-side via `require(Capability)` and object ownership.
+- Upload types are verified by extension and magic bytes (`%PDF-`, XML checks,
+  image header inspection before decoding). HTML, scripts, and SVG uploads are
+  rejected.
+- Compressed MusicXML (`.mxl`) enforces a `64 MB` decompression cap against zip
+  bombs; XML parsing disables external entities (`expat >= 2.4` mitigates entity
+  expansion).
+- Images exceeding `30 MB` or `40 MP` are rejected from header dimensions before
+  pixel decoding; thumbnail generation runs off the event loop in a worker pool.
+- Every upload is tracked in `uploads` against `UPLOAD_DAILY_MB` per member;
+  orphan local `/media` serves with `Content-Security-Policy: sandbox`.
 
-## Браузер
-- Markdown рендерится без HTML, ссылки — только http(s)/mailto/свои пути; `javascript:` не проходит.
-- Названия и имена в разметке для поисковиков (JSON-LD) экранируются: `</script>` в названии остаётся
-  текстом (`utils/jsonld.ts`; до сентября 2026 экранирование не срабатывало — исправлено и проверено).
-- Заголовки: `X-Frame-Options: DENY` (кроме Яндекс Метрики — `frame-ancestors`),
-  `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security` (только HTTPS, год),
-  `Permissions-Policy` (микрофон — только сам сайт, для эскизов; камера, геолокация, платежи — нет).
-- Переадресация после входа — только на пути внутри сайта.
+## Client and Rate Limits
 
-## Флуд и DDoS
-- **На уровне приложения:** не больше 120 изменяющих запросов (создать, изменить, удалить,
-  загрузить) и 60 поисков в минуту с одного адреса (`WRITE_/SEARCH_REQUESTS_PER_MINUTE`), плюс
-  отдельные лимиты на вход, ссылки и предложения. Ответ — `429` с `Retry-After`.
-- **На уровне сети:** Render стоит за Cloudflare, объёмные сетевые атаки гасятся там, до сайта
-  они не доходят. Защиту от атак «на уровне запросов» к своему домену можно усилить, подключив
-  домен через бесплатный Cloudflare (правила частоты, режим «Under attack»).
-- **Хранилище:** трафик сверх бесплатного объёма Яндекс оплачивается — включите бюджет с
-  уведомлением в биллинге. CORS бакета после покупки домена лучше сузить до своего адреса.
-
-## Проверки
-- `backend/tests` — права, владение файлами, регистрация, шифрование почты, лимиты, миграции.
-- Зависимости: `npm audit`, `pip-audit`.
-
-## Проверено (сентябрь 2026) и не требует мер
-- SQL-инъекции: только ORM с параметрами. SSRF: сервер сам никуда не ходит по адресам пользователей.
-  RCE и шаблонные инъекции: нет `exec`/`eval`, пользовательский текст не компилируется как шаблон.
-  Чтение чужих файлов: ключи хранилища проверяются (`..`, абсолютные пути). Десериализация: только JSON,
-  JWT — один разрешённый алгоритм. IDOR: права и владелец проверяются на сервере в каждом изменении.
-
-## На будущее
-- Режим «только просмотр» у партитуры сейчас условный: бакет публичный, и ссылка на PDF открывается
-  напрямую. Настоящая защита — закрытый бакет и временные подписанные ссылки.
-- Полноценная Content-Security-Policy для скриптов (сейчас ограничено только встраивание).
-- Удаление загрузок, которые так и не прикрепили (брошенные формы), — периодическая уборка.
-- Режимы партитуры «только просмотр» и «платно» не защищают сам PDF — для платных нужны
-  подписанные ссылки на время.
-- Резервные копии базы: у бесплатного Neon короткая история изменений; делать выгрузку регулярно.
+- Markdown renders without raw HTML and allows only `http(s)`, `mailto`, and
+  relative internal paths. JSON-LD embeds escape closing `</script>` tags.
+- Security headers set `X-Frame-Options: DENY`, `X-Content-Type-Options:
+  nosniff`, `Strict-Transport-Security`, and strict `Permissions-Policy`.
+- Write endpoints and search endpoints apply sliding-window rate limits per
+  client IP (`CF-Connecting-IP` aware), returning `429` with `Retry-After`.

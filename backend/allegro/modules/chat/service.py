@@ -2,7 +2,7 @@
 
 A message is saved first and published to the live channel after the commit (core.realtime): the database
 is the history, Centrifugo only delivers. Mentions (@address) go through the outbox like every other event
-(core.events «mentioned»), so the notifications module tells the mentioned members — the chat knows nothing
+(core.events «mentioned»), so the notifications module tells the mentioned members; the chat knows nothing
 about the bell. Deleting a message also deletes the notifications about it («removed»).
 """
 import re

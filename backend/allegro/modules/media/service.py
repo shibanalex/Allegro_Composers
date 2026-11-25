@@ -28,7 +28,7 @@ ALLOWED = {
     "image": {".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif"},
 }
 ALLOWED["cover"] = ALLOWED["image"]
-# Attachments: what musicians share — notation files, MIDI, texts, tables, books, archives, pictures, audio.
+# Attachments: what musicians share; notation files, MIDI, texts, tables, books, archives, pictures, audio.
 # A list of what is allowed, not of what is forbidden: no programs, pages or scripts can slip in.
 ATTACHMENTS = {
     ".pdf", ".mid", ".midi", ".kar", ".musicxml", ".xml", ".mxl", ".mscz", ".mscx", ".sib", ".mus", ".musx",

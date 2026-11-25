@@ -73,7 +73,7 @@ def member_ids_except(user_id: uuid.UUID):
 
 
 def ids_by_usernames(db: Session, usernames: list[str]) -> dict[str, uuid.UUID]:
-    """Members (not in the shadow) by their hall addresses — for @mentions"""
+    """Members (not in the shadow) by their hall addresses: for @mentions"""
     if not usernames:
         return {}
     rows = db.execute(select(User.username, User.id).where(User.username.in_(usernames), User.is_hidden.is_(False)))
@@ -85,7 +85,7 @@ def user_by_id(db: Session, user_id: uuid.UUID) -> Optional[User]:
 
 
 def get_active_user(db: Session, user_id: uuid.UUID, session_version: int = 0) -> Optional[User]:
-    """The account behind a login token — unless it was put in the shadow or its sessions were revoked since"""
+    """The account behind a login token: unless it was put in the shadow or its sessions were revoked since"""
     user = repo.by_id(db, user_id)
     if not user or user.is_hidden or user.session_version != session_version:
         return None

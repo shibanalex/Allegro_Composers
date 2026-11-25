@@ -3,17 +3,17 @@
 Every action that changes something is a *capability*. A member's capabilities are the union of:
 
 - what every member may do (comment, like, keep a blog, share materials);
-- what their musical role adds — the role is the member's own choice, at registration or later:
+- what their musical role adds; the role is the member's own choice, at registration or later:
 
-      composer   — works (opuses), sketches, articles
-      theorist   — articles and reviews (musicologists)
-      performer  — performances
-      listener   — nothing more: listens, reads, discusses
+      composer  ; works (opuses), sketches, articles
+      theorist  ; articles and reviews (musicologists)
+      performer ; performances
+      listener  ; nothing more: listens, reads, discusses
 
-- what their staff level adds — given by an administrator:
+- what their staff level adds; given by an administrator:
 
-      moderator      — removes other people's comments and posts
-      administrator  — also news, invitations, the site's pages, feedback answers, members' rights
+      moderator     ; removes other people's comments and posts
+      administrator ; also news, invitations, the site's pages, feedback answers, members' rights
 
 The table lives in code, not in the database: it changes with the features themselves, is checked by
 the tests and costs nothing at run time. The API checks it with `require(Capability.X)` (accounts.deps)

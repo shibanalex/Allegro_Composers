@@ -46,7 +46,7 @@ def _token_from_request(request: Request) -> Optional[str]:
 
 def set_login_cookie(request: Request, response: Response, token: str) -> None:
     secure = settings.cookie_secure
-    if secure is None:  # on Render the site's own address is https; elsewhere — what the proxy says
+    if secure is None:  # on Render the site's own address is https; elsewhere; what the proxy says
         secure = settings.render_external_url.startswith("https://") or             request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     age = settings.access_token_expire_minutes * 60
     response.set_cookie(TOKEN_COOKIE, token, max_age=age, httponly=True, secure=secure, samesite="lax", path="/")

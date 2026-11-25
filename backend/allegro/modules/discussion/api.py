@@ -53,7 +53,7 @@ def unlike(kind: ReactionKind, target_id: uuid.UUID, user=Depends(get_current_us
 
 @router.get("/api/reactions/{kind}", response_model=dict[uuid.UUID, ReactionsOut])
 def reactions(kind: ReactionKind, ids: str, user=Depends(get_optional_user), db: Session = Depends(get_db)):
-    """Likes of several things at once (?ids=a,b,c) — for pages that aren't the feed"""
+    """Likes of several things at once (?ids=a,b,c): for pages that aren't the feed"""
     try:
         wanted = [uuid.UUID(i) for i in ids.split(",") if i][:100]
     except ValueError:

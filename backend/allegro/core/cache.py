@@ -2,7 +2,7 @@
 
 Used for what many pages read and few requests change (the last comments under each post of the feed).
 Values are JSON. The cache is only a shortcut: every value can be rebuilt from the database, so a Redis
-that is down or wiped costs a few queries, never data — errors are logged and the caller falls back.
+that is down or wiped costs a few queries, never data; errors are logged and the caller falls back.
 """
 import json
 import logging

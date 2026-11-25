@@ -3,7 +3,7 @@
 The module doesn't know what an opus or a post is. The modules that own them register a *target
 resolver* at start-up (see allegro.main): given an id and the reader, it says whether the thing exists
 and is visible, who owns it and whether it has a recording that timecodes could refer to. So the
-dependency points one way — catalog and publications use discussion, never the other way round.
+dependency points one way; catalog and publications use discussion, never the other way round.
 
 The same registry serves «нравится» (reactions): works, performances and posts.
 

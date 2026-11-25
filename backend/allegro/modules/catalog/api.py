@@ -127,7 +127,7 @@ def delete_collection(collection_id: uuid.UUID, user=Depends(get_current_user), 
 
 @router.get("/api/library/facets", response_model=Facets)
 def library_facets(author: Optional[str] = None, db: Session = Depends(get_db)):
-    """Filter values for the library — all works, or one composer's — with the number of works for each"""
+    """Filter values for the library: all works, or one composer's; with the number of works for each"""
     return service.facets(db, author)
 
 

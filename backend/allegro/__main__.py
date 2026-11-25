@@ -1,4 +1,4 @@
-"""`python -m allegro` — the API on this computer (`--reload`: restart on every saved change).
+"""`python -m allegro`: the API on this computer (`--reload`: restart on every saved change).
 
 The application itself is `allegro.main:app`; in production the server is started by
 `uvicorn allegro.main:app` (see start.sh), not through this file.

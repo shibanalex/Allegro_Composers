@@ -24,4 +24,4 @@ class FeedItem(BaseModel):
 
 class FeedPage(BaseModel):
     items: list[FeedItem]
-    next_before: Optional[str] = None  # pass as `before` for the next page; None — the end
+    next_before: Optional[str] = None  # pass as `before` for the next page; None; the end

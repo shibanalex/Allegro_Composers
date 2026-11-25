@@ -1,5 +1,5 @@
 <template>
-  <!-- One entry of the main feed: who published it, when, from which hall — then the thing itself.
+  <!-- Feed entry: author, timestamp, source hall, and body content.
        The whole card opens the post or work; links, buttons and players inside keep their own clicks. -->
   <article ref="root" class="card !p-0" :class="{ 'feed-entry': !detail }" @click="openEntry">
     <header class="flex items-center gap-4 px-5 pt-5 sm:px-8 sm:pt-7">
@@ -159,7 +159,7 @@
 import { usePlayer } from '~/stores/player'
 import type { Attachment, FeedEntry } from '~/utils/types'
 
-/** detail: the post on its own page — nothing folded, the discussion open, the card doesn't lead anywhere */
+/** detail: standalone post view with expanded discussion and no card link */
 const props = defineProps<{ item: FeedEntry; detail?: boolean }>()
 const emit = defineEmits<{ removed: [] }>()
 const { user, can } = useAuth()
@@ -248,7 +248,7 @@ function discuss() {
   field?.focus({ preventScroll: true })
 }
 
-// A post can be quoted, a work shared — both become a blog post of one's own
+// Quoted posts and shared works become standalone blog posts
 const shareable = computed(() => !!(props.item.opus || (props.item.post && props.item.post.status === 'published')))
 const sharing = ref(false)
 

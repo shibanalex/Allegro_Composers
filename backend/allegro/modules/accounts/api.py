@@ -1,4 +1,4 @@
-"""HTTP layer of the accounts module: parse, call a use case, shape the answer — no business rules here"""
+"""HTTP layer of the accounts module: parse, call a use case, shape the answer: no business rules here"""
 import uuid
 from typing import Optional
 

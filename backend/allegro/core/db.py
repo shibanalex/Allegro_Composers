@@ -1,8 +1,8 @@
 """Database engine, the declarative base and the request session.
 
 Transactions: a use case (a module's service function) makes its changes and calls `db.commit()`
-once at the end. Side effects that must only happen if the data really was saved — deleting a replaced
-file from storage, for example — are registered with `after_commit(db, fn)`: they run right after a
+once at the end. Side effects that must only happen if the data really was saved; deleting a replaced
+file from storage, for example; are registered with `after_commit(db, fn)`: they run right after a
 successful commit and are dropped on rollback, so a failed save never loses a file the database still
 points to.
 """

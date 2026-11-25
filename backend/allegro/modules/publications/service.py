@@ -202,7 +202,7 @@ def read_post(db: Session, slug: str, user) -> Post:
 
 
 def count_view(post_id: uuid.UUID) -> None:
-    """One more view — after the answer has gone (a background task): the reader never waits for it"""
+    """One more view: after the answer has gone (a background task): the reader never waits for it"""
     from allegro.core.db import SessionLocal
 
     with SessionLocal() as db:

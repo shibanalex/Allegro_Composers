@@ -13,7 +13,7 @@ def utcnow() -> datetime:
 
 
 class Upload(Base):
-    """Every stored upload: who, how big, when — for the daily limit of each member (storage is paid for)"""
+    """Every stored upload: who, how big, when: for the daily limit of each member (storage is paid for)"""
     __tablename__ = "uploads"
 
     key: Mapped[str] = mapped_column(String(512), primary_key=True)

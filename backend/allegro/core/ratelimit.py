@@ -1,7 +1,7 @@
 """Limits on repeated attempts (password guessing, invitation guessing, message floods).
 
 In memory of this process: enough for one application instance. Several instances would need a shared
-store (Redis) — the interface stays the same.
+store (Redis); the interface stays the same.
 """
 import threading
 import time
@@ -11,7 +11,7 @@ from allegro.core.errors import TooManyAttempts
 
 def client_ip(request) -> str:
     """The visitor's address for the limits. On Render every request comes through Cloudflare, which puts the
-    real address into CF-Connecting-IP (and replaces any such header a visitor sends); without it — the
+    real address into CF-Connecting-IP (and replaces any such header a visitor sends); without it; the
     address uvicorn took from the proxy headers of the site's own server."""
     return request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "")
 

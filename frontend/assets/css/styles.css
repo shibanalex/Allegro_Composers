@@ -212,7 +212,7 @@
 }
 
 /* ======================================================================
-   Page turning — tabs and score pages flip like the leaves of a book
+   Page turning: tabs and score pages flip like the leaves of a book
    Kept outside @layer: Tailwind would purge the runtime-built
    Vue transition classes (turn-next-leave-to, …) as unused.
    ====================================================================== */
@@ -503,7 +503,7 @@
 
 /* ======================================================================
    Eras of a hall (Оформить зал → Стиль). The hall page puts data-hall-theme on <html>, so the whole page
-   follows — header, footer and the canvas included; the samples in the style picker carry it themselves.
+   follows: header, footer and canvas included.
    Each era redefines the palette and every face; a few shapes differ on top.
    ====================================================================== */
 [data-hall-theme] { font-family: var(--font-serif); }
@@ -542,7 +542,7 @@
 [data-hall-theme="baroque"] :is(.frame, .portrait) { padding: 7px; box-shadow: 0 30px 60px -25px #000, 0 0 0 1px rgb(var(--c-gold-deep)), 0 0 0 4px rgb(var(--c-ink-900)), 0 0 0 5px rgb(var(--c-gold-dark)); }
 [data-hall-theme="baroque"] .btn-primary { letter-spacing: 0.24em; }
 
-/* Романтизм — значения по умолчанию (:root) */
+/* Romantic theme: default variables (:root) */
 
 /* Модерн: зелень, медь и латунь; Kurale с росчерками начала века и Philosopher для текста; плавные линии */
 [data-hall-theme="modern"] {
@@ -580,7 +580,7 @@
 [data-hall-theme="modern"] :is(.frame, .frame-inner, .card, .folder-body, .folder-sheet, .field, .chip, .btn) { border-radius: 1rem; }
 [data-hall-theme="modern"] .folder-tab { border-radius: 1.4rem 1.4rem 0 0; }
 
-/* Авангард: чёрный, красный, белый — плакат 1920-х; узкий гротеск Oswald и геометрический Jost (как Futura) */
+/* Avant-garde: black, red, white (1920s poster), condensed Oswald and geometric Jost */
 [data-hall-theme="avantgarde"] {
   --c-ink-950: 8 8 8;
   --c-ink-900: 14 14 14;

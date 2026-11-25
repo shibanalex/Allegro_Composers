@@ -35,11 +35,11 @@ class Notification(Base):
 
 
 class NotificationSettings(Base):
-    """What a member wants to hear about and how; no row — the defaults"""
+    """What a member wants to hear about and how; no row: the defaults"""
     __tablename__ = "notification_settings"
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    kinds: Mapped[list] = mapped_column(JSON, default=list)  # kinds of publications; empty — all of them
+    kinds: Mapped[list] = mapped_column(JSON, default=list)  # kinds of publications; empty; all of them
     push: Mapped[bool] = mapped_column(Boolean, default=True)
     email: Mapped[str] = mapped_column(String(10), default="off")  # off | daily | weekly
     last_digest_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

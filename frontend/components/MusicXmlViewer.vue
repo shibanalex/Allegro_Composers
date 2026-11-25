@@ -1,7 +1,7 @@
 <template>
   <!-- MusicXML / MXL rendered by OpenSheetMusicDisplay; a golden runner moves along the notes with the recording.
        «Страницами»: exactly one page on screen, as in the printed edition (page breaks written into the file by
-       MuseScore, Sibelius, Dorico…; otherwise screen-sized pages) — the leaf turns when the music reaches its end.
+       MuseScore, Sibelius, Dorico...; otherwise screen-sized pages); the leaf turns at page end.
        «Лентой»: the whole score as one scrolling strip. -->
   <div>
     <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">

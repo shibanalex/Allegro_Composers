@@ -31,7 +31,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), default="listener", server_default="listener", index=True)  # roles.Role
     hall_theme: Mapped[str] = mapped_column(String(20), default="romantic", server_default="romantic")  # roles.HALL_THEMES
     # The hall's own look beyond its style: banner, epigraph, accent colour, order of tabs, pinned post
-    # (schemas.HallSettings; one JSON field, read together with the profile — no extra queries)
+    # (schemas.HallSettings; one JSON field, read together with the profile; no extra queries)
     hall: Mapped[dict] = mapped_column(JSON, default=dict)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     is_moderator: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")

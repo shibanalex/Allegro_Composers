@@ -116,7 +116,7 @@ class CollectionItem(Base):
 
 
 class Performance(Base):
-    """A recording of a piece by a member: one of the site's works (opus_id) or any other («Шопен — Баллада №1»)"""
+    """A recording of a piece by a member: one of the site's works (opus_id) or any other («Шопен: Баллада №1»)"""
     __tablename__ = "performances"
     __table_args__ = (Index("ix_performances_performer_created", "performer_id", "created_at"),)
 

@@ -2,7 +2,7 @@
 
 The API stays the only writer: a message is saved in the database first, then published to a channel
 through Centrifugo's HTTP API; browsers only listen (subscribe), they never publish themselves. So
-Centrifugo holds nothing that matters — if it is down, nothing is lost, the page just isn't live.
+Centrifugo holds nothing that matters; if it is down, nothing is lost, the page just isn't live.
 
 - a browser connects with a token from the API (a JWT signed with CLIENT_SECRET): a member's carries
   their id, a guest's an empty subject (an anonymous listener);

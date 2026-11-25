@@ -1,5 +1,5 @@
 <template>
-  <!-- «Блог»: like a Telegram channel — short posts with photos, audio and files, newest first -->
+  <!-- Blog feed: reverse-chronological posts with photos, audio, and file attachments -->
   <div class="mx-auto max-w-2xl">
     <!-- Composer (owner only) -->
     <form v-if="isOwner" class="card mb-12 space-y-4" @submit.prevent="publish">

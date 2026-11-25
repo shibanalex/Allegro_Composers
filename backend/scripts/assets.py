@@ -1,6 +1,6 @@
 """Generators for demo media: painterly SVG artwork, engraved-looking PDF scores, synthesized recordings and MusicXML.
 
-Only used by scripts/seed.py — lets the design be tested with real page turns and timecodes.
+Only used by scripts/seed.py; lets the design be tested with real page turns and timecodes.
 """
 import io
 import math

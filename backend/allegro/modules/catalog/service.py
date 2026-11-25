@@ -537,7 +537,7 @@ def recent_performances(db: Session, before, limit: int) -> list[Performance]:
 
 
 def search_opuses(db: Session, words: list[str], limit: int) -> list[Opus]:
-    """Every word must be found: in the title, subtitle, key, instruments, explication — or be the genre
+    """Every word must be found: in the title, subtitle, key, instruments, explication: or be the genre
     («квартет» finds the quartets, «соната» the sonatas for an instrument and piano)"""
     columns = [Opus.title, Opus.subtitle, Opus.key_signature, cast(Opus.instruments, String), Opus.description_md]
     conditions = []

@@ -1,5 +1,5 @@
 // Allegro's service worker: shows push notifications (even when the site is closed) and opens the page
-// a notification is about. It does nothing else — no caching, no offline mode.
+// a notification is about. It does nothing else: no caching, no offline mode.
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))

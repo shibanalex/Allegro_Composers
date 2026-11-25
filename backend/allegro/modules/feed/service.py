@@ -1,6 +1,6 @@
 """The main page's feed: what appears in the members' halls, newest first.
 
-A read-only composition of the other modules — this module stores nothing. Every source returns at most
+A read-only composition of the other modules; this module stores nothing. Every source returns at most
 `limit` entries older than the cursor, the entries are merged by time and cut to `limit`: a page costs
 a few indexed queries whatever the size of the site. (Later: a recommendation order instead of time.)
 """

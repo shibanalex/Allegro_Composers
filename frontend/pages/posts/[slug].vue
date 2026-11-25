@@ -1,5 +1,5 @@
 <template>
-  <!-- A post on its own page: the same card as in the feed, opened — author on top, the post, actions under
+  <!-- A post on its own page: the same card as in the feed, opened: author on top, post body, actions below
        it, the discussion below; one column of one width, like a post in any social network -->
   <div v-if="post" class="mx-auto w-full max-w-2xl pb-16 pt-6 sm:pt-10">
     <NuxtLink

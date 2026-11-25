@@ -2,7 +2,7 @@
 
 Takes a Telegram Desktop export in HTML format (messages.html + photos/, files/, video_files/ …).
 Works with an export of the channel itself or of its linked discussion chat: only the channel's own
-posts are imported — replies in the chat and other people's comments are skipped.
+posts are imported; replies in the chat and other people's comments are skipped.
 
     python -m scripts.import_telegram "../Moments Musicaux" --user allegro_cantabile --dry-run
     python -m scripts.import_telegram "../Moments Musicaux" --user allegro_cantabile --skip 173

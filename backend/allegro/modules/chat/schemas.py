@@ -35,7 +35,7 @@ class MessageOut(ORMModel):
 
 class MessagePage(BaseModel):
     items: list[MessageOut]  # oldest first, as a chat reads
-    next_before: Optional[str] = None  # the id to ask for older ones with; none — this is the beginning
+    next_before: Optional[str] = None  # the id to ask for older ones with; none; this is the beginning
 
 
 class ConnectionOut(BaseModel):

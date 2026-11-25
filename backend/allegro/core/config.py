@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     media_dir: str = "media"
     media_url_prefix: str = "/media"
     max_upload_mb: int = 200
-    # How much one member may upload in 24 hours (administrators: no limit) — the storage is paid for
+    # How much one member may upload in 24 hours (administrators: no limit); the storage is paid for
     upload_daily_mb: int = 1024
 
     # Notifications: the worker that handles the outbox runs inside the API process (off in tests)
@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     # The login cookie is sent over HTTPS only. None: decided per request (the proxy's X-Forwarded-Proto)
     cookie_secure: Optional[bool] = None
     # The site's public addresses, for the CSRF check of browsers that send Origin but not Sec-Fetch-Site
-    # (Render sets RENDER_EXTERNAL_URL by itself; SITE_URL — one's own domain)
+    # (Render sets RENDER_EXTERNAL_URL by itself; SITE_URL; one's own domain)
     site_url: str = ""
     render_external_url: str = ""
 

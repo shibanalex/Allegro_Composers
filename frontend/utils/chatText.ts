@@ -1,6 +1,6 @@
 /**
  * A chat message as safe HTML: the text is escaped, links become links, @address leads to that hall,
- * line breaks stay. No markdown — a chat is spoken, not typeset.
+ * line breaks stay. No markdown: chat messages are plain text.
  */
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')

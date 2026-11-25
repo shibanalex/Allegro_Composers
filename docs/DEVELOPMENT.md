@@ -1,84 +1,62 @@
-# Разработка
+# Development
 
-## Запуск локально
+## Local Setup
 
-Бэкенд (Python 3.12+):
+Backend (uses SQLite at `backend/allegro_platform.db` and `backend/media/`):
 
 ```bash
 cd backend
-python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # Linux/macOS: .venv/bin/python
-cp .env.example .env        # и впишите SECRET_KEY: python -c "import secrets; print(secrets.token_urlsafe(48))"
-.venv/Scripts/python -m alembic upgrade head
-.venv/Scripts/python -m allegro          # the same as: python -m uvicorn allegro.main:app --port 8000 (add --reload to restart on saves)
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+cp .env.example .env
+# Generate SECRET_KEY (>= 32 chars):
+# python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+.venv/bin/python -m alembic upgrade head
+.venv/bin/python -m allegro --reload
 ```
 
-Локально база — `backend/allegro_platform.db` (SQLite), файлы — `backend/media/`.
-
-Фронтенд (Node 24):
+Frontend (Node 24+, proxies `/api` and `/media` to `:8000`):
 
 ```bash
 cd frontend
 npm ci
-npx nuxi dev --port 3000     # http://localhost:3000, /api и /media проксируются на :8000
+npx nuxi dev --port 3000
 ```
 
-Чат в реальном времени — Centrifugo ([релизы](https://github.com/centrifugal/centrifugo/releases),
-файл `centrifugo` под свою систему). Без него чат тоже работает, только новые сообщения
-подгружаются раз в 10 секунд. Запуск из `backend` (секреты те же, что у API, — из `SECRET_KEY`):
-
-```bash
-eval "$(.venv/Scripts/python -m allegro.core.realtime)"
-CENTRIFUGO_CLIENT_ALLOWED_ORIGINS=http://localhost:3000 centrifugo --config ../deploy/centrifugo.json   # :8001
-```
-
-В разработке браузер подключается к нему напрямую на `:8001`; на сайте — через шлюз (`deploy/Caddyfile`).
-
-Первый аккаунт: задайте `SETUP_TOKEN` в `backend/.env` и откройте `/setup` — или используйте
-существующую базу. Демо-наполнение (вымышленные авторы, по умолчанию «в тени»):
-`python -m scripts.seed` (нужны `requirements-tools.txt`).
-
-Как в продакшене (PostgreSQL + MinIO вместо Yandex Object Storage, один контейнер сайта):
-
-```bash
-SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(48))") docker compose up --build
-```
-
-## Тесты
+Optional real-time chat daemon (Centrifugo on `:8001`; without it the client
+falls back to periodic polling):
 
 ```bash
 cd backend
-.venv/Scripts/python -m pytest                       # все тесты, на SQLite
-MIGRATION_TEST_URL=postgresql://user:pass@localhost:5432/db \
-  .venv/Scripts/python -m pytest tests/test_migrations.py   # миграции на PostgreSQL
+eval "$(.venv/bin/python -m allegro.core.realtime)"
+CENTRIFUGO_CLIENT_ALLOWED_ORIGINS=http://localhost:3000 centrifugo --config ../deploy/centrifugo.json
 ```
 
-- `test_platform.py` — сочинения, партитуры, посты, комментарии, поиск, безопасность файлов.
-- `test_community.py` — роли, регистрация, сброс пароля, администрирование, исполнения,
-  выставка, «О нас», предложения, ограничения частоты.
-- `test_architecture.py` — границы модулей (см. ARCHITECTURE.md).
-- `test_migrations.py` — миграции сохраняют данные.
+## Tests
 
-## Скрипты (`backend/scripts`)
+```bash
+cd backend
+.venv/bin/python -m pytest
+```
 
-| Команда | Что делает |
+To test Alembic migrations against PostgreSQL:
+
+```bash
+MIGRATION_TEST_URL=postgresql://user:pass@localhost:5432/db \
+  .venv/bin/python -m pytest tests/test_migrations.py
+```
+
+## CLI Utilities (`backend/scripts`)
+
+| Command | Purpose |
 |---|---|
-| `python -m scripts.shadow list \| hide \| show <имена>` | «тень»: скрыть/вернуть аккаунт со всем опубликованным |
-| `python -m scripts.set_password <имя>` | задать пароль (вводится скрыто) |
-| `python -m scripts.import_telegram "<папка выгрузки>" --user <имя>` | импорт канала Telegram в блог |
-| `python -m scripts.seed [--visible]` | демо-авторы (вымышленные) |
+| `python -m scripts.shadow list \| hide \| show <handles>` | Hide or restore a member and all their publications |
+| `python -m scripts.set_password <handle>` | Set a member password interactively |
+| `python -m scripts.import_telegram "<export_dir>" --user <handle>` | Import a Telegram channel export into a hall blog |
+| `python -m scripts.seed [--visible]` | Populate demo composer halls and opuses |
 
-## Как добавить…
+## Conventions
 
-- **Поле в таблицу:** модель → `alembic revision --autogenerate -m "…"` → проверить миграцию
-  (на SQLite удаление/изменение колонок идёт через пересоздание таблицы) → тест.
-- **Эндпоинт:** схема в `schemas.py` → сценарий в `service.py` (правила, права, `db.commit()`) →
-  тонкий маршрут в `api.py`.
-- **Модуль:** см. конец раздела 3 в ARCHITECTURE.md.
-
-## Стиль
-
-- Комментарии объясняют «почему», а не «что».
-- Сервисы бросают ошибки из `core/errors.py`, а не `HTTPException`.
-- Побочные эффекты после сохранения — через `after_commit`.
-- Тексты для людей — по-русски; код и комментарии — по-английски.
+- Domain services raise `core.errors` exceptions, never `HTTPException`.
+- Side effects after persistence go through `after_commit`.
+- Code, docstrings, and comments stay in English; user-facing UI strings are Russian.
